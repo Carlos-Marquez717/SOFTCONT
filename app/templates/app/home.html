@@ -1,0 +1,39 @@
+{% extends 'app/base.html' %}
+
+{% load static %}
+{% block content %}
+<style>
+.card-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+    z-index: 1;
+}
+
+.card {
+    width: 1000px; /* Ajusta el tamaño de la tarjeta según tus necesidades */
+}
+
+.card img {
+    width: 800px;  /* Ajusta el tamaño del logo según tus necesidades */
+    height: auto;
+}
+
+</style>
+
+<div class="container-fluid position-relative">
+    <img src="{% static 'app/imgenes/fondo.jpg' %}" alt="Fondo" class="img-fluid w-100">
+    <div class="card-overlay">
+        <div class="card bg-primary text-white">
+            <img src="{% static 'app/imgenes/logo.png' %}" alt="Logo" class="card-img-top mt-4 mx-auto" />
+            <div class="card-body text-center">
+                <h5 class="card-title">BIENVENIDO A SOFTCON SISTEMA CONTROL PARA BODEGA-PAÑOL</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

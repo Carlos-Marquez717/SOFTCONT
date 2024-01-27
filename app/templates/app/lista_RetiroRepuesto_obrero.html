@@ -1,0 +1,51 @@
+<!-- En app/templates/app/lista_prestamos_obrero.html -->
+{% extends 'app/base.html' %}
+
+{% block content %}
+<br><br><br><br>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white">
+      <h2 class="card-header text-center">RETIROS REPUESTOS DE:{{ obrero.nombre }}</h2>
+      <div class="card-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>NOMBRE</th>
+              <th>EMPRESA</th>
+              <th>REPUESTO</th>
+              <th>CANTIDAD</th>
+              <th>FECHA DE RETIRO</th>
+
+            </tr>
+          </thead>
+          <!-- En app/templates/app/lista_prestamos_obrero.html -->
+          <!-- ... (código anterior) ... -->
+          <tbody>
+            {% for retirorepuesto in retirorepuesto_obrero %}
+            <tr>
+              <td>{{ retirorepuesto.trabajador.nombre }}</td>
+              <td>{{ retirorepuesto.empresa }}</td>
+              <td>{{ retirorepuesto.repuesto }}</td>
+              <td>{{ retirorepuesto.cantidad }}</td>
+              <td>
+                {% if retirorepuesto.fecha_retiro %}
+                    {{ retirorepuesto.fecha_retiro|date:"d/m/Y H:i:s" }}
+                {% else %}
+                    Sin fecha de retiro
+                {% endif %}
+            </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <!-- ... (código posterior) ... -->
+
+        </table>
+        <div class="pagination">
+          {{ retirorepuestos_obrero.paginator.num_pages }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'app/base.html' %}
+
+{% load static %}
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.5/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2Xof8k6k5toMJY9wJCAjFmecFJ3l66E4fcj" crossorigin="anonymous">
+
+<br><br><br><br><br>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center">
+      <img src="{% static 'app/imgenes/logo.png' %}" alt="Logo" class="img-fluid mb-4">
+      <h2 class="card-header text-center">REGISTRAR PEDIDOS</h2>
+      <div class="card-body">
+        {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+          <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="post" action="{% url 'editar_pedido' pedido.id %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label id="solicitante">
+              SOLICITANTE
+            </label>
+            {{ form.solicitante }}
+            <!-- Enlace al otro formulario -->
+            <a href="{% url 'registro_obrero' %}">
+              Agregar <i class="fas fa-plus"></i>
+            </a>
+          </div>
+          <br>
+          <!-- Campo empresa -->
+          <div class="form-group">
+            <label for="{{ form.compañia.id_for_label }}">EMPRESA</label>
+            {{ form.compañia }}
+            <a href="{% url 'registro_empresa' %}">
+              Agregar <i class="fas fa-plus"></i>
+            </a>
+
+          </div>
+
+          <br>
+          <div class="form-group">
+            <label for="{{ form.insumo.id_for_label }}">
+              INSUMO
+            </label>
+            {{ form.insumo }}
+            <!-- Enlace al otro formulario -->
+            <a href="{% url 'registro_obrero' %}">
+              Agregar <i class="fas fa-plus"></i>
+            </a>
+          </div>
+          <br>
+          <div class="form-group">
+            <label for="{{ form.nombre.id_for_label }}">
+              CANTIDAD
+            </label>
+            {{ form.cantidad }}
+            <!-- Enlace al otro formulario -->
+            <a href="{% url 'registro_obrero' %}">
+              Agregar <i class="fas fa-plus"></i>
+            </a>
+          </div>
+          <br>
+          <div class="form-group">
+            <label for="{{ form.area.id_for_label }}">
+              AREA
+            </label>
+            {{ form.area }}
+            <!-- Enlace al otro formulario -->
+            <a href="{% url 'registro_obrero' %}">
+              Agregar <i class="fas fa-plus"></i>
+            </a>
+          </div>
+          <br>
+          <button type="submit" class="btn btn-primary">Registrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+<script defer src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"
+  integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.5/css/select2.min.js" rel="stylesheet"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<script>
+  // Inicializa Select2 en los campos
+  $(document).ready(function () {
+    $('#solicitante').select2();
+    $('#id_compania').select2();
+    $('#id_insumo').select2();
+    $('#id_area').select2();
+  });
+
+  // Inicializa el tooltip de Bootstrap
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var successMessage = "{% if messages %}{% for message in messages %}{% if message.tags == 'success' %}{{ message }}{% endif %}{% endfor %}{% endif %}";
+      var errorMessage = "{% if messages %}{% for message in messages %}{% if message.tags == 'error' %}{{ message }}{% endif %}{% endfor %}{% endif %}";
+
+      if (successMessage) {
+          showAlert('success', 'Éxito', successMessage);
+      }
+
+      if (errorMessage) {
+          showAlert('error', 'Error', errorMessage);
+      }
+
+      function showAlert(icon, title, message) {
+          Swal.fire({
+              icon: icon,
+              title: title,
+              text: message,
+          });
+      }
+  });
+</script>
+
+
+{% endblock %}

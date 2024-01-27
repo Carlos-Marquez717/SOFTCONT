@@ -1,0 +1,51 @@
+{% extends 'app/base.html' %}
+
+{% load static %}
+{% block content %}
+<br><br><br><br><br>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center">
+      <img src="{% static 'app/imgenes/logo.png' %}" alt="Logo" class="img-fluid mb-4">
+      <h2 class="card-header text-center">REGISTRAR </h2>
+      <div class="card-body">
+        <form method="post" action="{% url 'registro_empresa' %}">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button type="submit" class="btn btn-primary">Registrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<script>
+  var successMessage = "{% if success_message %}{{ success_message }}{% endif %}";
+  var errorMessage = "{% if error_message %}{{ error_message }}{% endif %}";
+
+  if (successMessage) {
+    showAlertSuccess(successMessage);
+  }
+
+  if (errorMessage) {
+    showAlertError(errorMessage);
+  }
+
+  function showAlertSuccess(message) {
+    Swal.fire({
+      icon: 'success',
+      title: 'Éxito',
+      text: message,
+    });
+  }
+
+  function showAlertError(message) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: message,
+    });
+  }
+</script>
+
+{% endblock %}

@@ -1,0 +1,40 @@
+<!-- En app/templates/app/lista_prestamos_obrero.html -->
+{% extends 'app/base.html' %}
+
+{% block content %}
+<br><br><br><br>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="card bg-dark text-white">
+        <h2 class="card-header text-center">PRESTAMOS DE {{ obrero.nombre }}</h2>
+        <div class="card-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>EMPRESA</th>
+                <th>HERRAMIENTA</th>
+                <th>ESTADO</th>
+                <th>FECHA DE CREACIÓN</th>
+                <th>FECHA DE RECEPCIÓN</th>
+              </tr>
+            </thead>
+            <tbody>
+                {% for prestamo in prestamos_obrero %}
+                    <tr style="background-color: {% if prestamo.status == 'ENTREGADO' %}green{% else %}red{% endif %}">
+                        <td>{{ prestamo.empresa }}</td>
+                        <td>{{ prestamo.herramienta }}</td>
+                        <td>{{ prestamo.status }}</td>
+                        <td>{{ prestamo.fecha_creacion_formatted }}</td>
+                        <td>{{ prestamo.fecha_recepcion_formatted }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+          </table>
+          <div class="pagination">
+            {{ prestamos_obrero.paginator.num_pages }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

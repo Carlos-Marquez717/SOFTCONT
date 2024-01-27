@@ -1,0 +1,82 @@
+{% extends 'app/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2Xof8k6k5toMJY9wJCAjFmecFJ3l66E4fcj" crossorigin="anonymous">
+
+<br><br><br><br><br>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center">
+      <img src="{% static 'app/imgenes/logo.png' %}" alt="Logo" class="img-fluid mb-4">
+      <h2 class="card-header text-center">REGISTRAR PEDIDOS</h2>
+      <div class="card-body">
+        <!-- Contenedor para los botones -->
+        <div class="d-flex">
+          <!-- Enlace para ir al formulario de registrar obrero -->
+          <a href="{% url 'registro_obrero' %}" class="btn btn-success mr-2">
+            <i class="fas fa-plus"></i> OBRERO
+          </a>
+          <a href="{% url 'registro_empresa' %}" class="btn btn-success mr-2">
+            <i class="fas fa-plus"></i> EMPRESA
+          </a>
+          <a href="{% url 'registro_material' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> INSUMO
+          </a>
+        </div>
+        <hr>
+        <!-- Formulario de registrar pedido -->
+        <form method="post" action="{% url 'registro_pedido' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            {{ form.non_field_errors }}
+            {{ form.as_p }}
+          </div>
+          <br>
+          <br>
+          <button type="submit" class="btn btn-primary">Registrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
+
+<!-- Cargar jQuery 3.3.1 -->
+<script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+
+<!-- Cargar SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<script>
+  var successMessage = "{% if success_message %}{{ success_message }}{% endif %}";
+  var errorMessage = "{% if error_message %}{{ error_message }}{% endif %}";
+
+  if (successMessage) {
+    showAlertSuccess(successMessage);
+  }
+
+  if (errorMessage) {
+    showAlertError(errorMessage);
+  }
+
+  function showAlertSuccess(message) {
+    Swal.fire({
+      icon: 'success',
+      title: 'Éxito',
+      text: message,
+    });
+  }
+
+  function showAlertError(message) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: message,
+    });
+  }
+</script>
+
+{% endblock %}

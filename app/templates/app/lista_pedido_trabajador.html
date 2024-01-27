@@ -1,0 +1,79 @@
+
+{% extends 'app/base.html' %}
+
+{% block content %}
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+
+<!-- Agrega el enlace al JS de DataTables -->
+
+<br><br><br><br>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="card bg-dark text-white">
+        <h2 class="card-header text-center">HISTORIAL DE PEDIDOS DE {{ obrero.nombre }}</h2>
+        <div class="card-body">
+          <div class="mb-3">
+            <form method="GET" action="{% url 'lista_pedido' %}">
+                <label for="buscar" class="form-label">Buscar:</label>
+                <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
+                    value="{{ search_term }}">
+                    <br>
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </form>
+          </div>
+          <table class="table mx-auto table-dark">
+            <thead>
+              <tr>
+                
+                <th scope="col">NOMBRE</th>
+                <th scope="col">EMPRESA</th>
+                <th scope="col">INSUMO</th>
+                <th scope="col">CANTIDAD</th>
+                <th scope="col">FECHA</th>
+                <th scope="col">ACCION</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pedido in pedidos %}
+                <tr>
+                    
+                    <td>{{ pedido.solicitante }}</td>
+                    <td>{{ pedido.compañia }}</td>
+                    <td>{{ pedido.insumo }}</td>
+                    <td>{{ pedido.cantidad }}</td>
+                    <td>{{ pedido.fecha_pedido_formatted }}</td>
+         
+                    <td>
+                        <a href="{% url 'eliminar_pedido' pedido.id %}" class="btn btn-danger">Eliminar</a>
+                  
+                    </td>
+
+
+
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span class="step-links">
+                {% if pedidos.has_previous %}
+                    <a href="?page=1{% if search_term %}&buscar={{ search_term }}{% endif %}">&laquo; PRINCIPIO</a>
+                    <a href="?page={{ pedidos.previous_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">PREVIO</a>
+                {% endif %}
+
+                <span class="current">
+                    Página {{ pedidos.number }} de {{ pedidos.paginator.num_pages }}.
+                </span>
+
+                {% if pedidos.has_next %}
+                    <a href="?page={{ pedidos.next_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">SIGUIENTE</a>
+                    <a href="?page={{ pedidos.paginator.num_pages }}{% if search_term %}&buscar={{ search_term }}{% endif %}">ANTERIOR &raquo;</a>
+                {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
