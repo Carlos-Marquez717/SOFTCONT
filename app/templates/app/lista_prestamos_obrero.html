@@ -2,6 +2,7 @@
 {% extends 'app/base.html' %}
 
 {% block content %}
+<link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet" />
 <br><br><br><br>
   <div class="container">
     <div class="row justify-content-center">
@@ -11,28 +12,30 @@
           <table class="table">
             <thead>
               <tr>
-                <th>EMPRESA</th>
-                <th>HERRAMIENTA</th>
-                <th>ESTADO</th>
-                <th>FECHA DE CREACIÓN</th>
-                <th>FECHA DE RECEPCIÓN</th>
+                <th class="text-white">SOLICITANTE</th>
+                <th class="text-white">EMPRESA</th>
+                <th class="text-white">HERRAMIENTA</th>
+                <th class="text-white">ESTADO</th>
+                <th class="text-white">FECHA DE CREACIÓN</th>
+                <th class="text-white">FECHA DE RECEPCIÓN</th>
               </tr>
             </thead>
             <tbody>
                 {% for prestamo in prestamos_obrero %}
                     <tr style="background-color: {% if prestamo.status == 'ENTREGADO' %}green{% else %}red{% endif %}">
-                        <td>{{ prestamo.empresa }}</td>
-                        <td>{{ prestamo.herramienta }}</td>
-                        <td>{{ prestamo.status }}</td>
-                        <td>{{ prestamo.fecha_creacion_formatted }}</td>
-                        <td>{{ prestamo.fecha_recepcion_formatted }}</td>
+                        <td class="text-white">{{ prestamo.nombre_solicitante }}</td>
+                        <td class="text-white">{{ prestamo.empresa }}</td>
+                        <td class="text-white">{{ prestamo.herramienta }}</td>
+                        <td class="text-white">{{ prestamo.status }}</td>
+                        <td class="text-white">{{ prestamo.fecha_creacion_formatted }}</td>
+                        <td class="text-white">{{ prestamo.fecha_recepcion_formatted }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
           </table>
-          <div class="pagination">
-            {{ prestamos_obrero.paginator.num_pages }}
-          </div>
+          
+  
+
         </div>
       </div>
     </div>

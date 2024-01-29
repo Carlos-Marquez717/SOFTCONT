@@ -50,7 +50,7 @@
                         
                         <a href="{% url 'lista_pedido_trabajador' pedido.solicitante.id %}" class="btn btn-primary" style="background-color: rgb(17, 7, 161)" >Historial</a>
                         
-                        <button class="btn btn-warning" onclick="window.location.href='{% url 'editar_pedido' pedido.id %}'" class="btn btn-info btn-sm" style="background-color: black" title="EDITAR">Editar</button>
+                        <button class="btn btn-warning" onclick="window.location.href='{% url 'editar_pedido' pedido.id %}'" class="btn btn-info btn-sm" style="background-color: rgb(119, 236, 10)" title="EDITAR">Editar</button>
 
                         <button class="btn btn-secondary" style="background-color: rgb(182, 5, 5)"  class="btn btn-info btn-sm" onclick="confirmarEliminacion('{{ pedido.id }}')">Eliminar</button>
 

@@ -1,8 +1,12 @@
 # en trabajadores/urls.py
 from django.urls import path
-from .views import registrar_trabajador,lista_trabajador,registro_empresa,lista_empresa,eliminar,registro_obrero,lista_obrero,eliminar_obrero,registro_pedido,lista_pedido,eliminar_pedido,lista_pedido_trabajador,registro_material,eliminar_material,lista_material,editar_material,editar_obrero,editar_empresa,editar_pedido,home,registro_Herramienta,lista_Herramienta,editar_herramienta,eliminar_herramienta,lista_Prestamo,registrar_prestamo,editar_prestamo,lista_prestamos_obrero,registro_Repuesto,eliminar_repuesto,lista_Repuesto,editar_Repuesto,registro_RetiroRepuesto,lista_RetiroRepuesto,eliminar_RetiroRepuesto,editar_RetiroRepuesto,lista_RetiroRepuesto_obrero
+from django.contrib.auth.views import logout_then_login
+from .views import registrar_trabajador,lista_trabajador,registro_empresa,lista_empresa,eliminar,registro_obrero,lista_obrero,eliminar_obrero,registro_pedido,lista_pedido,eliminar_pedido,lista_pedido_trabajador,registro_material,eliminar_material,lista_material,editar_material,editar_obrero,editar_empresa,editar_pedido,home,registro_Herramienta,lista_Herramienta,editar_herramienta,eliminar_herramienta,lista_prestamo,registrar_prestamo,editar_prestamo,lista_prestamos_obrero,registro_Repuesto,eliminar_repuesto,lista_Repuesto,editar_Repuesto,registro_RetiroRepuesto,lista_RetiroRepuesto,eliminar_RetiroRepuesto,editar_RetiroRepuesto,lista_RetiroRepuesto_obrero,login,logout
 
 urlpatterns = [
+    path('login/', login, name='login' ),
+    path('logout/', logout_then_login, name='logout'),
+
     path('registrar/', registrar_trabajador, name='registrar_trabajador'),
     path('listar/', lista_trabajador, name='lista_trabajador'),
     path('registro_empresa/', registro_empresa, name='registro_empresa'),
@@ -28,7 +32,7 @@ urlpatterns = [
     path('lista_Herramienta/', lista_Herramienta, name='lista_Herramienta'),
     path('editar_herramienta/<int:id>/', editar_herramienta, name='editar_herramienta'),
     path('eliminar_herramienta/<id>/', eliminar_herramienta, name='eliminar_herramienta' ),
-    path('lista_Prestamo/', lista_Prestamo, name='lista_prestamo'),
+    path('lista_prestamo/', lista_prestamo, name='lista_prestamo'),
     path('registrar_prestamo/', registrar_prestamo, name='registrar_prestamo'),
     path('editar_prestamo/<int:prestamo_id>/', editar_prestamo, name='editar_prestamo'),
     path('lista_prestamos_obrero/<int:obrero_id>/', lista_prestamos_obrero, name='lista_prestamos_obrero'),

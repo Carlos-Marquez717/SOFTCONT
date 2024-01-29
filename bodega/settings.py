@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
 from pathlib import Path
+from telnetlib import LOGOUT
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,8 +28,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login'
 
-# Application definition
+IMPORT_EXPORT_USE_TRANSACTIONS = True  
+SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
+
+SESSION_COOKIE_SECURE = True  # Si estás usando HTTPS
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -39,7 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'django_select2',
-    'crispy_forms',  
+    'crispy_forms',
+    'django_session_timeout',  
     
     
 ]
@@ -59,12 +67,18 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
+    'django_session_timeout.middleware.SessionTimeoutMiddleware',
+    
 
 ]
+
+SESSION_EXPIRE_SECONDS = 6000
+SESSION_TIMEOUT_REDIRECT = '/accounts/login'
 
 ROOT_URLCONF = 'bodega.urls'
 

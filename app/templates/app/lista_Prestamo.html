@@ -1,74 +1,148 @@
 {% extends 'app/base.html' %}
 
 {% block content %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+<!-- Data Table CSS -->
+<!-- Data Table CSS -->
+<link rel='stylesheet' href='https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css'>
+
+
+
 <br><br><br><br>
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="card bg-dark text-white">
-        <h2 class="card-header text-center">PRESTAMO DE HERRAMIENTAS</h2>
-        <div class="card-body">
-          <div class="mb-3">
-            <form method="GET" action="{% url 'lista_prestamo' %}">
-                <label for="buscar" class="form-label">Buscar:</label>
-                <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
-                    value="{{ search_term }}">
-                    <br>
-                <button type="submit" class="btn btn-primary">Buscar</button>
-            </form>
-          </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>SOLICITANTE</th>
-                <th>EMPRESA</th>
-                <th>HERRAMIENTA</th>
-                
-                <th>FECHA PRESTAMO</th>
-                <th>FECHA RECEPCION</th>
-                <th>ACCION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for prestamo, form, obrero in prestamos %}
-                    <tr style="background-color: {% if prestamo.status == 'ENTREGADO' %}green{% else %}red{% endif %}">
-                        <td>{{ prestamo.nombre_solicitante }}</td>
-                        <td>{{ prestamo.empresa }}</td>
-                        <td>{{ prestamo.herramienta }}</td>
-                        <td>{{ prestamo.fecha_creacion_formatted }}</td>
-                        <td>{{ prestamo.fecha_recepcion_formatted }}</td>
-                        <td>
-                            <form method="POST" action="{% url 'editar_prestamo' prestamo.id %}">
-                                {% csrf_token %}
-                                {{ form.as_p }}
-                                <button type="submit">Guardar</button>
-                            </form>
-                            <a href="{% url 'lista_prestamos_obrero' obrero.id %}">Ver préstamos</a>
-
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-
-          </table>
-          <div class="pagination">
-            <span class="step-links">
-                {% if prestamos.has_previous %}
-                    <a href="?page=1{% if search_term %}&buscar={{ search_term }}{% endif %}">&laquo; PRINCIPIO</a>
-                    <a href="?page={{ prestamos.previous_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">PREVIO</a>
-                {% endif %}
-
-                <span class="current">
-                    Página {{ prestamos.number }} de {{ prestamos.paginator.num_pages }}.
-                </span>
-
-                {% if prestamos.has_next %}
-                    <a href="?page={{ prestamos.next_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">SIGUIENTE</a>
-                    <a href="?page={{ prestamos.paginator.num_pages }}{% if search_term %}&buscar={{ search_term }}{% endif %}">ANTERIOR &raquo;</a>
-                {% endif %}
-            </span>
-          </div>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white">
+      <h2 class="card-header text-center">PRESTAMO DE HERRAMIENTAS</h2>
+      <div class="card-body">
+        <div class="mb-3">
+          <form method="GET" action="{% url 'lista_prestamo' %}">
+            <div class="input-group">
+              <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
+                value="{{ search_term }}">
+              <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+          </form>
         </div>
+        <table id="example" class="table table-striped" style="width:100%">
+
+          <thead>
+            <tr>
+              <th>N°</th>
+              <th>SOLICITANTE</th>
+              <th>EMPRESA</th>
+              <th>HERRAMIENTA</th>
+              <th>FECHA PRESTAMO</th>
+              <th>FECHA RECEPCION</th>
+              <th>ACCION</th>
+              <th>HISTORIAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prestamo, form, obrero in prestamos %}
+            <tr class="{% cycle 'even' 'odd' %}">
+              <td>{{ prestamo.id }}</td>
+              <td>{{ prestamo.nombre_solicitante }}</td>
+              <td>{{ prestamo.empresa }}</td>
+              <td>{{ prestamo.herramienta }}</td>
+              <td>{{ prestamo.fecha_creacion_formatted }}</td>
+              <td>{{ prestamo.fecha_recepcion_formatted }}</td>
+              <td>
+                <form method="POST" action="{% url 'editar_prestamo' prestamo.id %}">
+                  {% csrf_token %}
+                  {{ form.as_p }}
+                  {{ form.herramienta }}
+                  {% if prestamo.status == 'ENTREGADO' %}
+                  <script>
+                    document.getElementById("id_herramienta").disabled = true;
+                  </script>
+                  {% endif %}
+                  <button type="submit" {% if prestamo.status == 'ENTREGADO' %}disabled{% endif %}
+                    class="btn btn-primary">
+                    Guardar
+                  </button>
+                </form>
+
+              </td>
+              <td>
+                <a href="{% url 'lista_prestamos_obrero' obrero.id %}" class="btn btn-info">Ver préstamos</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <!-- Elimina esta sección de paginación Django -->
+        <div class="pagination">
+          <span class="step-links">
+            {% if prestamos.has_previous %}
+            <a href="?page=1{% if search_term %}&buscar={{ search_term }}{% endif %}">&laquo; PRINCIPIO</a>
+            <a
+              href="?page={{ prestamos.previous_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">PREVIO</a>
+            {% endif %}
+
+            <span class="current">
+              Página {{ prestamos.number }} de {{ prestamos.paginator.num_pages }}.
+            </span>
+
+            {% if prestamos.has_next %}
+            <a
+              href="?page={{ prestamos.next_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">SIGUIENTE</a>
+            <a href="?page={{ prestamos.paginator.num_pages }}{% if search_term %}&buscar={{ search_term }}{% endif %}">ANTERIOR
+              &raquo;</a>
+            {% endif %}
+          </span>
+        </div>
+
+
       </div>
+
+
     </div>
   </div>
+</div>
+</div>
+
+
+
+{% if success_message %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<script>
+  Swal.fire({
+    icon: 'success',
+    title: 'Éxito',
+    text: '{{ success_message }}',
+  });
+</script>
+{% endif %}
+<!-- FontAwesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+
+<!-- jQuery -->
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+
+
+<!-- DataTables y sus extensiones -->
+<script src='https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js'></script>
+<script src='https://cdn.datatables.net/responsive/2.1.0/js/dataTables.responsive.min.js'></script>
+<script src='https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js'></script>
+
+<!-- ... otras extensiones de DataTables ... -->
+
+<script>
+  $(document).ready(function () {
+    $('#example').DataTable({
+      "paging": true,
+      "lengthChange": false, // Oculta la opción para cambiar la cantidad de registros mostrados por página
+      "searching": false, // Desactiva la función de búsqueda
+      "info": true,
+      "ordering": true,
+      "autoWidth": false, // Desactiva el ajuste automático del ancho de las columnas
+      "responsive": true, // Activa la funcionalidad de diseño sensible
+    });
+  });
+</script>
+
+
+
 {% endblock %}

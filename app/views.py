@@ -11,10 +11,11 @@ from django.db.models import Q
 from django.utils import timezone
 from django.http import JsonResponse
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required,permission_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User, auth
 
-
-
-
+@login_required
 def home(request):
     
     return render(request, 'app/home.html')
@@ -30,12 +31,12 @@ def registrar_trabajador(request):
 
     return render(request, 'app/registrar_trabajador.html', {'form': form})
 
-
+@login_required
 def lista_trabajador(request):
     trabajadores = Trabajador.objects.all()
     return render(request, 'app/lista_trabajador.html', {'trabajadores': trabajadores})
 
-
+@login_required
 def lista_empresa(request):
     empresas_list = Empresa.objects.all()
 
@@ -58,7 +59,7 @@ def lista_empresa(request):
 
     return render(request, 'app/lista_empresa.html', {'empresas': empresas, 'search_term': search_term})
 
-
+@login_required
 def registro_empresa(request):
     if request.method == 'POST':
         form = EmpresaForm(request.POST)
@@ -77,7 +78,7 @@ def registro_empresa(request):
 
 
 
-
+@login_required
 def eliminar(request, id):
     empresa= get_object_or_404(Empresa, id=id)
     empresa.delete()
@@ -97,6 +98,7 @@ def editar_empresa(request, empresa_id):
 
     return render(request, 'editar_empresa.html', {'form': form, 'empresa': empresa})
 
+@login_required
 def registro_obrero(request):
     if request.method == 'POST':
         form = ObreroForm(request.POST)
@@ -115,7 +117,7 @@ def registro_obrero(request):
 
 
 
-
+@login_required
 def lista_obrero(request):
     obreros_list = Obrero.objects.all()
 
@@ -138,13 +140,14 @@ def lista_obrero(request):
 
     return render(request, 'app/lista_obrero.html', {'obreros': obreros, 'search_term': search_term})
 
+@login_required
 def eliminar_obrero(request, id):
     obrero= get_object_or_404(Obrero, id=id)
     obrero.delete()
     messages.success(request,"ELIMINADO CORRECTAMENTE")
     return redirect(to='lista_obrero')
 
-
+@login_required
 def editar_obrero(request, obrero_id):
     obrero = get_object_or_404(Obrero, id=obrero_id)
     if request.method == 'POST':
@@ -159,7 +162,7 @@ def editar_obrero(request, obrero_id):
     return render(request, 'app/editar_obrero.html', {'form': form, 'obrero': obrero})
 
 
-
+@login_required
 def registro_pedido(request):
     if request.method == 'POST':
         form = PedidoForm(request.POST)
@@ -184,7 +187,7 @@ def registro_pedido(request):
 
 
 
-
+@login_required
 def lista_pedido_trabajador(request, trabajador_id):
     # Obtén el obrero o muestra una página de error si no existe
     obrero = get_object_or_404(Obrero, id=trabajador_id)
@@ -224,6 +227,7 @@ def lista_pedido_trabajador(request, trabajador_id):
 
     return render(request, 'app/lista_pedido_trabajador.html', {'pedidos': pedidos, 'obrero': obrero, 'search_term': search_term})
 
+@login_required
 def lista_pedido(request):
     pedidos_list = Pedido.objects.all()
 
@@ -251,7 +255,7 @@ def lista_pedido(request):
             # Manejar el caso en que el término de búsqueda no sea una fecha válida
             pass
 
-    paginator = Paginator(pedidos_list, 9)
+    paginator = Paginator(pedidos_list, 4)
     page = request.GET.get('page')
 
     try:
@@ -263,7 +267,7 @@ def lista_pedido(request):
 
     return render(request, 'app/lista_pedido.html', {'pedidos': pedidos, 'search_term': search_term})
 
-
+@login_required
 def eliminar_pedido(request, pedido_id):
     # Obtiene el pedido o muestra una página de error si no existe
     pedido = get_object_or_404(Pedido, id=pedido_id)
@@ -274,6 +278,7 @@ def eliminar_pedido(request, pedido_id):
     # Redirige a la lista de pedidos después de la eliminación
     return redirect('lista_pedido')
 
+@login_required
 def editar_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
@@ -291,7 +296,7 @@ def editar_pedido(request, pedido_id):
     return render(request, 'app/editar_pedido.html', {'form': form, 'pedido': pedido})
 
 
-
+@login_required
 def registro_material(request):
     if request.method == 'POST':
         form = MaterialForm(request.POST)
@@ -310,7 +315,7 @@ def registro_material(request):
 
 
 
-
+@login_required
 def eliminar_material(request, material_id):
     # Obtiene el pedido o muestra una página de error si no existe
     material = get_object_or_404(Material, id=material_id)
@@ -321,7 +326,7 @@ def eliminar_material(request, material_id):
     # Redirige a la lista de pedidos después de la eliminación
     return redirect('lista_material')
 
-
+@login_required
 def lista_material(request):
     materiales_list = Material.objects.all()
 
@@ -344,7 +349,7 @@ def lista_material(request):
 
     return render(request, 'app/lista_material.html', {'materiales': materiales, 'search_term': search_term})
 
-
+@login_required
 def editar_material(request, material_id):
     material = get_object_or_404(Material, id=material_id)
 
@@ -358,7 +363,7 @@ def editar_material(request, material_id):
 
     return render(request, 'editar_material.html', {'form': form, 'material': material})
 
-
+@login_required
 def registro_Herramienta(request):
     if request.method == 'POST':
         form = HerramientaForm(request.POST)
@@ -370,7 +375,7 @@ def registro_Herramienta(request):
 
     return render(request, 'app/registro_Herramienta.html', {'form': form})
 
-
+@login_required
 def lista_Herramienta(request):
     herramientas_list = Herramienta.objects.order_by('id').all()
 
@@ -393,7 +398,7 @@ def lista_Herramienta(request):
 
     return render(request, 'app/lista_Herramienta.html', {'herramientas': herramientas, 'search_term': search_term})
 
-
+@login_required
 def editar_herramienta(request, id):  # Ajusta el nombre del parámetro aquí
     # Obtén la herramienta correspondiente al ID o devuelve un 404 si no existe
     herramienta = get_object_or_404(Herramienta, id=id)
@@ -411,7 +416,7 @@ def editar_herramienta(request, id):  # Ajusta el nombre del parámetro aquí
 
     return render(request, 'app/editar_herramienta.html', {'form': form, 'herramienta': herramienta})
 
-
+@login_required
 def eliminar_herramienta(request, id):
     # Lógica para eliminar la herramienta con el ID proporcionado
     herramienta = get_object_or_404(Herramienta, id=id)
@@ -420,7 +425,7 @@ def eliminar_herramienta(request, id):
     # Redirige a la página de lista de herramientas después de la eliminación
     return redirect('lista_Herramienta')
 
-
+@login_required
 def registrar_prestamo(request):
     if request.method == 'POST':
         form = PrestamoForm(request.POST)
@@ -429,7 +434,11 @@ def registrar_prestamo(request):
             if prestamo.status == 'ENTREGADO':
                 prestamo.fecha_recepcion = prestamo.fecha_creacion
             prestamo.save()
+            
+            messages.success(request, 'El préstamo se ha registrado correctamente.')
             return redirect('lista_prestamo')
+
+
     else:
         form = PrestamoForm()
 
@@ -437,7 +446,9 @@ def registrar_prestamo(request):
 
 
 
-def lista_Prestamo(request):
+
+@login_required
+def lista_prestamo(request):
     prestamos_list = Prestamo.objects.order_by('id').all()
 
     # Obtener el término de búsqueda de la URL
@@ -445,9 +456,10 @@ def lista_Prestamo(request):
 
     # Filtrar prestamos por nombre si hay un término de búsqueda
     if search_term:
-        prestamos_list = prestamos_list.filter(Q(nombre_solicitante__icontains=search_term))
+        prestamos_list = prestamos_list.filter(Q(nombre_solicitante__nombre__icontains=search_term))
 
-    paginator = Paginator(prestamos_list, 9)
+
+    paginator = Paginator(prestamos_list, 4)
     page = request.GET.get('page')
 
     try:
@@ -465,9 +477,13 @@ def lista_Prestamo(request):
     prestamo_forms = [PrestamoEditForm(instance=prestamo) for prestamo in prestamos]
     obreros = [prestamo.nombre_solicitante for prestamo in prestamos]
 
-    return render(request, 'app/lista_prestamo.html', {'prestamos': zip(prestamos, prestamo_forms, obreros), 'search_term': search_term})
+    # Obtener el mensaje de éxito de la URL
+    success_message = request.GET.get('success_message', None)
+
+    return render(request, 'app/lista_prestamo.html', {'prestamos': zip(prestamos, prestamo_forms, obreros), 'search_term': search_term, 'success_message': success_message})
 
 
+@login_required
 def editar_prestamo(request, prestamo_id):
     prestamo = get_object_or_404(Prestamo, id=prestamo_id)
 
@@ -489,7 +505,7 @@ def editar_prestamo(request, prestamo_id):
 
     return render(request, 'app/lista_prestamo.html', {'prestamo': zip(prestamo, prestamo_forms)})
 
-
+@login_required
 def lista_prestamos_obrero(request, obrero_id):
     # Obtiene el obrero correspondiente al ID o devuelve un 404 si no existe
     obrero = get_object_or_404(Obrero, id=obrero_id)
@@ -498,7 +514,7 @@ def lista_prestamos_obrero(request, obrero_id):
     prestamos_obrero = Prestamo.objects.filter(nombre_solicitante=obrero)
 
     # Paginación (si es necesario)
-    paginator = Paginator(prestamos_obrero, 10)
+    paginator = Paginator(prestamos_obrero,5)
     page = request.GET.get('page')
     prestamos_pagina = paginator.get_page(page)
 
@@ -511,7 +527,7 @@ def lista_prestamos_obrero(request, obrero_id):
 
 
 
-
+@login_required
 def registro_Repuesto(request):
     if request.method == 'POST':
         form = RepuestoForm(request.POST)
@@ -523,7 +539,7 @@ def registro_Repuesto(request):
 
     return render(request, 'app/registro_Repuesto.html', {'form': form})
 
-
+@login_required
 def lista_Repuesto(request):
     repuestos_list = Repuesto.objects.order_by('id').all()
 
@@ -546,7 +562,7 @@ def lista_Repuesto(request):
 
     return render(request, 'app/lista_Repuesto.html', {'repuestos': repuestos, 'search_term': search_term})
 
-
+@login_required
 def eliminar_repuesto(request, id):
     # Lógica para eliminar la herramienta con el ID proporcionado
     repuesto = get_object_or_404(Repuesto, id=id)
@@ -555,7 +571,7 @@ def eliminar_repuesto(request, id):
     # Redirige a la página de lista de herramientas después de la eliminación
     return redirect('lista_Repuesto')
 
-
+@login_required
 def editar_Repuesto(request, repuesto_id):
     repuesto = get_object_or_404(Repuesto, id=repuesto_id)
 
@@ -569,7 +585,7 @@ def editar_Repuesto(request, repuesto_id):
 
     return render(request, 'app/editar_Repuesto.html', {'form': form, 'repuesto': repuesto})
 
-
+@login_required
 def registro_RetiroRepuesto(request):
     if request.method == 'POST':
         form = RetiroRepuestoForm(request.POST)
@@ -581,7 +597,7 @@ def registro_RetiroRepuesto(request):
 
     return render(request, 'app/registro_RetiroRepuesto.html', {'form': form})
 
-
+@login_required
 def lista_RetiroRepuesto(request):
     retirorepuestos_list = RetiroRepuesto.objects.order_by('id').all()
 
@@ -607,7 +623,7 @@ def lista_RetiroRepuesto(request):
     return render(request, 'app/lista_RetiroRepuesto.html', {'retirorepuestos': retirorepuestos, 'search_term': search_term})
 
 
-
+@login_required
 def eliminar_RetiroRepuesto(request, id):
     # Lógica para eliminar la herramienta con el ID proporcionado
     retirorepuesto = get_object_or_404(RetiroRepuesto, id=id)
@@ -616,7 +632,7 @@ def eliminar_RetiroRepuesto(request, id):
     # Redirige a la página de lista de herramientas después de la eliminación
     return redirect('lista_RetiroRepuesto')
 
-
+@login_required
 def editar_RetiroRepuesto(request, retirorepuesto_id):
     retirorepuesto = get_object_or_404(RetiroRepuesto, id=retirorepuesto_id)
 
@@ -632,8 +648,7 @@ def editar_RetiroRepuesto(request, retirorepuesto_id):
 
 
 
-
-
+@login_required
 def lista_RetiroRepuesto_obrero(request, obrero_id):
     # Obtiene el obrero correspondiente al ID o devuelve un 404 si no existe
     obrero = get_object_or_404(Obrero, id=obrero_id)
