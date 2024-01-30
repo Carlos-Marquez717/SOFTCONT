@@ -458,8 +458,7 @@ def lista_prestamo(request):
     if search_term:
         prestamos_list = prestamos_list.filter(Q(nombre_solicitante__nombre__icontains=search_term))
 
-
-    paginator = Paginator(prestamos_list, 4)
+    paginator = Paginator(prestamos_list, 5)
     page = request.GET.get('page')
 
     try:
@@ -474,13 +473,17 @@ def lista_prestamo(request):
         prestamo.fecha_creacion_formatted = prestamo.fecha_creacion.strftime("%d/%m/%Y %H:%M")
         prestamo.fecha_recepcion_formatted = prestamo.fecha_recepcion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_recepcion else None
 
-    prestamo_forms = [PrestamoEditForm(instance=prestamo) for prestamo in prestamos]
-    obreros = [prestamo.nombre_solicitante for prestamo in prestamos]
-
     # Obtener el mensaje de éxito de la URL
     success_message = request.GET.get('success_message', None)
 
-    return render(request, 'app/lista_prestamo.html', {'prestamos': zip(prestamos, prestamo_forms, obreros), 'search_term': search_term, 'success_message': success_message})
+    return render(request, 'app/lista_prestamo.html', {
+        'prestamos': prestamos,
+        'search_term': search_term,
+        'success_message': success_message,
+        'form': PrestamoEditForm(),  # Agrega el formulario al contexto
+    })
+
+
 
 
 @login_required
@@ -608,7 +611,7 @@ def lista_RetiroRepuesto(request):
     if search_term:
         retirorepuestos_list = retirorepuestos_list.filter(Q(nombre__icontains=search_term))
 
-    paginator = Paginator(retirorepuestos_list, 9)
+    paginator = Paginator(retirorepuestos_list, 5)
 
     # Obtener el número de página, estableciendo 1 como valor predeterminado
     page = request.GET.get('page', 1)

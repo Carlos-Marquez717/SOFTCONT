@@ -15,26 +15,31 @@
 </head>
 
 <body>
-    <br><br>
-    <div class="container" >
-        <div class="d-flex justify-content-center">
-            <div>
-                <img src="{% static 'app/imgenes/Logo.png' %}">
-            </div>
+
+    <br>
+
+    <div class="container text-center mt-4">
+        <div>
+            <img src="{% static 'app/imgenes/Logo.png' %}">
         </div>
+        <h1 style="color: white;">SISTEMA CONTROL HERRAMIENTAS E INSUMOS PAÑOL</h1>
     </div>
-    
-    <div class="container h-100">
+
+
+    <br><br><br><br>
+
+    <div class="container h-100 mt-6">
         <div class="d-flex justify-content-center h-100">
             <div class="user_card">
-                <div class="d-flex justify-content-center">
+                <!-- ... (código anterior) ... -->
+                <div class="d-flex justify-content-center form_container">
                     <div class="brand_logo_container">
-                        <img src="{% static 'app/imgenes/FONDO.png' %}" class="brand_logo" alt="Logo">
+                        <img src="{% static 'app/imgenes/FONDO.png' %}" class="brand_logo" alt="Logo"
+                            style="max-width: 100%; max-height: 100%;">
                         <br><br>
                         <h5 style="color: white;">INICIAR SESION</h5>
                     </div>
-                </div>
-                <div class="d-flex justify-content-center form_container">
+
                     <form action="" method="post">
                         {% csrf_token %}
                         <div class="input-group mb-3">
@@ -43,7 +48,7 @@
                             </div>
                             {{ form.username }}
                             {% for error in form.username.errors %}
-                            <p class="text-danger">{{ error }}
+                            <p class="text-danger">{{ error }}</p>
                             {% endfor %}
                         </div>
                         <div class="input-group mb-2">
@@ -53,7 +58,7 @@
                             {{ form.password }}
                             {% if form.non_field_errors %}
                             {% for error in form.non_field_errors %}
-                            <p class="text-danger">{{ error }}
+                            <p class="text-danger">{{ error }}</p>
                             {% endfor %}
                             {% endif %}
                         </div>
@@ -63,6 +68,8 @@
                         </div>
                     </form>
                 </div>
+                <!-- ... (código posterior) ... -->
+
             </div>
         </div>
     </div>
@@ -71,4 +78,3 @@
 </body>
 
 </html>
-
