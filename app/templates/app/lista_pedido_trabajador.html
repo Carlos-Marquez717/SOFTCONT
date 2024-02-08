@@ -46,6 +46,9 @@
          
                     <td>
                         <a href="{% url 'eliminar_pedido' pedido.id %}" class="btn btn-danger">Eliminar</a>
+                        <form action="{% url 'ruta_generar_pdf' pedido.id %}" method="get">
+                          <button class="btn btn-success" type="submit">PDF</button>
+                        </form>
                   
                     </td>
 

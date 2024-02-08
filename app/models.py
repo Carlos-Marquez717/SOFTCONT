@@ -1,5 +1,6 @@
 # en trabajadores/models.py
 from django.db import models
+from django.utils import timezone
 
 
 class Empresa(models.Model):
@@ -37,11 +38,14 @@ class Pedido(models.Model):
     compañia = models.ForeignKey(Empresa, related_name="Pedido", on_delete=models.CASCADE, verbose_name="EMPRESA")
     insumo = models.ForeignKey(Material, related_name="Pedido", on_delete=models.CASCADE, verbose_name="INSUMO")
     cantidad = models.IntegerField(verbose_name="CANTIDAD")
-    area = models.CharField(max_length=100,verbose_name="AREA")
-    fecha_pedido = models.DateTimeField(auto_now_add=True)
+    area = models.CharField(max_length=100, verbose_name="AREA")
+    fecha_pedido = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"Pedido-{self.id}"
+
+    def fecha_pedido_formatted(self):
+        return self.fecha_pedido.strftime("%d/%m/%Y %H:%M")
 
 
 

@@ -14,6 +14,19 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required,permission_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User, auth
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from django.template.loader import render_to_string
+from datetime import datetime
+from tabulate import tabulate
+import tabula
+import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+
 
 @login_required
 def home(request):
@@ -265,7 +278,141 @@ def lista_pedido(request):
     except EmptyPage:
         pedidos = paginator.page(paginator.num_pages)
 
+ 
+
+    # Si no se está exportando a PDF, renderizar la plantilla normalmente
     return render(request, 'app/lista_pedido.html', {'pedidos': pedidos, 'search_term': search_term})
+
+
+
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from .models import Pedido
+from io import BytesIO
+
+def generar_pdf_pedido(request, pedido_id):
+    # Obtener el pedido
+    pedido = get_object_or_404(Pedido, id=pedido_id)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="pedido_{pedido.id}.pdf"'
+
+    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+
+    # Crear una tabla para los datos
+    data = [
+        ['ID', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA', 'FECHA'],
+        [str(pedido.id), pedido.solicitante.nombre, pedido.compañia.nombre, pedido.insumo.nombre, str(pedido.cantidad), pedido.area, pedido.fecha_pedido_formatted()],
+    ]
+
+    # Configurar el estilo de la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 100, height - 130)  # Bajar la tabla
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "ENTREGA DE HERRAMIENTAS E INSUMOS DIARIOS PAÑOL")
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+def generar_pdf_pedidos(request):
+    # Obtener todos los pedidos
+    pedidos = Pedido.objects.all()
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="todos_los_pedidos.pdf"'
+
+    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+
+    # Crear una tabla para los datos
+    data = [
+        ['ID', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA', 'FECHA'],
+    ]
+
+    for pedido in pedidos:
+        data.append([
+            str(pedido.id),
+            pedido.solicitante.nombre,
+            pedido.compañia.nombre,
+            pedido.insumo.nombre,
+            str(pedido.cantidad),
+            pedido.area,
+            pedido.fecha_pedido_formatted(),
+        ])
+
+    # Configurar el estilo de la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 30, height - 150)  # Bajar la tabla
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "ENTREGA DE HERRAMIENTAS E INSUMOS DIARIOS PAÑOL")
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+
+
+
 
 @login_required
 def eliminar_pedido(request, pedido_id):
