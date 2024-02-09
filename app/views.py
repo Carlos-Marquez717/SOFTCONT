@@ -289,13 +289,20 @@ def lista_pedido(request):
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
-def generar_pdf_pedido(request, pedido_id):
-    # Obtener el pedido
-    pedido = get_object_or_404(Pedido, id=pedido_id)
+
+
+def generar_pdf_pedido(request, obrero_id):
+    # Obtener el obrero específico
+    obrero = get_object_or_404(Obrero, id=obrero_id)
+
+    # Obtener los préstamos asociados al obrero
+    pedidos = Pedido.objects.filter(solicitante=obrero)
+
+
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="pedido_{pedido.id}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="prestamos_{obrero.nombre}.pdf"'
 
     # Crear el objeto PDF con ReportLab, con orientación horizontal
     buffer = BytesIO()
@@ -303,60 +310,7 @@ def generar_pdf_pedido(request, pedido_id):
 
     # Crear una tabla para los datos
     data = [
-        [ 'FECHA','NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA'],
-        [ pedido.fecha_pedido_formatted(),pedido.solicitante.nombre, pedido.compañia.nombre, pedido.insumo.nombre, str(pedido.cantidad), pedido.area],
-    ]
-
-    # Configurar el estilo de la tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
-
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla en la página
-    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 130)  # Bajar la tabla
-
-    # Agregar título
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA DE HERRAMIENTAS E INSUMOS DIARIOS PAÑOL")
-
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
-
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
-    response.write(pdf)
-
-    return response
-
-def generar_pdf_pedidos(request):
-    # Obtener todos los pedidos
-    pedidos = Pedido.objects.all()
-
-    # Crear el objeto PDF con ReportLab
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="todos_los_pedidos.pdf"'
-
-    # Crear el objeto PDF con ReportLab, con orientación horizontal
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
-
-    # Crear una tabla para los datos
-    data = [
-        [ 'FECHA','NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA' ],
+        ['FECHA', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA'],
     ]
 
     for pedido in pedidos:
@@ -365,10 +319,10 @@ def generar_pdf_pedidos(request):
             pedido.solicitante.nombre,
             pedido.compañia.nombre,
             pedido.insumo.nombre,
-            str(pedido.cantidad),
+            pedido.cantidad,  # Elimina la llamada a str() aquí
             pedido.area,
-            
         ])
+
 
     # Configurar el estilo de la tabla
     style = TableStyle([
@@ -390,7 +344,7 @@ def generar_pdf_pedidos(request):
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA DE HERRAMIENTAS E INSUMOS DIARIOS PAÑOL")
+    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS | PAÑOL")
 
     # Guardar el PDF en el buffer
     p.showPage()
@@ -405,6 +359,90 @@ def generar_pdf_pedidos(request):
 
     return response
 
+
+def generar_pdf_pedidos(request):
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar')
+
+    # Obtener todos los pedidos y aplicar filtro de búsqueda si es necesario
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        # Formatear la fecha si se proporciona
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date=search_date)
+            )
+        except ValueError:
+            # Manejar el caso en que el término de búsqueda no sea una fecha válida
+            pass
+
+    # Después de aplicar el filtro
+    print("Pedidos después de aplicar filtro:", pedidos)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
+
+    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+
+    # Crear una tabla para los datos
+    data = [
+        ['FECHA', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA'],
+    ]
+
+    for pedido in pedidos:
+        data.append([
+            pedido.fecha_pedido.strftime("%d/%m/%Y"),
+            pedido.solicitante.nombre,
+            pedido.compañia.nombre,
+            pedido.insumo.nombre,
+            str(pedido.cantidad),
+            pedido.area,
+        ])
+
+    # Configurar el estilo de la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 100, height - 160)  # Bajar la tabla
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS | PAÑOL")
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
 
 
 
@@ -689,13 +727,16 @@ def generar_pdf_prestamos(request):
     return response
 
 
-def generar_pdf_prestamo(request, prestamo_id):
-    # Obtener el pedido
-    prestamo = get_object_or_404(Prestamo, id=prestamo_id)
+def generar_pdf_prestamo(request, obrero_id):
+    # Obtener el trabajador específico
+    trabajador = get_object_or_404(Obrero, id=obrero_id)
+
+    # Obtener los préstamos asociados al trabajador
+    prestamos = Prestamo.objects.filter(nombre_solicitante=trabajador)
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="prestamo_{prestamo_id}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="prestamos_{trabajador.nombre}.pdf"'
 
     # Crear el objeto PDF con ReportLab, con orientación horizontal
     buffer = BytesIO()
@@ -703,10 +744,18 @@ def generar_pdf_prestamo(request, prestamo_id):
 
     # Crear una tabla para los datos
     data = [
-        [ 'NOMBRE', 'EMPRESA', 'HERRAMIENTA', 'FECHA PRESTAMO', 'FEHCA RECEPCION', 'STATUS'],
-        [ prestamo.nombre_solicitante.nombre, prestamo.empresa.nombre, prestamo.herramienta.nombre, prestamo.fecha_creacion.strftime("%d/%m/%Y"), prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-', prestamo.status]
+        ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA CREACION', 'FECHA RECEPCION', 'ESTADO'],
     ]
 
+    for prestamo in prestamos:
+        data.append([
+            prestamo.nombre_solicitante.nombre,
+            prestamo.empresa.nombre,
+            prestamo.herramienta.nombre,
+            prestamo.fecha_creacion.strftime("%d/%m/%Y"),
+            prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-',
+            prestamo.status,
+        ])
 
     # Configurar el estilo de la tabla
     style = TableStyle([
@@ -724,11 +773,11 @@ def generar_pdf_prestamo(request, prestamo_id):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 130)  # Bajar la tabla
+    table.drawOn(p, 100, height - 150)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "PRESTAMO HERRAMIENTAS | PAÑOL")
+    p.drawCentredString(width / 2, height - 70, "PRESTAMO DE HERRAMIENTAS | PAÑOL")
 
     # Guardar el PDF en el buffer
     p.showPage()

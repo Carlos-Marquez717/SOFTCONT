@@ -30,9 +30,7 @@
                         <td class="text-white">{{ prestamo.fecha_creacion_formatted }}</td>
                         <td class="text-white">{{ prestamo.fecha_recepcion_formatted }}</td>
                         <td>  
-                          <form action="{% url 'generar_pdf_prestamo' prestamo.id %}" method="get">
-                            <button class="btn btn-success" type="submit">PDF</button>
-                          </form>
+                          <a href="{% url 'generar_pdf_prestamo' obrero_id=prestamo.nombre_solicitante.id %}" class="btn btn-success">Exportar PDF</a>
                         </td>
                     </tr>
                 {% endfor %}

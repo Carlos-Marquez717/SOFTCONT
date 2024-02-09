@@ -50,10 +50,10 @@ urlpatterns = [
 
     path('', home, name='home'),
 
-    path('generar_pdf/<int:pedido_id>/', generar_pdf_pedido, name='ruta_generar_pdf'),
+    path('generar_pdf_pedido/<int:obrero_id>/', generar_pdf_pedido, name='generar_pdf_pedido'),  
     path('generar_pdf_pedidos/', generar_pdf_pedidos, name='generar_pdf_pedidos'),
     path('generar_pdf_prestamos/', generar_pdf_prestamos, name='generar_pdf_prestamos'),
-    path('generar_pdf_prestamo/<int:prestamo_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),
+    path('generar_pdf_prestamo/<int:obrero_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),
     # Puedes agregar más rutas aquí según sea necesario
 ]
 
