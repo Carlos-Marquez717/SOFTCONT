@@ -26,6 +26,9 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from django.db.models import F, CharField, ExpressionWrapper, fields,Value,Case, When
+from django.db.models.functions import Cast,Concat
+
 
 
 @login_required
@@ -282,13 +285,6 @@ def lista_pedido(request):
 
     # Si no se está exportando a PDF, renderizar la plantilla normalmente
     return render(request, 'app/lista_pedido.html', {'pedidos': pedidos, 'search_term': search_term})
-
-
-
-
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-
 
 
 def generar_pdf_pedido(request, obrero_id):
@@ -625,20 +621,51 @@ def registrar_prestamo(request):
     return render(request, 'app/registrar_prestamo.html', {'form': form})
 
 
-
-
-@login_required
 def lista_prestamo(request):
-    prestamos_list = Prestamo.objects.order_by('id').all()
+    # Initialize search_term to an empty string
+    search_term = request.GET.get('buscar', '')
 
-    # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar')
+    prestamos_list = Prestamo.objects.all()
 
-    # Filtrar prestamos por nombre si hay un término de búsqueda
+    # Iterar sobre los prestamos para formatear las fechas
+    for prestamo in prestamos_list:
+        # Check if fecha_recepcion is not None before formatting
+        if prestamo.fecha_recepcion:
+            prestamo.fecha_recepcion_formatted = prestamo.fecha_recepcion.strftime("%d/%m/%Y %H:%M")
+        else:
+            prestamo.fecha_recepcion_formatted = None
+
+        # Check if fecha_creacion is not None before formatting
+        if prestamo.fecha_creacion:
+            prestamo.fecha_creacion_formatted = prestamo.fecha_creacion.strftime("%d/%m/%Y %H:%M")
+        else:
+            prestamo.fecha_creacion_formatted = None
+
+    # Filtrar prestamos por cualquier campo si hay un término de búsqueda
     if search_term:
-        prestamos_list = prestamos_list.filter(Q(nombre_solicitante__nombre__icontains=search_term))
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y")
+            # Utilizar Q() para construir consultas OR entre campos
+            prestamos_list = Prestamo.objects.filter(
+                Q(nombre_solicitante__nombre__icontains=search_term) |
+                Q(empresa__nombre__icontains=search_term) |
+                Q(herramienta__nombre__icontains=search_term) |
+                Q(fecha_creacion__icontains=search_term) |
+                Q(status__icontains=search_term) |
+                Q(fecha_recepcion=search_date)
+            )
 
-    paginator = Paginator(prestamos_list, 5)
+        except ValueError:
+            # Si no es una fecha válida, buscar en otros campos
+            prestamos_list = Prestamo.objects.filter(
+                Q(nombre_solicitante__nombre__icontains=search_term) |
+                Q(empresa__nombre__icontains=search_term) |
+                Q(herramienta__nombre__icontains=search_term) |
+                Q(fecha_creacion__icontains=search_term) |
+                Q(status__icontains=search_term)
+            )
+
+    paginator = Paginator(prestamos_list, 4)
     page = request.GET.get('page')
 
     try:
@@ -648,25 +675,37 @@ def lista_prestamo(request):
     except EmptyPage:
         prestamos = paginator.page(paginator.num_pages)
 
-    # Formatear la fecha y la hora antes de pasarla a la plantilla
-    for prestamo in prestamos:
-        prestamo.fecha_creacion_formatted = prestamo.fecha_creacion.strftime("%d/%m/%Y %H:%M")
-        prestamo.fecha_recepcion_formatted = prestamo.fecha_recepcion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_recepcion else None
+    # Renderizar la plantilla normalmente
+    return render(request, 'app/lista_prestamo.html', {'prestamos': prestamos, 'search_term': search_term})
 
-    # Obtener el mensaje de éxito de la URL
-    success_message = request.GET.get('success_message', None)
 
-    return render(request, 'app/lista_prestamo.html', {
-        'prestamos': prestamos,
-        'search_term': search_term,
-        'success_message': success_message,
-        'form': PrestamoEditForm(),  # Agrega el formulario al contexto
-    })
+
 
 
 def generar_pdf_prestamos(request):
-    # Obtener todos los préstamos
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar')
+
+    # Obtener todos los préstamos y aplicar filtro de búsqueda si es necesario
     prestamos = Prestamo.objects.all()
+
+    if search_term:
+        # Formatear la fecha si se proporciona
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            prestamos = prestamos.filter(
+                Q(nombre_solicitante__nombre__icontains=search_term) |
+                Q(empresa__nombre__icontains=search_term) |
+                Q(herramienta__nombre__icontains=search_term) |
+                Q(fecha_creacion__date=search_date) |
+                Q(fecha_recepcion__date=search_date)  # Asumo que la fecha de recepción también se filtra
+            )
+        except ValueError:
+            # Manejar el caso en que el término de búsqueda no sea una fecha válida
+            pass
+
+    # Después de aplicar el filtro
+    print("Préstamos después de aplicar filtro:", prestamos)
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
@@ -707,7 +746,7 @@ def generar_pdf_prestamos(request):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 160)  # Bajar la tabla
+    table.drawOn(p, 60, height - 180)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
@@ -773,7 +812,7 @@ def generar_pdf_prestamo(request, obrero_id):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 150)  # Bajar la tabla
+    table.drawOn(p, 90, height - 170)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
@@ -812,7 +851,8 @@ def editar_prestamo(request, prestamo_id):
     else:
         form = PrestamoEditForm(instance=prestamo)
 
-    return render(request, 'app/lista_prestamo.html', {'prestamo': zip(prestamo, prestamo_forms)})
+    return render(request, 'app/editar_prestamo.html', {'form': form, 'prestamo': prestamo})
+
 
 @login_required
 def lista_prestamos_obrero(request, obrero_id):

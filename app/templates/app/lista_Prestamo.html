@@ -11,16 +11,17 @@
     <div class="card bg-dark text-white">
       <h2 class="card-header text-center">PRESTAMO DE HERRAMIENTAS</h2>
       <div class="card-body">
-        <div class="mb-3">
-          <form method="GET" action="{% url 'lista_prestamo' %}">
-            <div class="input-group">
-              <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
-                value="{{ search_term }}">
+        
+          <div class="mb-3">
+            <form method="GET" action="{% url 'lista_prestamo' %}">
+              <label for="buscar" class="form-label">Buscar:</label>
+              <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..." 
+                  value="{{ search_term }}">
+                  <br>
               <button type="submit" class="btn btn-primary">Buscar</button>
-            </div>
-          </form>
-        </div>
-        <table class="table table-dark" style="width:100%">
+            </form>
+          </div>
+          <table class="table table-dark" style="width:100%">
 
           <thead>
             <tr>
@@ -43,8 +44,23 @@
               <td>{{ prestamo.nombre_solicitante }}</td>
               <td>{{ prestamo.empresa }}</td>
               <td>{{ prestamo.herramienta }}</td>
-              <td>{{ prestamo.fecha_creacion_formatted }}</td>
-              <td>{{ prestamo.fecha_recepcion_formatted }}</td>
+              <td>
+                {% if prestamo.fecha_creacion %}
+                  {{ prestamo.fecha_creacion|date:"d/m/Y" }}
+                {% else %}
+                  Sin fecha de creación
+                {% endif %}
+              </td>
+              
+              
+              
+
+              <td>
+                 {% if prestamo.fecha_recepcion %}
+                  {{ prestamo.fecha_recepcion|date:"d/m/Y" }}
+                {% else %}
+                  Sin fecha de recepcion
+                {% endif %}</td>
               <td>
                 <form method="POST" action="{% url 'editar_prestamo' prestamo.id %}">
                   {% csrf_token %}
@@ -75,6 +91,7 @@
                 
               </td>
             </tr>
+        
             {% endfor %}
           </tbody>
 
