@@ -16,7 +16,7 @@
                 <th class="text-white">EMPRESA</th>
                 <th class="text-white">HERRAMIENTA</th>
                 <th class="text-white">ESTADO</th>
-                <th class="text-white">FECHA DE CREACIÓN</th>
+                <th class="text-white">FECHA DE PRESTAMO</th>
                 <th class="text-white">FECHA DE RECEPCIÓN</th>
               </tr>
             </thead>
@@ -29,6 +29,11 @@
                         <td class="text-white">{{ prestamo.status }}</td>
                         <td class="text-white">{{ prestamo.fecha_creacion_formatted }}</td>
                         <td class="text-white">{{ prestamo.fecha_recepcion_formatted }}</td>
+                        <td>  
+                          <form action="{% url 'generar_pdf_prestamo' prestamo.id %}" method="get">
+                            <button class="btn btn-success" type="submit">PDF</button>
+                          </form>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

@@ -1,7 +1,7 @@
 # en trabajadores/urls.py
 from django.urls import path
 from django.contrib.auth.views import logout_then_login
-from .views import registrar_trabajador,lista_trabajador,registro_empresa,lista_empresa,eliminar,registro_obrero,lista_obrero,eliminar_obrero,registro_pedido,lista_pedido,eliminar_pedido,lista_pedido_trabajador,registro_material,eliminar_material,lista_material,editar_material,editar_obrero,editar_empresa,editar_pedido,home,registro_Herramienta,lista_Herramienta,editar_herramienta,eliminar_herramienta,lista_prestamo,registrar_prestamo,editar_prestamo,lista_prestamos_obrero,registro_Repuesto,eliminar_repuesto,lista_Repuesto,editar_Repuesto,registro_RetiroRepuesto,lista_RetiroRepuesto,eliminar_RetiroRepuesto,editar_RetiroRepuesto,lista_RetiroRepuesto_obrero,login,logout,generar_pdf_pedido,generar_pdf_pedidos
+from .views import registrar_trabajador,lista_trabajador,registro_empresa,lista_empresa,eliminar,registro_obrero,lista_obrero,eliminar_obrero,registro_pedido,lista_pedido,eliminar_pedido,lista_pedido_trabajador,registro_material,eliminar_material,lista_material,editar_material,editar_obrero,editar_empresa,editar_pedido,home,registro_Herramienta,lista_Herramienta,editar_herramienta,eliminar_herramienta,lista_prestamo,registrar_prestamo,editar_prestamo,lista_prestamos_obrero,registro_Repuesto,eliminar_repuesto,lista_Repuesto,editar_Repuesto,registro_RetiroRepuesto,lista_RetiroRepuesto,eliminar_RetiroRepuesto,editar_RetiroRepuesto,lista_RetiroRepuesto_obrero,login,logout,generar_pdf_pedido,generar_pdf_pedidos,generar_pdf_prestamos,generar_pdf_prestamo
 
 urlpatterns = [
     path('login/', login, name='login' ),
@@ -52,6 +52,8 @@ urlpatterns = [
 
     path('generar_pdf/<int:pedido_id>/', generar_pdf_pedido, name='ruta_generar_pdf'),
     path('generar_pdf_pedidos/', generar_pdf_pedidos, name='generar_pdf_pedidos'),
+    path('generar_pdf_prestamos/', generar_pdf_prestamos, name='generar_pdf_prestamos'),
+    path('generar_pdf_prestamo/<int:prestamo_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),
     # Puedes agregar más rutas aquí según sea necesario
 ]
 

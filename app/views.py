@@ -285,14 +285,9 @@ def lista_pedido(request):
 
 
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from .models import Pedido
-from io import BytesIO
 
 def generar_pdf_pedido(request, pedido_id):
     # Obtener el pedido
@@ -308,8 +303,8 @@ def generar_pdf_pedido(request, pedido_id):
 
     # Crear una tabla para los datos
     data = [
-        ['ID', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA', 'FECHA'],
-        [str(pedido.id), pedido.solicitante.nombre, pedido.compañia.nombre, pedido.insumo.nombre, str(pedido.cantidad), pedido.area, pedido.fecha_pedido_formatted()],
+        [ 'FECHA','NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA'],
+        [ pedido.fecha_pedido_formatted(),pedido.solicitante.nombre, pedido.compañia.nombre, pedido.insumo.nombre, str(pedido.cantidad), pedido.area],
     ]
 
     # Configurar el estilo de la tabla
@@ -361,18 +356,18 @@ def generar_pdf_pedidos(request):
 
     # Crear una tabla para los datos
     data = [
-        ['ID', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA', 'FECHA'],
+        [ 'FECHA','NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA' ],
     ]
 
     for pedido in pedidos:
         data.append([
-            str(pedido.id),
+            pedido.fecha_pedido_formatted(),
             pedido.solicitante.nombre,
             pedido.compañia.nombre,
             pedido.insumo.nombre,
             str(pedido.cantidad),
             pedido.area,
-            pedido.fecha_pedido_formatted(),
+            
         ])
 
     # Configurar el estilo de la tabla
@@ -391,7 +386,7 @@ def generar_pdf_pedidos(request):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 30, height - 150)  # Bajar la tabla
+    table.drawOn(p, 100, height - 150)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
@@ -516,7 +511,7 @@ def registro_Herramienta(request):
         form = HerramientaForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('lista_Herramienta')
+            return redirect('registro_Herramienta')
     else:
         form = HerramientaForm()  # Corregir el formulario aquí
 
@@ -631,7 +626,122 @@ def lista_prestamo(request):
     })
 
 
+def generar_pdf_prestamos(request):
+    # Obtener todos los préstamos
+    prestamos = Prestamo.objects.all()
 
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="todos_los_prestamos.pdf"'
+
+    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+
+    # Crear una tabla para los datos
+    data = [
+        ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA CREACION', 'FECHA RECEPCION', 'ESTADO'],
+    ]
+
+    for prestamo in prestamos:
+        data.append([
+            prestamo.nombre_solicitante.nombre,
+            prestamo.empresa.nombre,
+            prestamo.herramienta.nombre,
+            prestamo.fecha_creacion.strftime("%d/%m/%Y"),
+            prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-',
+            prestamo.status,
+        ])
+
+    # Configurar el estilo de la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 100, height - 160)  # Bajar la tabla
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "PRESTAMO DE HERRAMIENTAS | PAÑOL")
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+
+def generar_pdf_prestamo(request, prestamo_id):
+    # Obtener el pedido
+    prestamo = get_object_or_404(Prestamo, id=prestamo_id)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="prestamo_{prestamo_id}.pdf"'
+
+    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+
+    # Crear una tabla para los datos
+    data = [
+        [ 'NOMBRE', 'EMPRESA', 'HERRAMIENTA', 'FECHA PRESTAMO', 'FEHCA RECEPCION', 'STATUS'],
+        [ prestamo.nombre_solicitante.nombre, prestamo.empresa.nombre, prestamo.herramienta.nombre, prestamo.fecha_creacion.strftime("%d/%m/%Y"), prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-', prestamo.status]
+    ]
+
+
+    # Configurar el estilo de la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 100, height - 130)  # Bajar la tabla
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "PRESTAMO HERRAMIENTAS | PAÑOL")
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
 
 @login_required
 def editar_prestamo(request, prestamo_id):
