@@ -11,17 +11,17 @@
     <div class="card bg-dark text-white">
       <h2 class="card-header text-center">PRESTAMO DE HERRAMIENTAS</h2>
       <div class="card-body">
-        
-          <div class="mb-3">
-            <form method="GET" action="{% url 'lista_prestamo' %}">
-              <label for="buscar" class="form-label">Buscar:</label>
-              <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..." 
-                  value="{{ search_term }}">
-                  <br>
-              <button type="submit" class="btn btn-primary">Buscar</button>
-            </form>
-          </div>
-          <table class="table table-dark" style="width:100%">
+
+        <div class="mb-3">
+          <form method="GET" action="{% url 'lista_prestamo' %}">
+            <label for="buscar" class="form-label">Buscar:</label>
+            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
+              value="{{ search_term }}">
+            <br>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+          </form>
+        </div>
+        <table class="table table-dark" style="width:100%">
 
           <thead>
             <tr>
@@ -31,13 +31,15 @@
               <th>HERRAMIENTA</th>
               <th>FECHA PRESTAMO</th>
               <th>FECHA RECEPCION</th>
+              <th>ESTADO</th>
               <th>ACCION</th>
               <th>HISTORIAL</th>
             </tr>
           </thead>
           <tbody>
             {% for prestamo in prestamos %}
-            <tr class="{% cycle 'even' 'odd' %} {% if prestamo.status == 'ENTREGADO' %}table-success custom-success{% else %}table-danger custom-danger{% endif %}">
+            <tr
+              class="{% cycle 'even' 'odd' %} {% if prestamo.status == 'ENTREGADO' %}table-success custom-success{% else %}table-danger custom-danger{% endif %}">
 
 
               <td>{{ prestamo.id }}</td>
@@ -46,26 +48,28 @@
               <td>{{ prestamo.herramienta }}</td>
               <td>
                 {% if prestamo.fecha_creacion %}
-                  {{ prestamo.fecha_creacion|date:"d/m/Y" }}
+                {{ prestamo.fecha_creacion|date:"d/m/Y" }}
                 {% else %}
-                  Sin fecha de creación
+                Sin fecha de creación
                 {% endif %}
               </td>
-              
-              
-              
+
+
+
 
               <td>
-                 {% if prestamo.fecha_recepcion %}
-                  {{ prestamo.fecha_recepcion|date:"d/m/Y" }}
+                {% if prestamo.fecha_recepcion %}
+                {{ prestamo.fecha_recepcion|date:"d/m/Y" }}
                 {% else %}
-                  Sin fecha de recepcion
-                {% endif %}</td>
+                Sin fecha de recepcion
+                {% endif %}
+              </td>
+              <td>{{ prestamo.status }}</td>
               <td>
                 <form method="POST" action="{% url 'editar_prestamo' prestamo.id %}">
                   {% csrf_token %}
                   {{ form.as_p }}
-                  {{ prestamo.herramienta }}
+                  
                   {% if prestamo.status == 'ENTREGADO' %}
                   <script>
                     document.getElementById("id_herramienta").disabled = true;
@@ -85,41 +89,38 @@
                 {% else %}
                 <span class="btn btn-warning disabled">Ver préstamos</span>
                 {% endif %}
-                <a href="{% url 'generar_pdf_prestamos' %}" class="btn btn-success">Exportar PDF</a>
+                <a href="{% url 'generar_pdf_prestamos' %}?buscar={{ search_term }}" class="btn btn-success">Exportar PDF</a>
+
+
               </td>
               <td>
-                
+
               </td>
             </tr>
-        
+
             {% endfor %}
           </tbody>
 
         </table>
-
-        <!-- Paginación nativa de Django -->
         <div class="pagination">
           <span class="step-links">
-            {% if prestamos.has_previous %}
-            <a href="?page=1{% if search_term %}&buscar={{ search_term }}{% endif %}">&laquo; PRINCIPIO</a>
-            <a
-              href="?page={{ prestamos.previous_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">PREVIO</a>
-
-            {% endif %}
-
-            <span class="current">
-              Página {{ prestamos.number }} de {{ prestamos.paginator.num_pages }}.
-            </span>
-
-            {% if prestamos.has_next %}
-            <a
-              href="?page={{ prestamos.next_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">SIGUIENTE</a>
-
-            <a href="?page={{ prestamos.paginator.num_pages }}{% if search_term %}&buscar={{ search_term }}{% endif %}">ANTERIOR
-              &raquo;</a>
-            {% endif %}
+              {% if prestamos.has_previous %}
+                  <a href="?page=1&buscar={{ search_term }}">first</a>
+                  <a href="?page={{ prestamos.previous_page_number }}&buscar={{ search_term }}">previous</a>
+              {% endif %}
+      
+              <span class="current">
+                  Page {{ prestamos.number }} of {{ prestamos.paginator.num_pages }}.
+              </span>
+      
+              {% if prestamos.has_next %}
+                  <a href="?page={{ prestamos.next_page_number }}&buscar={{ search_term }}">next</a>
+                  <a href="?page={{ prestamos.paginator.num_pages }}&buscar={{ search_term }}">last</a>
+              {% endif %}
           </span>
-        </div>
+      </div>
+      
+
 
       </div>
     </div>

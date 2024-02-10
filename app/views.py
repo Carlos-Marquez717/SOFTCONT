@@ -621,13 +621,15 @@ def registrar_prestamo(request):
     return render(request, 'app/registrar_prestamo.html', {'form': form})
 
 
+
 def lista_prestamo(request):
     # Initialize search_term to an empty string
     search_term = request.GET.get('buscar', '')
 
+    # Obtener todos los préstamos y aplicar filtro de búsqueda si es necesario
     prestamos_list = Prestamo.objects.all()
 
-    # Iterar sobre los prestamos para formatear las fechas
+    # Iterar sobre los préstamos para formatear las fechas
     for prestamo in prestamos_list:
         # Check if fecha_recepcion is not None before formatting
         if prestamo.fecha_recepcion:
@@ -641,12 +643,12 @@ def lista_prestamo(request):
         else:
             prestamo.fecha_creacion_formatted = None
 
-    # Filtrar prestamos por cualquier campo si hay un término de búsqueda
+    # Filtrar préstamos por cualquier campo si hay un término de búsqueda
     if search_term:
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y")
             # Utilizar Q() para construir consultas OR entre campos
-            prestamos_list = Prestamo.objects.filter(
+            prestamos_list = prestamos_list.filter(
                 Q(nombre_solicitante__nombre__icontains=search_term) |
                 Q(empresa__nombre__icontains=search_term) |
                 Q(herramienta__nombre__icontains=search_term) |
@@ -654,10 +656,9 @@ def lista_prestamo(request):
                 Q(status__icontains=search_term) |
                 Q(fecha_recepcion=search_date)
             )
-
         except ValueError:
             # Si no es una fecha válida, buscar en otros campos
-            prestamos_list = Prestamo.objects.filter(
+            prestamos_list = prestamos_list.filter(
                 Q(nombre_solicitante__nombre__icontains=search_term) |
                 Q(empresa__nombre__icontains=search_term) |
                 Q(herramienta__nombre__icontains=search_term) |
@@ -680,90 +681,97 @@ def lista_prestamo(request):
 
 
 
-
-
 def generar_pdf_prestamos(request):
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
 
     # Obtener todos los préstamos y aplicar filtro de búsqueda si es necesario
-    prestamos = Prestamo.objects.all()
+    prestamos_list = Prestamo.objects.all()
 
     if search_term:
         # Formatear la fecha si se proporciona
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            prestamos = prestamos.filter(
+            # Directly compare date fields without using the date lookup
+            prestamos_list = prestamos_list.filter(
                 Q(nombre_solicitante__nombre__icontains=search_term) |
                 Q(empresa__nombre__icontains=search_term) |
                 Q(herramienta__nombre__icontains=search_term) |
-                Q(fecha_creacion__date=search_date) |
-                Q(fecha_recepcion__date=search_date)  # Asumo que la fecha de recepción también se filtra
+                Q(fecha_creacion=search_date) |  # Use fecha_creacion instead of fecha_recepcion
+                Q(status__icontains=search_term)
             )
         except ValueError:
             # Manejar el caso en que el término de búsqueda no sea una fecha válida
             pass
 
     # Después de aplicar el filtro
-    print("Préstamos después de aplicar filtro:", prestamos)
+    print("Préstamos después de aplicar filtro:", prestamos_list)
 
-    # Crear el objeto PDF con ReportLab
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="todos_los_prestamos.pdf"'
+    # Verificar si hay resultados para la búsqueda
+    if prestamos_list.exists():
+        # Crear el objeto PDF con ReportLab
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="prestamos_{search_term}.pdf"'
 
-    # Crear el objeto PDF con ReportLab, con orientación horizontal
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+        # Crear el objeto PDF con ReportLab, con orientación horizontal
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
 
-    # Crear una tabla para los datos
-    data = [
-        ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA CREACION', 'FECHA RECEPCION', 'ESTADO'],
-    ]
+        # Crear una tabla para los datos
+        data = [
+            ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA CREACION', 'FECHA RECEPCION', 'ESTADO'],
+        ]
 
-    for prestamo in prestamos:
-        data.append([
-            prestamo.nombre_solicitante.nombre,
-            prestamo.empresa.nombre,
-            prestamo.herramienta.nombre,
-            prestamo.fecha_creacion.strftime("%d/%m/%Y"),
-            prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-',
-            prestamo.status,
+        for prestamo in prestamos_list:
+            data.append([
+                prestamo.nombre_solicitante.nombre,
+                prestamo.empresa.nombre,
+                prestamo.herramienta.nombre,
+                prestamo.fecha_creacion.strftime("%d/%m/%Y") if prestamo.fecha_creacion else 'Sin fecha de creación',
+                prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else 'Sin fecha de recepción',
+                prestamo.status,
+            ])
+
+        # Configurar el estilo de la tabla
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ])
 
-    # Configurar el estilo de la tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
+        # Crear la tabla
+        table = Table(data)
+        table.setStyle(style)
 
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
+        # Posicionar la tabla en la página
+        width, height = letter[1], letter[0]  # Intercambiar ancho y alto
+        table.wrapOn(p, width, height)
+        table.drawOn(p, 60, height - 180)  # Bajar la tabla
 
-    # Posicionar la tabla en la página
-    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 60, height - 180)  # Bajar la tabla
+        # Agregar título
+        p.setFont("Helvetica-Bold", 12)
+        p.drawCentredString(width / 2, height - 70, "PRESTAMO DE HERRAMIENTAS | PAÑOL")
 
-    # Agregar título
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "PRESTAMO DE HERRAMIENTAS | PAÑOL")
+        # Guardar el PDF en el buffer
+        p.showPage()
+        p.save()
 
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
+        # Obtener el valor del buffer
+        pdf = buffer.getvalue()
+        buffer.close()
 
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
+        # Establecer el contenido del response con el PDF generado
+        response.write(pdf)
 
-    # Establecer el contenido del response con el PDF generado
-    response.write(pdf)
+        return response
+    else:
+        # No hay resultados para la búsqueda, puedes manejarlo como desees (por ejemplo, mostrar un mensaje)
+        return HttpResponse("No se encontraron resultados para la búsqueda.")
 
-    return response
+
+
 
 
 def generar_pdf_prestamo(request, obrero_id):
