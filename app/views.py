@@ -2,7 +2,7 @@
 from datetime import datetime
 from django.shortcuts import render, redirect
 from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm,RetiroRepuestoForm
-from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto
+from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -1024,3 +1024,29 @@ def lista_RetiroRepuesto_obrero(request, obrero_id):
         retirorepuesto.fecha_retiro_formatted = retirorepuesto.fecha_retiro.strftime("%d/%m/%Y %H:%M") 
         
     return render(request, 'app/lista_RetiroRepuesto_obrero.html', {'retirorepuesto_obrero': retirorepuesto_obrero ,'obrero': obrero, })
+
+
+@login_required
+def lista_utilesaseo(request):
+    utilesaseos_list = Utilesaseo.objects.order_by('id').all()
+
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar')
+
+    # Filtrar utilesaseo por mes si hay un término de búsqueda
+    if search_term:
+        utilesaseos_list = utilesaseos_list.filter(Q(mes__icontains=search_term))
+
+    paginator = Paginator(utilesaseos_list, 5)
+
+    # Obtener el número de página, estableciendo 1 como valor predeterminado
+    page = request.GET.get('page', 1)
+
+    try:
+        utilesaseos = paginator.page(page)
+    except PageNotAnInteger:
+        utilesaseos = paginator.page(1)
+    except EmptyPage:
+        utilesaseos = paginator.page(paginator.num_pages)
+
+    return render(request, 'app/lista_utilesaseo.html', {'utilesaseos': utilesaseos, 'search_term': search_term})

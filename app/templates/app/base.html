@@ -105,6 +105,17 @@
                             </li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            ENTREGA UTILES ASEO
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <li><a class="dropdown-item" href="{% url 'registrar_prestamo' %}">REGISTRAR ENTREGA</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'lista_utilesaseo' %}">LISTADO</a></li>
+                        </ul>
+                    </li>
                     <!-- Logout Form -->
                     <li class="nav-item">
                         <form method="post" action="{% url 'logout' %}">

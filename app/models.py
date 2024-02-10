@@ -94,3 +94,35 @@ class RetiroRepuesto(models.Model):
     def __str__(self):
         return f'{self.trabajador} - {self.repuesto.nombre}'
 
+class Utilesaseo(models.Model):
+    STATUS_CHOICES = [
+        ('ENERO', 'ENERO'),
+        ('FEBRERO', 'FEBRERO'),
+        ('MARZO', 'MARZO'),
+        ('ABRIL', 'ABRIL'),
+        ('MAYO', 'MAYO'),
+        ('JUNIO', 'JUNIO'),
+        ('JULIO', 'JULIO'),
+        ('AGOSTO', 'AGOSTO'),
+        ('SEPTIEMBRE', 'SEPTIEMBRE'),
+        ('NOVIEMBRE', 'NOVIEMBRE'),
+        ('DICIEMBRE', 'DICIEMBRE'),
+    ]
+
+    STATUS_CHOICES1 = [
+        ('OMO', 'OMO'),
+        ('JABON', 'JABON'),
+        ('CONFORT', 'CONFORT'),
+     
+    ]
+
+
+    mes = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ENERO')
+    producto = models.CharField(max_length=20, choices=STATUS_CHOICES1, default='OMO')
+    cantidad = models.PositiveIntegerField()
+    fecha_creacion = models.DateField(auto_now_add=True)
+    nombre_solicitante = models.ForeignKey(Obrero, related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="Obrero")
+    empresa = models.ForeignKey(Empresa, related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="empresa")
+    run = models.CharField(max_length=100)
+   
+    

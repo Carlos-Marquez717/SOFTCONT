@@ -1,0 +1,66 @@
+{% extends 'app/base.html' %}
+
+{% block content %}
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+
+<!-- Agrega el enlace al JS de DataTables -->
+
+<br><br><br><br>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="card bg-dark text-white">
+        <h2 class="card-header text-center">UTILES DE ASEO</h2>
+        <div class="card-body">
+          <div class="mb-3">
+            <form method="GET" action="{% url 'lista_utilesaseo' %}">
+                <label for="buscar" class="form-label">Buscar:</label>
+                <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
+                    value="{{ search_term }}">
+                    <br>
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </form>
+          </div>
+          <table class="table mx-auto table-dark">
+            <thead>
+              <tr>
+                
+                <th scope="col">MES</th>
+                <th scope="col">PRODUCTO</th>
+                <th scope="col">CANTIDAD</th>
+                <th scope="col">FECHA CREACION</th>
+                <th scope="col">SOLICITANTE</th>
+                <th scope="col">EMPRESA</th>
+                <th scope="col">RUN</th>
+                
+              </tr>
+            </thead>
+            <tbody>
+              {% for utilesaseo in utilesaseos %}
+                <tr>
+                    
+                    <td>{{ utilesaseo.mes }}</td>
+                    <td>{{ utilesaseo.producto }}</td>
+                    <td>{{ utilesaseo.cantidad }}</td>
+                    <td>{{ utilesaseo.fecha_creacion }}</td>
+                    <td>{{ utilesaseo.nombre_solicitante }}</td>
+                    <td>{{ utilesaseo.empresa }}</td>
+                    <td>{{ utilesaseo.run }}</td>
+         
+                  
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="pagination">
+            <!-- Add your pagination logic here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+
+
+{% endblock %}

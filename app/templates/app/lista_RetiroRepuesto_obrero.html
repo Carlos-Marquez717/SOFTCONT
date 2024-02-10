@@ -11,11 +11,11 @@
         <table class="table">
           <thead>
             <tr>
-              <th>NOMBRE</th>
-              <th>EMPRESA</th>
-              <th>REPUESTO</th>
-              <th>CANTIDAD</th>
-              <th>FECHA DE RETIRO</th>
+              <th class="text-white">NOMBRE</th>
+              <th class="text-white">EMPRESA</th>
+              <th class="text-white">REPUESTO</th>
+              <th class="text-white">CANTIDAD</th>
+              <th class="text-white">FECHA DE RETIRO</th>
 
             </tr>
           </thead>
@@ -24,11 +24,11 @@
           <tbody>
             {% for retirorepuesto in retirorepuesto_obrero %}
             <tr>
-              <td>{{ retirorepuesto.trabajador.nombre }}</td>
-              <td>{{ retirorepuesto.empresa }}</td>
-              <td>{{ retirorepuesto.repuesto }}</td>
-              <td>{{ retirorepuesto.cantidad }}</td>
-              <td>
+              <td class="text-white">{{ retirorepuesto.trabajador.nombre }}</td>
+              <td class="text-white">{{ retirorepuesto.empresa }}</td>
+              <td class="text-white">{{ retirorepuesto.repuesto }}</td>
+              <td class="text-white">{{ retirorepuesto.cantidad }}</td>
+              <td class="text-white">
                 {% if retirorepuesto.fecha_retiro %}
                     {{ retirorepuesto.fecha_retiro|date:"d/m/Y H:i:s" }}
                 {% else %}
