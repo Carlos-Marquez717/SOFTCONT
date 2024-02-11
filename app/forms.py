@@ -2,7 +2,7 @@
 from django_select2.forms import Select2Widget
 from django_select2.forms import ModelSelect2Widget
 from django import forms
-from .models import Trabajador,Empresa, Obrero, Pedido, Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto
+from .models import Trabajador,Empresa, Obrero, Pedido, Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto,Utilesaseo
 
 from django.contrib.auth.forms import AuthenticationForm
 
@@ -129,3 +129,8 @@ class RetiroRepuestoForm(forms.ModelForm):
         self.fields['empresa'].label = 'Empresa'.upper()
         self.fields['repuesto'].label = 'Repuesto'.upper()
         self.fields['cantidad'].label = 'Cantidad'.upper()     
+
+class UtilesaseoForm(forms.ModelForm):
+    class Meta:
+        model = Utilesaseo
+        fields = '__all__'

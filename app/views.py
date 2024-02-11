@@ -1,7 +1,7 @@
 # en trabajadores/views.py
 from datetime import datetime
 from django.shortcuts import render, redirect
-from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm,RetiroRepuestoForm
+from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm,RetiroRepuestoForm,UtilesaseoForm
 from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
@@ -1028,19 +1028,23 @@ def lista_RetiroRepuesto_obrero(request, obrero_id):
 
 @login_required
 def lista_utilesaseo(request):
-    utilesaseos_list = Utilesaseo.objects.order_by('id').all()
+    # Inicializar search_term a una cadena vacía
+    search_term = request.GET.get('buscar', '')
 
-    # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar')
+    # Obtener todos los útiles de aseo y aplicar el filtro de búsqueda si es necesario
+    utilesaseos_list = Utilesaseo.objects.all()
 
-    # Filtrar utilesaseo por mes si hay un término de búsqueda
+    # Filtrar útiles de aseo por mes, nombre_solicitante__nombre, fecha_creacion y run si hay un término de búsqueda
     if search_term:
-        utilesaseos_list = utilesaseos_list.filter(Q(mes__icontains=search_term))
+        utilesaseos_list = utilesaseos_list.filter(
+            Q(mes__icontains=search_term) |
+            Q(nombre_solicitante__nombre__icontains=search_term) |
+            Q(fecha_creacion__icontains=search_term) |
+            Q(run__icontains=search_term)
+        )
 
     paginator = Paginator(utilesaseos_list, 5)
-
-    # Obtener el número de página, estableciendo 1 como valor predeterminado
-    page = request.GET.get('page', 1)
+    page = request.GET.get('page')
 
     try:
         utilesaseos = paginator.page(page)
@@ -1049,4 +1053,31 @@ def lista_utilesaseo(request):
     except EmptyPage:
         utilesaseos = paginator.page(paginator.num_pages)
 
+    # Renderizar la plantilla normalmente
     return render(request, 'app/lista_utilesaseo.html', {'utilesaseos': utilesaseos, 'search_term': search_term})
+
+
+
+
+@login_required
+def registro_utilesaseo(request):
+    if request.method == 'POST':
+        form = UtilesaseoForm(request.POST)
+        if form.is_valid():
+            form.save()
+
+            # El pedido
+            utilesaseo = form.instance
+
+            # El mensaje de éxito
+            success_message = 'El pedido se ha guardado correctamente.'
+
+            # Guardar el pedido
+            utilesaseo.save()
+
+            return render(request, 'app/registro_Utilesaseo.html', {'form': UtilesaseoForm(), 'success_message': success_message})
+    else:
+        form = UtilesaseoForm()
+
+    return render(request, 'app/registro_Utilesaseo.html', {'form': form})
+
