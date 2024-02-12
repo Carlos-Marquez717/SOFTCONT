@@ -28,7 +28,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.db.models import F, CharField, ExpressionWrapper, fields,Value,Case, When
 from django.db.models.functions import Cast,Concat
-
+from django.utils.dateparse import parse_datetime
 
 
 @login_required
@@ -1080,4 +1080,79 @@ def registro_utilesaseo(request):
         form = UtilesaseoForm()
 
     return render(request, 'app/registro_Utilesaseo.html', {'form': form})
+
+def generar_pdf_utiles_aseo(request):
+    search_term = request.GET.get('buscar')
+    utilesaseos = Utilesaseo.objects.all()
+
+    if search_term:
+        try:
+            search_datetime = parse_datetime(search_term)
+            search_date = search_datetime.date() if search_datetime else None
+
+            text_search = Q(mes__icontains=search_term) | \
+                           Q(producto__icontains=search_term) | \
+                           Q(cantidad__icontains=search_term) | \
+                           Q(nombre_solicitante__nombre__icontains=search_term) | \
+                           Q(empresa__nombre__icontains=search_term) | \
+                           Q(run__icontains=search_term)
+
+            # Filtrar por fecha_creacion solo si search_date no es None
+            if search_date:
+                utilesaseos = utilesaseos.filter(fecha_creacion__date=search_date)
+
+            utilesaseos = utilesaseos.filter(text_search)
+
+        except ValueError:
+            pass
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="UTILES_ASEO.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))
+
+    data = [
+        ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA CREACION', 'SOLICITANTE', 'EMPRESA', 'RUN'],
+    ]
+
+    for utilesaseo in utilesaseos:
+        data.append([
+            utilesaseo.mes,
+            utilesaseo.producto,
+            str(utilesaseo.cantidad),
+            utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
+            utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else '',
+            utilesaseo.empresa.nombre if utilesaseo.empresa else '',
+            utilesaseo.run,
+        ])
+
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    table = Table(data)
+    table.setStyle(style)
+
+    width, height = letter[1], letter[0]
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 100, height - 140)
+
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "ENTREGA UTILES DE ASEO")
+
+    p.showPage()
+    p.save()
+
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    response.write(pdf)
+
+    return response
+
 

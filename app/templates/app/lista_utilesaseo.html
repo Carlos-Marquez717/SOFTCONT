@@ -21,7 +21,7 @@
                 <button type="submit" class="btn btn-primary">Buscar</button>
             </form>
           </div>
-          <table class="table mx-auto table-dark">
+          <table class="table mx-auto table-dark" id="tuTabla">
             <thead>
               <tr>
                 
@@ -32,6 +32,7 @@
                 <th scope="col">SOLICITANTE</th>
                 <th scope="col">EMPRESA</th>
                 <th scope="col">RUN</th>
+                <th scope="col">REPORTE</th>
                 
               </tr>
             </thead>
@@ -42,10 +43,11 @@
                     <td>{{ utilesaseo.mes }}</td>
                     <td>{{ utilesaseo.producto }}</td>
                     <td>{{ utilesaseo.cantidad }}</td>
-                    <td>{{ utilesaseo.fecha_creacion }}</td>
+                    <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
                     <td>{{ utilesaseo.nombre_solicitante }}</td>
                     <td>{{ utilesaseo.empresa }}</td>
                     <td>{{ utilesaseo.run }}</td>
+                    <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}" class="btn btn-success">PDF</a></td>
          
                   
                 </tr>
@@ -60,6 +62,8 @@
     </div>
   </div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+
 
 
 
