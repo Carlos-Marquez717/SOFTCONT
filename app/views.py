@@ -1134,52 +1134,92 @@ def generar_pdf_utiles_aseo(request):
         fontName='Helvetica-Bold'
     )
 
-    # Agregar el título centrado y en negrita con texto negro
-    elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
+    # Verificar si es una consulta personal de trabajador
+    if search_term:
+        # Agregar el título centrado y en negrita con texto negro
+        elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
 
-    # Estilo del texto del nombre, RUN y empresa en negrita con texto negro
-    name_style = ParagraphStyle(
-        'Normal',
-        parent=getSampleStyleSheet()['Normal'],
-        alignment=1,
-        textColor=colors.black,
-        fontName='Helvetica-Bold'
-    )
+        # Agregar espacio en blanco centrado
+        elements.append(Spacer(1, 12))  # Puedes ajustar la altura según sea necesario
 
-    # Agregar información del solicitante, RUN y empresa centrado y en negrita con texto negro
-    for utilesaseo_info in utilesaseos:
-        elements.append(Paragraph("NOMBRE: {}".format(utilesaseo_info.nombre_solicitante.nombre if utilesaseo_info.nombre_solicitante else ''), name_style))
-        elements.append(Paragraph("RUN: {}".format(utilesaseo_info.run), name_style))
-        elements.append(Paragraph("EMPRESA: {}".format(utilesaseo_info.empresa.nombre if utilesaseo_info.empresa else ''), name_style))
-        break  # Solo necesitamos la información del primer registro
+        # Estilo del texto del nombre, RUN y empresa en negrita con texto negro
+        name_style = ParagraphStyle(
+            'Normal',
+            parent=getSampleStyleSheet()['Normal'],
+            alignment=1,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        )
 
-    # Agregar espacio en blanco centrado
-    elements.append(Spacer(1, 12))  # Puedes ajustar la altura según sea necesario
+        # Agregar información del solicitante, RUN y empresa centrado y en negrita con texto negro
+        elements.append(Paragraph("Nombre del Solicitante: {}".format(utilesaseos[0].nombre_solicitante.nombre if utilesaseos and utilesaseos[0].nombre_solicitante else ''), name_style))
+        elements.append(Paragraph("RUN: {}".format(utilesaseos[0].run if utilesaseos else ''), name_style))
+        elements.append(Paragraph("Empresa: {}".format(utilesaseos[0].empresa.nombre if utilesaseos and utilesaseos[0].empresa else ''), name_style))
 
-    # Agregar la tabla de datos centrada
-    data = [
-        ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA ENTREGA'],
-    ]
+        # Agregar espacio en blanco antes de la tabla
+        elements.append(Spacer(1, 12))
 
-    for utilesaseo in utilesaseos:
-        data.append([
-            utilesaseo.mes,
-            utilesaseo.producto,
-            str(utilesaseo.cantidad),
-            utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
+        # Agregar la tabla de datos centrada
+        data = [
+            ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA CREACION', 'NOMBRE', 'RUN', 'EMPRESA'],
+        ]
+
+        for utilesaseo in utilesaseos:
+            data.append([
+                utilesaseo.mes,
+                utilesaseo.producto,
+                str(utilesaseo.cantidad),
+                utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
+                utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else '',
+                utilesaseo.run,
+                utilesaseo.empresa.nombre if utilesaseo.empresa else '',
+            ])
+
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ])
 
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
+        table = Table(data)
+        table.setStyle(style)
+        elements.append(table)
+    else:
+        # Agregar el título centrado y en negrita con texto negro
+        elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
 
-    table = Table(data)
-    table.setStyle(style)
-    elements.append(table)
+        # Agregar espacio en blanco antes de la tabla
+        elements.append(Spacer(1, 12))
+
+        # Agregar la tabla de datos centrada
+        data = [
+            ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA CREACION', 'NOMBRE', 'RUN', 'EMPRESA'],
+        ]
+
+        for utilesaseo in utilesaseos:
+            data.append([
+                utilesaseo.mes,
+                utilesaseo.producto,
+                str(utilesaseo.cantidad),
+                utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
+                utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else '',
+                utilesaseo.run,
+                utilesaseo.empresa.nombre if utilesaseo.empresa else '',
+            ])
+
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ])
+
+        table = Table(data)
+        table.setStyle(style)
+        elements.append(table)
 
     doc.build(elements)
 
