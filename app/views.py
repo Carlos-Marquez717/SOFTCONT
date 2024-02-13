@@ -1081,10 +1081,17 @@ def registro_utilesaseo(request):
 
     return render(request, 'app/registro_Utilesaseo.html', {'form': form})
 
+
+
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from io import BytesIO
+
 def generar_pdf_utiles_aseo(request):
     search_term = request.GET.get('buscar')
-    utilesaseos = Utilesaseo.objects.all()
-
+    
     if search_term:
         try:
             search_datetime = parse_datetime(search_term)
@@ -1097,6 +1104,8 @@ def generar_pdf_utiles_aseo(request):
                            Q(empresa__nombre__icontains=search_term) | \
                            Q(run__icontains=search_term)
 
+            utilesaseos = Utilesaseo.objects.all()
+
             # Filtrar por fecha_creacion solo si search_date no es None
             if search_date:
                 utilesaseos = utilesaseos.filter(fecha_creacion__date=search_date)
@@ -1104,16 +1113,52 @@ def generar_pdf_utiles_aseo(request):
             utilesaseos = utilesaseos.filter(text_search)
 
         except ValueError:
-            pass
+            utilesaseos = Utilesaseo.objects.all()
+    else:
+        utilesaseos = Utilesaseo.objects.all()
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="UTILES_ASEO.pdf"'
 
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
 
+    elements = []
+
+    # Estilo del título centrado y en negrita con texto negro
+    title_style = ParagraphStyle(
+        'Title',
+        parent=getSampleStyleSheet()['Title'],
+        alignment=1,  # 0=Left, 1=Center, 2=Right
+        textColor=colors.black,
+        fontName='Helvetica-Bold'
+    )
+
+    # Agregar el título centrado y en negrita con texto negro
+    elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
+
+    # Estilo del texto del nombre, RUN y empresa en negrita con texto negro
+    name_style = ParagraphStyle(
+        'Normal',
+        parent=getSampleStyleSheet()['Normal'],
+        alignment=1,
+        textColor=colors.black,
+        fontName='Helvetica-Bold'
+    )
+
+    # Agregar información del solicitante, RUN y empresa centrado y en negrita con texto negro
+    for utilesaseo_info in utilesaseos:
+        elements.append(Paragraph("NOMBRE: {}".format(utilesaseo_info.nombre_solicitante.nombre if utilesaseo_info.nombre_solicitante else ''), name_style))
+        elements.append(Paragraph("RUN: {}".format(utilesaseo_info.run), name_style))
+        elements.append(Paragraph("EMPRESA: {}".format(utilesaseo_info.empresa.nombre if utilesaseo_info.empresa else ''), name_style))
+        break  # Solo necesitamos la información del primer registro
+
+    # Agregar espacio en blanco centrado
+    elements.append(Spacer(1, 12))  # Puedes ajustar la altura según sea necesario
+
+    # Agregar la tabla de datos centrada
     data = [
-        ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA CREACION', 'SOLICITANTE', 'EMPRESA', 'RUN'],
+        ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA ENTREGA'],
     ]
 
     for utilesaseo in utilesaseos:
@@ -1122,9 +1167,6 @@ def generar_pdf_utiles_aseo(request):
             utilesaseo.producto,
             str(utilesaseo.cantidad),
             utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
-            utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else '',
-            utilesaseo.empresa.nombre if utilesaseo.empresa else '',
-            utilesaseo.run,
         ])
 
     style = TableStyle([
@@ -1137,16 +1179,9 @@ def generar_pdf_utiles_aseo(request):
 
     table = Table(data)
     table.setStyle(style)
+    elements.append(table)
 
-    width, height = letter[1], letter[0]
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 140)
-
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA UTILES DE ASEO")
-
-    p.showPage()
-    p.save()
+    doc.build(elements)
 
     pdf = buffer.getvalue()
     buffer.close()
@@ -1154,5 +1189,3 @@ def generar_pdf_utiles_aseo(request):
     response.write(pdf)
 
     return response
-
-
