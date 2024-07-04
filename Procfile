@@ -1,1 +1,1 @@
-web: gunicorn bodega.wsgi
+web: python manage.py collectstatic && gunicorn bodega.wsgi
