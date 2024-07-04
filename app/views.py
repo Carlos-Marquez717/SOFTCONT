@@ -25,11 +25,14 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.db.models import F, CharField, ExpressionWrapper, fields,Value,Case, When
 from django.db.models.functions import Cast,Concat
 from django.utils.dateparse import parse_datetime
-
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from io import BytesIO
 
 @login_required
 def home(request):
@@ -291,10 +294,18 @@ def generar_pdf_pedido(request, obrero_id):
     # Obtener el obrero específico
     obrero = get_object_or_404(Obrero, id=obrero_id)
 
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar', '')
+
     # Obtener los préstamos asociados al obrero
     pedidos = Pedido.objects.filter(solicitante=obrero)
 
-
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            pedidos = pedidos.filter(fecha_pedido=search_date)
+        except ValueError:
+            pass
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
@@ -306,24 +317,24 @@ def generar_pdf_pedido(request, obrero_id):
 
     # Crear una tabla para los datos
     data = [
-        ['FECHA', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA'],
+        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO','EMPRESA'],
     ]
 
     for pedido in pedidos:
+        fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         data.append([
-            pedido.fecha_pedido_formatted(),
+            fecha_y_hora,
             pedido.solicitante.nombre,
-            pedido.compañia.nombre,
             pedido.insumo.nombre,
             pedido.cantidad,  # Elimina la llamada a str() aquí
             pedido.area,
+            pedido.compañia.nombre,
         ])
-
 
     # Configurar el estilo de la tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -336,11 +347,29 @@ def generar_pdf_pedido(request, obrero_id):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 150)  # Bajar la tabla
+    table.drawOn(p, 100, height - 200)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS | PAÑOL")
+    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+
+    # Agregar el nombre del usuario que está generando el PDF
+    usuario = request.user
+    p.setFont("Helvetica-Bold", 12)
+    text = f"PAÑOLERO: {usuario.username}"
+    text_width = p.stringWidth(text, "Helvetica", 12)
+    p.setFillColor(colors.black)
+    p.drawString(100, height - 90, text)
+    p.line(100, height - 92, 100 + text_width, height - 92)  # Subrayar el texto
+
+    # Agregar la fecha filtrada debajo del nombre del usuario
+    if search_term:
+        p.setFont("Helvetica", 12)
+        p.setFillColor(colors.black)
+        p.drawString(100, height - 110, f"Fecha filtrada: {search_term}")
+
+
+ 
 
     # Guardar el PDF en el buffer
     p.showPage()
@@ -392,23 +421,24 @@ def generar_pdf_pedidos(request):
 
     # Crear una tabla para los datos
     data = [
-        ['FECHA', 'NOMBRE', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA'],
+        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO','EMPRESA'],
     ]
 
     for pedido in pedidos:
+        fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         data.append([
-            pedido.fecha_pedido.strftime("%d/%m/%Y"),
+            fecha_y_hora,
             pedido.solicitante.nombre,
-            pedido.compañia.nombre,
             pedido.insumo.nombre,
             str(pedido.cantidad),
             pedido.area,
+            pedido.compañia.nombre,
         ])
 
     # Configurar el estilo de la tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -421,11 +451,20 @@ def generar_pdf_pedidos(request):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 160)  # Bajar la tabla
+    table.drawOn(p, 100, height - 200)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS | PAÑOL")
+    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+
+    # Agregar el nombre del usuario que está generando el PDF
+    usuario = request.user
+    p.setFont("Helvetica-Bold", 12)
+    text = f"PAÑOLERO: {usuario.username}"
+    text_width = p.stringWidth(text, "Helvetica", 12)
+    p.setFillColor(colors.black)
+    p.drawString(100, height - 90, text)
+    p.line(100, height - 92, 100 + text_width, height - 92)  # Subrayar el texto
 
     # Guardar el PDF en el buffer
     p.showPage()
@@ -626,7 +665,7 @@ def lista_prestamo(request):
     # Initialize search_term to an empty string
     search_term = request.GET.get('buscar', '')
 
-    # Obtener todos los préstamos y aplicar filtro de búsqueda si es necesario
+    # Obtener todos los préstamos
     prestamos_list = Prestamo.objects.all()
 
     # Iterar sobre los préstamos para formatear las fechas
@@ -646,8 +685,8 @@ def lista_prestamo(request):
     # Filtrar préstamos por cualquier campo si hay un término de búsqueda
     if search_term:
         try:
+            # Intentar parsear el término de búsqueda como fecha
             search_date = datetime.strptime(search_term, "%d/%m/%Y")
-            # Utilizar Q() para construir consultas OR entre campos
             prestamos_list = prestamos_list.filter(
                 Q(nombre_solicitante__nombre__icontains=search_term) |
                 Q(empresa__nombre__icontains=search_term) |
@@ -692,20 +731,22 @@ def generar_pdf_prestamos(request):
         # Formatear la fecha si se proporciona
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            # Directly compare date fields without using the date lookup
+            # Filtrar por nombre, empresa, herramienta, fecha_creacion y estado
             prestamos_list = prestamos_list.filter(
                 Q(nombre_solicitante__nombre__icontains=search_term) |
                 Q(empresa__nombre__icontains=search_term) |
                 Q(herramienta__nombre__icontains=search_term) |
-                Q(fecha_creacion=search_date) |  # Use fecha_creacion instead of fecha_recepcion
+                Q(fecha_creacion=search_date) |
                 Q(status__icontains=search_term)
             )
         except ValueError:
-            # Manejar el caso en que el término de búsqueda no sea una fecha válida
-            pass
-
-    # Después de aplicar el filtro
-    print("Préstamos después de aplicar filtro:", prestamos_list)
+            # Si no es una fecha válida, buscar en otros campos
+            prestamos_list = prestamos_list.filter(
+                Q(nombre_solicitante__nombre__icontains=search_term) |
+                Q(empresa__nombre__icontains=search_term) |
+                Q(herramienta__nombre__icontains=search_term) |
+                Q(status__icontains=search_term)
+            )
 
     # Verificar si hay resultados para la búsqueda
     if prestamos_list.exists():
@@ -713,23 +754,42 @@ def generar_pdf_prestamos(request):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="prestamos_{search_term}.pdf"'
 
-        # Crear el objeto PDF con ReportLab, con orientación horizontal
         buffer = BytesIO()
-        p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+        doc = SimpleDocTemplate(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+
+        elements = []
+
+        # Agregar título
+        title_style = ParagraphStyle(
+            'Title',
+            parent=getSampleStyleSheet()['Title'],
+            alignment=1,  # 0=Left, 1=Center, 2=Right
+            textColor=colors.black,
+            fontName='Helvetica-Bold',
+            fontSize=14
+        )
+        elements.append(Paragraph("PRESTAMO DE HERRAMIENTAS | PAÑOL", title_style))
+        elements.append(Spacer(1, 12))
 
         # Crear una tabla para los datos
         data = [
-            ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA CREACION', 'FECHA RECEPCION', 'ESTADO'],
+            ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA PRESTAMO', 'FECHA RECEPCION', 'ESTADO'],
         ]
 
         for prestamo in prestamos_list:
+            # Determinar el color del texto según el estado
+            if prestamo.status == 'NO_ENTREGADO':
+                text_color = colors.red
+            else:
+                text_color = colors.black
+
             data.append([
                 prestamo.nombre_solicitante.nombre,
                 prestamo.empresa.nombre,
                 prestamo.herramienta.nombre,
-                prestamo.fecha_creacion.strftime("%d/%m/%Y") if prestamo.fecha_creacion else 'Sin fecha de creación',
-                prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else 'Sin fecha de recepción',
-                prestamo.status,
+                prestamo.fecha_creacion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_creacion else 'Sin fecha de creación',
+                prestamo.fecha_recepcion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_recepcion else 'Sin fecha de recepción',
+                Paragraph(prestamo.status, ParagraphStyle('', textColor=text_color)),  # Aplicar color al estado
             ])
 
         # Configurar el estilo de la tabla
@@ -741,33 +801,19 @@ def generar_pdf_prestamos(request):
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ])
 
-        # Crear la tabla
         table = Table(data)
         table.setStyle(style)
+        elements.append(table)
 
-        # Posicionar la tabla en la página
-        width, height = letter[1], letter[0]  # Intercambiar ancho y alto
-        table.wrapOn(p, width, height)
-        table.drawOn(p, 60, height - 180)  # Bajar la tabla
+        doc.build(elements)
 
-        # Agregar título
-        p.setFont("Helvetica-Bold", 12)
-        p.drawCentredString(width / 2, height - 70, "PRESTAMO DE HERRAMIENTAS | PAÑOL")
-
-        # Guardar el PDF en el buffer
-        p.showPage()
-        p.save()
-
-        # Obtener el valor del buffer
         pdf = buffer.getvalue()
         buffer.close()
 
-        # Establecer el contenido del response con el PDF generado
         response.write(pdf)
 
         return response
     else:
-        # No hay resultados para la búsqueda, puedes manejarlo como desees (por ejemplo, mostrar un mensaje)
         return HttpResponse("No se encontraron resultados para la búsqueda.")
 
 
@@ -791,7 +837,7 @@ def generar_pdf_prestamo(request, obrero_id):
 
     # Crear una tabla para los datos
     data = [
-        ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA CREACION', 'FECHA RECEPCION', 'ESTADO'],
+        ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA PRESTAMO', 'FECHA RECEPCION', 'ESTADO'],
     ]
 
     for prestamo in prestamos:
@@ -1083,12 +1129,6 @@ def registro_utilesaseo(request):
 
 
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from io import BytesIO
-
 def generar_pdf_utiles_aseo(request):
     search_term = request.GET.get('buscar')
     
@@ -1125,6 +1165,8 @@ def generar_pdf_utiles_aseo(request):
 
     elements = []
 
+    
+
     # Estilo del título centrado y en negrita con texto negro
     title_style = ParagraphStyle(
         'Title',
@@ -1152,9 +1194,9 @@ def generar_pdf_utiles_aseo(request):
         )
 
         # Agregar información del solicitante, RUN y empresa centrado y en negrita con texto negro
-        elements.append(Paragraph("Nombre del Solicitante: {}".format(utilesaseos[0].nombre_solicitante.nombre if utilesaseos and utilesaseos[0].nombre_solicitante else ''), name_style))
-        elements.append(Paragraph("RUN: {}".format(utilesaseos[0].run if utilesaseos else ''), name_style))
-        elements.append(Paragraph("Empresa: {}".format(utilesaseos[0].empresa.nombre if utilesaseos and utilesaseos[0].empresa else ''), name_style))
+        elements.append(Paragraph("NOMBRE TRABAJADOR: {}".format(utilesaseos[0].nombre_solicitante.nombre if utilesaseos and utilesaseos[0].nombre_solicitante else ''), name_style))
+        elements.append(Paragraph("RUT: {}".format(utilesaseos[0].run if utilesaseos else ''), name_style))
+        elements.append(Paragraph("CARGO: {}".format(utilesaseos[0].empresa.nombre if utilesaseos and utilesaseos[0].empresa else ''), name_style))
 
         # Agregar espacio en blanco antes de la tabla
         elements.append(Spacer(1, 12))
