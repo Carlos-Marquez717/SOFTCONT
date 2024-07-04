@@ -1274,4 +1274,4 @@ def generar_pdf_utiles_aseo(request):
 
 
 def custom_404_view(request, exception):
-    return render(request, 'app/404.html', status=404)    
+    return render(request, '404.html', status=404)    
