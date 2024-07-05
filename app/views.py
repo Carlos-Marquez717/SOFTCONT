@@ -451,7 +451,7 @@ def generar_pdf_pedidos(request):
     # Posicionar la tabla en la página
     width, height = letter[1], letter[0]  # Intercambiar ancho y alto
     table.wrapOn(p, width, height)
-    table.drawOn(p, 120, height - 250)  # Bajar la tabla
+    table.drawOn(p, 60, height - 250)  # Bajar la tabla
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
