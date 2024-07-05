@@ -716,7 +716,7 @@ def lista_prestamo(request):
         prestamos = paginator.page(paginator.num_pages)  # Si el parámetro page está fuera de rango, mostrar la última página
 
     # Renderizar la plantilla normalmente
-    return render(request, 'app/lista_Prestamo.html', {'prestamos': prestamos, 'search_term': search_term})
+    return render(request, 'app/lista_prestamo.html', {'prestamos': prestamos, 'search_term': search_term})
 
 
 
