@@ -1121,11 +1121,11 @@ def registro_utilesaseo(request):
             # Guardar el pedido
             utilesaseo.save()
 
-            return render(request, 'app/registro_Utilesaseo.html', {'form': UtilesaseoForm(), 'success_message': success_message})
+            return render(request, 'app/registro_utilesaseo.html', {'form': UtilesaseoForm(), 'success_message': success_message})
     else:
         form = UtilesaseoForm()
 
-    return render(request, 'app/registro_Utilesaseo.html', {'form': form})
+    return render(request, 'app/registro_utilesaseo.html', {'form': form})
 
 
 
