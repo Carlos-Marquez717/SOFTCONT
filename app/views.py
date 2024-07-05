@@ -705,8 +705,8 @@ def lista_prestamo(request):
                 Q(status__icontains=search_term)
             )
 
+    prestamos_list = Prestamo.objects.all().order_by('id')  # Ordenar por 'id' o cualquier otro campo adecuado
     paginator = Paginator(prestamos_list, 4)
-    page = request.GET.get('page')
 
     try:
         prestamos = paginator.page(page)
@@ -1089,8 +1089,8 @@ def lista_utilesaseo(request):
             Q(run__icontains=search_term)
         )
 
+    utilesaseos_list = Utilesaseo.objects.all().order_by('id')  # Ordenar por 'id' o cualquier otro campo adecuado
     paginator = Paginator(utilesaseos_list, 5)
-    page = request.GET.get('page')
 
     try:
         utilesaseos = paginator.page(page)
