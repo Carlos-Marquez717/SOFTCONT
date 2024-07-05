@@ -705,15 +705,15 @@ def lista_prestamo(request):
                 Q(status__icontains=search_term)
             )
 
-    paginator = Paginator(prestamos_list, 4)
-    page = request.GET.get('page')
+    paginator = Paginator(prestamos_list, 4)  # Número de elementos por página
+    page = request.GET.get('page', 1)  # Obtener el número de página desde los parámetros GET
 
     try:
         prestamos = paginator.page(page)
     except PageNotAnInteger:
-        prestamos = paginator.page(1)
+        prestamos = paginator.page(1)  # Si el parámetro page no es un entero, mostrar la primera página
     except EmptyPage:
-        prestamos = paginator.page(paginator.num_pages)
+        prestamos = paginator.page(paginator.num_pages)  # Si el parámetro page está fuera de rango, mostrar la última página
 
     # Renderizar la plantilla normalmente
     return render(request, 'app/lista_Prestamo.html', {'prestamos': prestamos, 'search_term': search_term})
