@@ -9,7 +9,7 @@
 <div class="container">
   <div class="row justify-content-center">
     <div class="card bg-dark text-white col-md-8 col-lg-6 mx-auto">
-      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4 mx-auto d-block" style="max-width: 250px;">
+      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4 mx-auto d-block" style="max-width: 150px;">
       <h2 class="card-header text-center">REGISTRAR PEDIDOS</h2>
       <div class="card-body">
         <!-- Contenedor para los botones -->
@@ -37,7 +37,7 @@
                 {{ field }}
               {% else %}
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {% if field|is_checkbox %}
+                {% if field.field.widget.input_type == 'checkbox' %}
                   <div class="form-check">
                     {{ field }}
                     <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -93,3 +93,4 @@
 </script>
 
 {% endblock %}
+
