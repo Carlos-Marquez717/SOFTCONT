@@ -4,24 +4,25 @@
 {% block content %}
 <style>
 .card-overlay {
-    position: fixed;
+    position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
     color: white;
     z-index: 1;
+    width: 100%;
 }
 
 .card {
-    width: 1000px; /* Ajusta el tamaño de la tarjeta según tus necesidades */
+    max-width: 800px; /* Ajusta el tamaño máximo de la tarjeta */
+    margin: auto;
 }
 
 .card img {
-    width: 800px;  /* Ajusta el tamaño del logo según tus necesidades */
+    max-width: 100%; /* Haz que la imagen del logo sea responsive */
     height: auto;
 }
-
 </style>
 
 <div class="container-fluid position-relative">

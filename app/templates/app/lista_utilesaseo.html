@@ -1,30 +1,35 @@
 {% extends 'app/base.html' %}
 
+{% block css %}
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.css">
+
+{% endblock %}
+
+
 {% block content %}
 
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
 
-<!-- Agrega el enlace al JS de DataTables -->
 
 <br><br><br><br>
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="card bg-dark text-white">
-        <h2 class="card-header text-center">UTILES DE ASEO</h2>
-        <div class="card-body">
-          <div class="mb-3">
-            <form method="GET" action="{% url 'lista_utilesaseo' %}">
-                <label for="buscar" class="form-label">Buscar:</label>
-                <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
-                    value="{{ search_term }}">
-                    <br>
-                <button type="submit" class="btn btn-primary">Buscar</button>
-            </form>
-          </div>
-          <table class="table mx-auto table-dark" id="tuTabla">
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white">
+      <h2 class="card-header text-center">UTILES DE ASEO</h2>
+      <div class="card-body">
+        <div class="mb-3">
+          <form method="GET" action="{% url 'lista_utilesaseo' %}">
+            <label for="buscar" class="form-label">Buscar:</label>
+            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
+              value="{{ search_term }}">
+            <br>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+          </form>
+        </div>
+        <div class="table-responsive">
+          <table id="example" class="table mx-auto table-dark table-striped">
             <thead>
               <tr>
-                
                 <th scope="col">MES</th>
                 <th scope="col">PRODUCTO</th>
                 <th scope="col">CANTIDAD</th>
@@ -33,38 +38,81 @@
                 <th scope="col">EMPRESA</th>
                 <th scope="col">RUN</th>
                 <th scope="col">REPORTE</th>
-                
               </tr>
             </thead>
             <tbody>
               {% for utilesaseo in utilesaseos %}
-                <tr>
-                    
-                    <td>{{ utilesaseo.mes }}</td>
-                    <td>{{ utilesaseo.producto }}</td>
-                    <td>{{ utilesaseo.cantidad }}</td>
-                    <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
-                    <td>{{ utilesaseo.nombre_solicitante }}</td>
-                    <td>{{ utilesaseo.empresa }}</td>
-                    <td>{{ utilesaseo.run }}</td>
-                    <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}" class="btn btn-success">PDF</a></td>
-         
-                  
-                </tr>
+              <tr>
+                <td>{{ utilesaseo.mes }}</td>
+                <td>{{ utilesaseo.producto }}</td>
+                <td>{{ utilesaseo.cantidad }}</td>
+                <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
+                <td>{{ utilesaseo.nombre_solicitante }}</td>
+                <td>{{ utilesaseo.empresa }}</td>
+                <td>{{ utilesaseo.run }}</td>
+                <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}"
+                    class="btn btn-success">PDF</a></td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
-          <div class="pagination">
-            <!-- Add your pagination logic here -->
-          </div>
+        </div>
+        <div class="pagination d-flex justify-content-center">
+          <nav aria-label="Page navigation">
+            <ul class="pagination">
+              {% if utilesaseos.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1&buscar={{ search_term }}">Primera</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ utilesaseos.previous_page_number }}&buscar={{ search_term }}">Anterior</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Primera</span>
+                </li>
+                <li class="page-item disabled">
+                  <span class="page-link">Anterior</span>
+                </li>
+              {% endif %}
+              <li class="page-item disabled">
+                <span class="page-link">Página {{ utilesaseos.number }} de {{ utilesaseos.paginator.num_pages }}</span>
+              </li>
+              {% if utilesaseos.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ utilesaseos.next_page_number }}&buscar={{ search_term }}">Siguiente</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ utilesaseos.paginator.num_pages }}&buscar={{ search_term }}">Última</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Siguiente</span>
+                </li>
+                <li class="page-item disabled">
+                  <span class="page-link">Última</span>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
         </div>
       </div>
     </div>
   </div>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+</div>
 
 
 
+{% endblock %}
 
+{% block js %}
+<script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.js"></script>
+<script>
+  // Inicialización de DataTable
+  $(document).ready(function() {
+    $('#example').DataTable();
+  });
+</script>
 
 {% endblock %}

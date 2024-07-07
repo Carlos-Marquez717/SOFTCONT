@@ -1,67 +1,83 @@
-
 {% extends 'app/base.html' %}
 
 {% block content %}
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+
+<!-- Agrega el enlace al JS de DataTables -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
 <br><br><br><br>
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="card bg-dark text-white">
-        <h2 class="card-header text-center">REPUESTOS</h2>
-        <div class="card-body">
-          <div class="mb-3">
-            <form method="GET" action="{% url 'lista_Repuesto' %}">
-                <label for="buscar" class="form-label">Buscar:</label>
-                <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
-                    value="{{ search_term }}">
-                    <br>
-                <button type="submit" class="btn btn-primary">Buscar</button>
-            </form>
-          </div>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white">
+      <h2 class="card-header text-center">REPUESTOS</h2>
+      <div class="card-body">
+        <div class="mb-3">
+          <form method="GET" action="{% url 'lista_Repuesto' %}">
+            <label for="buscar" class="form-label">Buscar:</label>
+            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
+              value="{{ search_term }}">
+            <br>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+          </form>
+        </div>
+        <div class="table-responsive">
           <table class="table mx-auto table-dark" id="example">
             <thead>
               <tr>
                 <th scope="col">ID</th>
                 <th scope="col">NOMBRE</th>
                 <th scope="col">CANTIDAD</th>
-               
                 <th scope="col">ACCION</th>
               </tr>
             </thead>
             <tbody>
               {% for repuesto in repuestos %}
-                <tr>
-                  <th scope="row">{{ repuesto.id }}</th>
-                  <td>{{ repuesto.nombre }}</td>
-                  <td>{{ repuesto.cantidad }}</td>
-                  <!-- Ajusta la URL de eliminar_empresa según tu estructura de URLs -->
-                  <td><a href="{% url 'eliminar_repuesto' repuesto.id %}" class="btn btn-danger">Eliminar</a>
-                      <a href="{% url 'editar_Repuesto' repuesto.id %}" class="btn btn-warning">Editar</a> <!-- Nuevo botón para editar -->
-                  </td>
-
-                </tr>
+              <tr>
+                <th scope="row">{{ repuesto.id }}</th>
+                <td>{{ repuesto.nombre }}</td>
+                <td>{{ repuesto.cantidad }}</td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <a href="{% url 'eliminar_repuesto' repuesto.id %}" class="btn btn-danger">Eliminar</a>
+                    <a href="{% url 'editar_Repuesto' repuesto.id %}" class="btn btn-warning">Editar</a>
+                  </div>
+                </td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
-          <div class="pagination">
-            <span class="step-links">
-                {% if repuestos.has_previous %}
-                    <a href="?page=1{% if search_term %}&buscar={{ search_term }}{% endif %}">&laquo; PRINCIPIO</a>
-                    <a href="?page={{ repuestos.previous_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">PREVIO</a>
-                {% endif %}
+        </div>
+        <div class="pagination">
+          <span class="step-links">
+            {% if repuestos.has_previous %}
+            <a href="?page=1{% if search_term %}&buscar={{ search_term }}{% endif %}">&laquo; PRINCIPIO</a>
+            <a href="?page={{ repuestos.previous_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">PREVIO</a>
+            {% endif %}
 
-                <span class="current">
-                    Página {{ repuestos.number }} de {{ repuestos.paginator.num_pages }}.
-                </span>
-
-                {% if repuestos.has_next %}
-                    <a href="?page={{ repuestos.next_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">SIGUIENTE</a>
-                    <a href="?page={{ repuestos.paginator.num_pages }}{% if search_term %}&buscar={{ search_term }}{% endif %}">ANTERIOR &raquo;</a>
-                {% endif %}
+            <span class="current">
+              Página {{ repuestos.number }} de {{ repuestos.paginator.num_pages }}.
             </span>
-          </div>
+
+            {% if repuestos.has_next %}
+            <a href="?page={{ repuestos.next_page_number }}{% if search_term %}&buscar={{ search_term }}{% endif %}">SIGUIENTE</a>
+            <a href="?page={{ repuestos.paginator.num_pages }}{% if search_term %}&buscar={{ search_term }}{% endif %}">ANTERIOR &raquo;</a>
+            {% endif %}
+          </span>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+    $('#example').DataTable({
+      responsive: true  // Activar DataTables responsive para que se adapte en dispositivos móviles
+    });
+  });
+</script>
 
 {% endblock %}

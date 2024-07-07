@@ -31,8 +31,11 @@ from django.utils.dateparse import parse_datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.units import inch 
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from io import BytesIO
+from django.conf import settings
+import os
 
 @login_required
 def home(request):
@@ -187,21 +190,18 @@ def registro_pedido(request):
         form = PedidoForm(request.POST)
         if form.is_valid():
             form.save()
-
-            # El pedido
-            pedido = form.instance
-
-            # El mensaje de éxito
             success_message = 'El pedido se ha guardado correctamente.'
+            return redirect('registro_pedido_success')  # Redirigir a una página de éxito o simplemente refrescar esta página
 
-            # Guardar el pedido
-            pedido.save()
-
-            return render(request, 'app/registro_pedido.html', {'form': PedidoForm(), 'success_message': success_message})
     else:
         form = PedidoForm()
 
     return render(request, 'app/registro_pedido.html', {'form': form})
+
+@login_required
+def registro_pedido_success(request):
+    success_message = 'El pedido se ha guardado correctamente.'
+    return render(request, 'app/registro_pedido.html', {'form': PedidoForm(), 'success_message': success_message})
 
 
 
@@ -1072,35 +1072,61 @@ def lista_RetiroRepuesto_obrero(request, obrero_id):
     return render(request, 'app/lista_RetiroRepuesto_obrero.html', {'retirorepuesto_obrero': retirorepuesto_obrero ,'obrero': obrero, })
 
 
+
+
+from django.core.paginator import Paginator
+from datetime import datetime, timedelta
+
+
+
+
 @login_required
 def lista_utilesaseo(request):
-    # Inicializar search_term a una cadena vacía
     search_term = request.GET.get('buscar', '')
-
-    # Obtener todos los útiles de aseo y aplicar el filtro de búsqueda si es necesario
     utilesaseos_list = Utilesaseo.objects.all()
 
-    # Filtrar útiles de aseo por mes, nombre_solicitante__nombre, fecha_creacion y run si hay un término de búsqueda
     if search_term:
-        utilesaseos_list = utilesaseos_list.filter(
-            Q(mes__icontains=search_term) |
-            Q(nombre_solicitante__nombre__icontains=search_term) |
-            Q(fecha_creacion__icontains=search_term) |
-            Q(run__icontains=search_term)
-        )
+        try:
+            # Intentar parsear el término de búsqueda como fecha en formato dd/mm/yyyy
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            # Filtrar por fecha exacta
+            date_search = Q(fecha_creacion=search_date)
+            utilesaseos_list = utilesaseos_list.filter(date_search)
+        except ValueError:
+            # Si el término de búsqueda no es una fecha, buscar en otros campos de texto
+            text_search = Q(mes__icontains=search_term) | \
+                          Q(producto__icontains=search_term) | \
+                          Q(cantidad__icontains=search_term) | \
+                          Q(nombre_solicitante__nombre__icontains=search_term) | \
+                          Q(empresa__nombre__icontains=search_term) | \
+                          Q(run__icontains=search_term)
+            utilesaseos_list = utilesaseos_list.filter(text_search)
 
+    # Ordenar los resultados por fecha_creacion descendente
+    utilesaseos_list = utilesaseos_list.order_by('-fecha_creacion')
+
+    # Paginar los resultados
     paginator = Paginator(utilesaseos_list, 5)
-    page = request.GET.get('page')
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-    try:
-        utilesaseos = paginator.page(page)
-    except PageNotAnInteger:
-        utilesaseos = paginator.page(1)
-    except EmptyPage:
-        utilesaseos = paginator.page(paginator.num_pages)
+    context = {
+        'utilesaseos': page_obj,
+        'search_term': search_term,
+    }
 
-    # Renderizar la plantilla normalmente
-    return render(request, 'app/lista_utilesaseo.html', {'utilesaseos': utilesaseos, 'search_term': search_term})
+    return render(request, 'app/lista_utilesaseo.html', context)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1129,8 +1155,9 @@ def registro_utilesaseo(request):
 
 
 
+@login_required
 def generar_pdf_utiles_aseo(request):
-    search_term = request.GET.get('buscar')
+    search_term = request.GET.get('buscar', '')
     
     if search_term:
         try:
@@ -1142,6 +1169,7 @@ def generar_pdf_utiles_aseo(request):
                            Q(cantidad__icontains=search_term) | \
                            Q(nombre_solicitante__nombre__icontains=search_term) | \
                            Q(empresa__nombre__icontains=search_term) | \
+                           Q(fecha_creacion__icontains=search_term) | \
                            Q(run__icontains=search_term)
 
             utilesaseos = Utilesaseo.objects.all()
@@ -1165,103 +1193,88 @@ def generar_pdf_utiles_aseo(request):
 
     elements = []
 
-    
+    # Ruta al archivo del logo
+    logo_path = os.path.join(settings.STATIC_ROOT, 'app', 'imgenes', 'Logo.png')
 
-    # Estilo del título centrado y en negrita con texto negro
+    # Verificar si el archivo del logo existe
+    if not os.path.exists(logo_path):
+        raise FileNotFoundError(f'El archivo {logo_path} no existe.')
+
+    # Agregar el logo al documento con un ancho de 200 unidades y altura de 50 unidades
+    logo = Image(logo_path, width=200, height=50)
+    elements.append(logo)
+
+    # Agregar el título centrado y en negrita con texto negro
     title_style = ParagraphStyle(
         'Title',
         parent=getSampleStyleSheet()['Title'],
-        alignment=1,  # 0=Left, 1=Center, 2=Right
-        textColor=colors.black,
-        fontName='Helvetica-Bold'
+        alignment=1,
+        textColor='black',
+        fontName='Helvetica-Bold',
+        fontSize=18  # Tamaño de fuente ajustado
     )
+    elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
 
-    # Verificar si es una consulta personal de trabajador
-    if search_term:
-        # Agregar el título centrado y en negrita con texto negro
-        elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
+    # Obtener los datos del trabajador y la empresa (asumiendo que se relacionan con el primer utilesaseo)
+    primer_utilesaseo = utilesaseos.first()
+    trabajador_nombre = primer_utilesaseo.nombre_solicitante.nombre if primer_utilesaseo and primer_utilesaseo.nombre_solicitante else ""
+    empresa_nombre = primer_utilesaseo.empresa.nombre if primer_utilesaseo and primer_utilesaseo.empresa else ""
 
-        # Agregar espacio en blanco centrado
-        elements.append(Spacer(1, 12))  # Puedes ajustar la altura según sea necesario
+    # Agregar nombre del trabajador y empresa debajo del título
+    nombre_style = ParagraphStyle(
+        'NombreTrabajador',
+        parent=getSampleStyleSheet()['Normal'],
+        alignment=1,
+        textColor='black',
+        fontSize=12,
+        leading=16  # Ajusta el espacio entre líneas
+    )
+    elements.append(Paragraph(f"NOMBRE TRABAJADOR: {trabajador_nombre} | EMPRESA: {empresa_nombre}", nombre_style))
 
-        # Estilo del texto del nombre, RUN y empresa en negrita con texto negro
-        name_style = ParagraphStyle(
-            'Normal',
-            parent=getSampleStyleSheet()['Normal'],
-            alignment=1,
-            textColor=colors.black,
-            fontName='Helvetica-Bold'
-        )
+    # Agregar espacio en blanco centrado
+    elements.append(Spacer(1, 12))
 
-        # Agregar información del solicitante, RUN y empresa centrado y en negrita con texto negro
-        elements.append(Paragraph("NOMBRE TRABAJADOR: {}".format(utilesaseos[0].nombre_solicitante.nombre if utilesaseos and utilesaseos[0].nombre_solicitante else ''), name_style))
-        elements.append(Paragraph("RUT: {}".format(utilesaseos[0].run if utilesaseos else ''), name_style))
-        elements.append(Paragraph("CARGO: {}".format(utilesaseos[0].empresa.nombre if utilesaseos and utilesaseos[0].empresa else ''), name_style))
+    # Agregar espacio en blanco antes de la tabla
+    elements.append(Spacer(1, 12))
 
-        # Agregar espacio en blanco antes de la tabla
-        elements.append(Spacer(1, 12))
+    # Agregar la tabla de datos centrada
+    data = [
+        ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA DE ENTREGA'],
+    ]
 
-        # Agregar la tabla de datos centrada
-        data = [
-            ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA CREACION', 'NOMBRE', 'RUN', 'EMPRESA'],
-        ]
-
-        for utilesaseo in utilesaseos:
-            data.append([
-                utilesaseo.mes,
-                utilesaseo.producto,
-                str(utilesaseo.cantidad),
-                utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
-                utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else '',
-                utilesaseo.run,
-                utilesaseo.empresa.nombre if utilesaseo.empresa else '',
-            ])
-
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    for utilesaseo in utilesaseos:
+        data.append([
+            utilesaseo.mes,
+            utilesaseo.producto,
+            str(utilesaseo.cantidad),
+            utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
         ])
 
-        table = Table(data)
-        table.setStyle(style)
-        elements.append(table)
-    else:
-        # Agregar el título centrado y en negrita con texto negro
-        elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), 'yellow'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), 'black'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, 'black'),
+    ])
 
-        # Agregar espacio en blanco antes de la tabla
-        elements.append(Spacer(1, 12))
+    table = Table(data)
+    table.setStyle(style)
+    elements.append(table)
 
-        # Agregar la tabla de datos centrada
-        data = [
-            ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA CREACION', 'NOMBRE', 'RUN', 'EMPRESA'],
-        ]
+    # Agregar espacio en blanco antes del campo de firma
+    elements.append(Spacer(1, 24))
 
-        for utilesaseo in utilesaseos:
-            data.append([
-                utilesaseo.mes,
-                utilesaseo.producto,
-                str(utilesaseo.cantidad),
-                utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
-                utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else '',
-                utilesaseo.run,
-                utilesaseo.empresa.nombre if utilesaseo.empresa else '',
-            ])
-
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ])
-
-        table = Table(data)
-        table.setStyle(style)
-        elements.append(table)
+    # Agregar el campo de firma más ancho
+    signature_style = ParagraphStyle(
+        'Signature',
+        parent=getSampleStyleSheet()['Normal'],
+        alignment=1,
+        textColor='black',
+        fontSize=12,
+        leading=16  # Ajusta el espacio entre líneas
+    )
+    elements.append(Paragraph("Firma: ____________________________________________", signature_style))
 
     doc.build(elements)
 
@@ -1271,6 +1284,3 @@ def generar_pdf_utiles_aseo(request):
     response.write(pdf)
 
     return response
-
-
-    

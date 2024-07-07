@@ -1,4 +1,5 @@
 {% extends 'app/base.html' %}
+{% load static %}
 
 {% block content %}
 
@@ -21,106 +22,93 @@
             <button type="submit" class="btn btn-primary">Buscar</button>
           </form>
         </div>
-        <table class="table table-dark" style="width:100%">
+        <div class="table-responsive">
+          <table class="table table-dark" style="width:100%" id="tabla-prestamos">
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>SOLICITANTE</th>
+                <th>EMPRESA</th>
+                <th>HERRAMIENTA</th>
+                <th>FECHA PRESTAMO</th>
+                <th>FECHA RECEPCION</th>
+                <th>ESTADO</th>
+                <th>ACCION</th>
+                <th>HISTORIAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for prestamo in prestamos %}
+              <tr
+                class="{% cycle 'even' 'odd' %} {% if prestamo.status == 'ENTREGADO' %}table-success custom-success{% else %}table-danger custom-danger{% endif %}">
 
-          <thead>
-            <tr>
-              <th>N°</th>
-              <th>SOLICITANTE</th>
-              <th>EMPRESA</th>
-              <th>HERRAMIENTA</th>
-              <th>FECHA PRESTAMO</th>
-              <th>FECHA RECEPCION</th>
-              <th>ESTADO</th>
-              <th>ACCION</th>
-              <th>HISTORIAL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for prestamo in prestamos %}
-            <tr
-              class="{% cycle 'even' 'odd' %} {% if prestamo.status == 'ENTREGADO' %}table-success custom-success{% else %}table-danger custom-danger{% endif %}">
-
-
-              <td>{{ prestamo.id }}</td>
-              <td>{{ prestamo.nombre_solicitante }}</td>
-              <td>{{ prestamo.empresa }}</td>
-              <td>{{ prestamo.herramienta }}</td>
-              <td>
-                {% if prestamo.fecha_creacion %}
-                {{ prestamo.fecha_creacion|date:"d/m/Y" }}
-                {% else %}
-                Sin fecha de creación
-                {% endif %}
-              </td>
-
-
-
-
-              <td>
-                {% if prestamo.fecha_recepcion %}
-                {{ prestamo.fecha_recepcion|date:"d/m/Y" }}
-                {% else %}
-                Sin fecha de recepcion
-                {% endif %}
-              </td>
-              <td>{{ prestamo.status }}</td>
-              <td>
-                <form method="POST" action="{% url 'editar_prestamo' prestamo.id %}">
-                  {% csrf_token %}
-                  {{ form.as_p }}
-                  
-                  {% if prestamo.status == 'ENTREGADO' %}
-                  <script>
-                    document.getElementById("id_herramienta").disabled = true;
-                  </script>
+                <td>{{ prestamo.id }}</td>
+                <td>{{ prestamo.nombre_solicitante }}</td>
+                <td>{{ prestamo.empresa }}</td>
+                <td>{{ prestamo.herramienta }}</td>
+                <td>
+                  {% if prestamo.fecha_creacion %}
+                  {{ prestamo.fecha_creacion|date:"d/m/Y" }}
+                  {% else %}
+                  Sin fecha de creación
                   {% endif %}
-                  <button type="submit" {% if prestamo.status == 'ENTREGADO' %}disabled{% endif %}
-                    class="btn btn-primary">
-                    Guardar
-                  </button>
+                </td>
+                <td>
+                  {% if prestamo.fecha_recepcion %}
+                  {{ prestamo.fecha_recepcion|date:"d/m/Y" }}
+                  {% else %}
+                  Sin fecha de recepcion
+                  {% endif %}
+                </td>
+                <td>{{ prestamo.status }}</td>
+                <td>
+                  <form method="POST" action="{% url 'editar_prestamo' prestamo.id %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    
+                    {% if prestamo.status == 'ENTREGADO' %}
+                    <script>
+                      document.getElementById("id_herramienta").disabled = true;
+                    </script>
+                    {% endif %}
+                    <button type="submit" {% if prestamo.status == 'ENTREGADO' %}disabled{% endif %}
+                      class="btn btn-primary">
+                      Guardar
+                    </button>
 
-                </form>
-              </td>
-              <td>
-                {% if prestamo.nombre_solicitante %}
-                <a href="{% url 'lista_prestamos_obrero' prestamo.nombre_solicitante.id %}" class="btn btn-info">Ver
-                  préstamos</a>
-                {% else %}
-                <span class="btn btn-warning disabled">Ver préstamos</span>
-                {% endif %}
-                <a href="{% url 'generar_pdf_prestamos' %}?buscar={{ search_term }}" class="btn btn-success">Exportar PDF</a>
-
-
-              </td>
-              <td>
-
-              </td>
-            </tr>
-
-            {% endfor %}
-          </tbody>
-
-        </table>
+                  </form>
+                </td>
+                <td>
+                  {% if prestamo.nombre_solicitante %}
+                  <a href="{% url 'lista_prestamos_obrero' prestamo.nombre_solicitante.id %}" class="btn btn-info">Ver
+                    préstamos</a>
+                  {% else %}
+                  <span class="btn btn-warning disabled">Ver préstamos</span>
+                  {% endif %}
+                  <a href="{% url 'generar_pdf_prestamos' %}?buscar={{ search_term }}" class="btn btn-success">Exportar PDF</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
         <div class="pagination">
           <span class="step-links">
-              {% if prestamos.has_previous %}
-                  <a href="?page=1&buscar={{ search_term }}">first</a>
-                  <a href="?page={{ prestamos.previous_page_number }}&buscar={{ search_term }}">previous</a>
-              {% endif %}
-      
-              <span class="current">
-                  Page {{ prestamos.number }} of {{ prestamos.paginator.num_pages }}.
-              </span>
-      
-              {% if prestamos.has_next %}
-                  <a href="?page={{ prestamos.next_page_number }}&buscar={{ search_term }}">next</a>
-                  <a href="?page={{ prestamos.paginator.num_pages }}&buscar={{ search_term }}">last</a>
-              {% endif %}
-          </span>
-      </div>
-      
+            {% if prestamos.has_previous %}
+            <a href="?page=1&buscar={{ search_term }}">first</a>
+            <a href="?page={{ prestamos.previous_page_number }}&buscar={{ search_term }}">previous</a>
+            {% endif %}
 
+            <span class="current">
+              Page {{ prestamos.number }} of {{ prestamos.paginator.num_pages }}.
+            </span>
+
+            {% if prestamos.has_next %}
+            <a href="?page={{ prestamos.next_page_number }}&buscar={{ search_term }}">next</a>
+            <a href="?page={{ prestamos.paginator.num_pages }}&buscar={{ search_term }}">last</a>
+            {% endif %}
+          </span>
+        </div>
 
       </div>
     </div>
@@ -140,5 +128,16 @@
 
 <!-- FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<script>
+  $(document).ready(function () {
+    $('#tabla-prestamos').DataTable({
+      responsive: true  // Activar DataTables responsive para que se adapte en dispositivos móviles
+    });
+  });
+</script>
 
 {% endblock %}
