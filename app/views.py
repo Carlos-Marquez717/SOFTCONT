@@ -246,48 +246,55 @@ def lista_pedido_trabajador(request, trabajador_id):
 
     return render(request, 'app/lista_pedido_trabajador.html', {'pedidos': pedidos, 'obrero': obrero, 'search_term': search_term})
 
+
+
+
+
 @login_required
 def lista_pedido(request):
-    pedidos_list = Pedido.objects.all()
-
-    # Iterar sobre los pedidos para formatear las fechas
-    for pedido in pedidos_list:
-        pedido.fecha_pedido_formatted = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
-
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
+
+    # Obtener todos los pedidos sin filtrar inicialmente
+    pedidos_list = Pedido.objects.all()
 
     # Filtrar pedidos por cualquier campo si hay un término de búsqueda
     if search_term:
         try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y")
-            # Utilizar Q() para construir consultas OR entre campos
-            pedidos_list = pedidos_list.filter(
-                Q(solicitante__nombre__icontains=search_term) |
-                Q(compañia__nombre__icontains=search_term) |
-                Q(insumo__nombre__icontains=search_term) |
-                Q(cantidad__icontains=search_term) |
-                Q(area__icontains=search_term) |
-                Q(fecha_pedido__date=search_date)
-            )
+            # Intentar parsear el término de búsqueda como fecha en formato dd/mm/yyyy
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            # Filtrar por fecha exacta o parcial
+            pedidos_list = pedidos_list.filter(fecha_pedido__date=search_date)
         except ValueError:
-            # Manejar el caso en que el término de búsqueda no sea una fecha válida
-            pass
+            # Si el término de búsqueda no es una fecha, buscar en otros campos de texto
+            text_search = Q(insumo__nombre__icontains=search_term) | \
+                          Q(solicitante__nombre__icontains=search_term) | \
+                          Q(compañia__nombre__icontains=search_term) | \
+                          Q(area__icontains=search_term)
+            pedidos_list = pedidos_list.filter(text_search)
 
-    paginator = Paginator(pedidos_list, 4)
-    page = request.GET.get('page')
+    # Ordenar los resultados por fecha_pedido descendente
+    pedidos_list = pedidos_list.order_by('-fecha_pedido')
 
-    try:
-        pedidos = paginator.page(page)
-    except PageNotAnInteger:
-        pedidos = paginator.page(1)
-    except EmptyPage:
-        pedidos = paginator.page(paginator.num_pages)
+    # Paginar los resultados
+    paginator = Paginator(pedidos_list, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
- 
+    context = {
+        'pedidos': page_obj,
+        'search_term': search_term,
+    }
 
-    # Si no se está exportando a PDF, renderizar la plantilla normalmente
-    return render(request, 'app/lista_pedido.html', {'pedidos': pedidos, 'search_term': search_term})
+    # Renderizar la plantilla con los resultados paginados y filtrados
+    return render(request, 'app/lista_pedido.html', context)
+
+
+
+
+
+
+
 
 
 def generar_pdf_pedido(request, obrero_id):
@@ -651,13 +658,17 @@ def registrar_prestamo(request):
             prestamo.save()
             
             messages.success(request, 'El préstamo se ha registrado correctamente.')
-            return redirect('lista_prestamo')
-
+            return redirect('registro_prestamo_success')  # Redirigir a una página de éxito
 
     else:
         form = PrestamoForm()
 
     return render(request, 'app/registrar_prestamo.html', {'form': form})
+
+@login_required
+def registro_prestamo_success(request):
+    messages.success(request, 'El préstamo se ha registrado correctamente.')
+    return render(request, 'app/registrar_prestamo.html', {'form': PrestamoForm(), 'success_message': messages.get_messages(request)})
 
 
 
@@ -993,37 +1004,56 @@ def registro_RetiroRepuesto(request):
     if request.method == 'POST':
         form = RetiroRepuestoForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('lista_RetiroRepuesto')
+            # Obtener el objeto de repuesto
+            repuesto = form.cleaned_data['repuesto']  # Ajusta según tu formulario
+
+            # Actualizar la cantidad de repuestos
+            repuesto.cantidad = F('cantidad') - form.cleaned_data['cantidad']  # Ajusta según tu formulario
+            repuesto.save()
+
+            messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
+            return redirect('registro_RetiroRepuesto_success')
     else:
-        form = RetiroRepuestoForm()  # Corregir el formulario aquí
+        form = RetiroRepuestoForm()
 
     return render(request, 'app/registro_RetiroRepuesto.html', {'form': form})
 
 @login_required
+def registro_RetiroRepuesto_success(request):
+    messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
+    return render(request, 'app/registro_RetiroRepuesto.html', {'form': RetiroRepuestoForm(), 'success_message': messages.get_messages(request)})
+
+@login_required
 def lista_RetiroRepuesto(request):
-    retirorepuestos_list = RetiroRepuesto.objects.order_by('id').all()
-
-    # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
+    retirorepuestos_list = RetiroRepuesto.objects.all()
 
-    # Filtrar retiros de repuestos por nombre si hay un término de búsqueda
     if search_term:
-        retirorepuestos_list = retirorepuestos_list.filter(Q(nombre__icontains=search_term))
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            retirorepuestos_list = retirorepuestos_list.filter(fecha_retiro__date=search_date)
+        except ValueError:
+            text_search = (
+                Q(repuesto__nombre__icontains=search_term) | 
+                Q(trabajador__nombre__icontains=search_term) |  # Cambia esto según tu modelo
+                Q(empresa__nombre__icontains=search_term) |  # Si existe
+                Q(cantidad__icontains=search_term)
+            )
+            retirorepuestos_list = retirorepuestos_list.filter(text_search)
 
+    retirorepuestos_list = retirorepuestos_list.order_by('-fecha_retiro')
     paginator = Paginator(retirorepuestos_list, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-    # Obtener el número de página, estableciendo 1 como valor predeterminado
-    page = request.GET.get('page', 1)
+    context = {
+        'retirorepuestos': page_obj,
+        'search_term': search_term,
+    }
 
-    try:
-        retirorepuestos = paginator.page(page)
-    except PageNotAnInteger:
-        retirorepuestos = paginator.page(1)
-    except EmptyPage:
-        retirorepuestos = paginator.page(paginator.num_pages)
+    return render(request, 'app/lista_RetiroRepuesto.html', context)
 
-    return render(request, 'app/lista_RetiroRepuesto.html', {'retirorepuestos': retirorepuestos, 'search_term': search_term})
+
 
 
 @login_required
@@ -1075,7 +1105,7 @@ def lista_RetiroRepuesto_obrero(request, obrero_id):
 
 
 from django.core.paginator import Paginator
-from datetime import datetime, timedelta
+
 
 
 

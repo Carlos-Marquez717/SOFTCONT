@@ -1,46 +1,51 @@
-<!-- En app/templates/app/lista_prestamos_obrero.html -->
 {% extends 'app/base.html' %}
 
 {% block content %}
-<link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet" />
-<br><br><br><br>
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="card bg-dark text-white">
-        <h2 class="card-header text-center">PRESTAMOS DE {{ obrero.nombre }}</h2>
-        <div class="card-body">
-          <table class="table">
-            <thead>
-              <tr>
-                <th class="text-white">SOLICITANTE</th>
-                <th class="text-white">EMPRESA</th>
-                <th class="text-white">HERRAMIENTA</th>
-                <th class="text-white">ESTADO</th>
-                <th class="text-white">FECHA DE PRESTAMO</th>
-                <th class="text-white">FECHA DE RECEPCIÓN</th>
-              </tr>
-            </thead>
-            <tbody>
-                {% for prestamo in prestamos_obrero %}
-                    <tr style="background-color: {% if prestamo.status == 'ENTREGADO' %}green{% else %}red{% endif %}">
-                        <td class="text-white">{{ prestamo.nombre_solicitante }}</td>
-                        <td class="text-white">{{ prestamo.empresa }}</td>
-                        <td class="text-white">{{ prestamo.herramienta }}</td>
-                        <td class="text-white">{{ prestamo.status }}</td>
-                        <td class="text-white">{{ prestamo.fecha_creacion_formatted }}</td>
-                        <td class="text-white">{{ prestamo.fecha_recepcion_formatted }}</td>
-                        <td>  
-                          <a href="{% url 'generar_pdf_prestamo' obrero_id=prestamo.nombre_solicitante.id %}" class="btn btn-success">Exportar PDF</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-          </table>
-          
-  
 
+<br><br>
+<br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <h2 class="card-header text-center">PRESTAMOS DE {{ obrero.nombre }}</h2>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">SOLICITANTE</th>
+                                    <th class="text-white">EMPRESA</th>
+                                    <th class="text-white">HERRAMIENTA</th>
+                                    <th class="text-white">ESTADO</th>
+                                    <th class="text-white">FECHA DE PRESTAMO</th>
+                                    <th class="text-white">FECHA DE RECEPCIÓN</th>
+                                    <th class="text-white">ACCIONES</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prestamo in prestamos_obrero %}
+                                    <tr style="background-color: {% if prestamo.status == 'ENTREGADO' %}green{% else %}red{% endif %}; color: white;">
+                                        <td>{{ prestamo.nombre_solicitante }}</td>
+                                        <td>{{ prestamo.empresa }}</td>
+                                        <td>{{ prestamo.herramienta }}</td>
+                                        <td>{{ prestamo.status }}</td>
+                                        <td>{{ prestamo.fecha_creacion_formatted }}</td>
+                                        <td>{{ prestamo.fecha_recepcion_formatted }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'generar_pdf_prestamo' obrero_id=prestamo.nombre_solicitante.id %}" class="btn btn-success btn-sm">
+                                              <i class="bi bi-filetype-pdf"></i> PDF
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+</div>
+
 {% endblock %}

@@ -72,20 +72,19 @@
                     </script>
                     {% endif %}
                     <button type="submit" {% if prestamo.status == 'ENTREGADO' %}disabled{% endif %}
-                      class="btn btn-primary">
-                      Guardar
+                      class="btn btn-primary">Guardar
+                      <i class="bi bi-floppy-fill"></i>
                     </button>
 
                   </form>
                 </td>
                 <td>
                   {% if prestamo.nombre_solicitante %}
-                  <a href="{% url 'lista_prestamos_obrero' prestamo.nombre_solicitante.id %}" class="btn btn-info">Ver
-                    préstamos</a>
+                  <a href="{% url 'lista_prestamos_obrero' prestamo.nombre_solicitante.id %}" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
                   {% else %}
                   <span class="btn btn-warning disabled">Ver préstamos</span>
                   {% endif %}
-                  <a href="{% url 'generar_pdf_prestamos' %}?buscar={{ search_term }}" class="btn btn-success">Exportar PDF</a>
+                  <a href="{% url 'generar_pdf_prestamos' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a>
                 </td>
               </tr>
               {% endfor %}
@@ -95,17 +94,17 @@
         <div class="pagination">
           <span class="step-links">
             {% if prestamos.has_previous %}
-            <a href="?page=1&buscar={{ search_term }}">first</a>
-            <a href="?page={{ prestamos.previous_page_number }}&buscar={{ search_term }}">previous</a>
+            <a href="?page=1&buscar={{ search_term }}">Primero</a>
+            <a href="?page={{ prestamos.previous_page_number }}&buscar={{ search_term }}">Previo</a>
             {% endif %}
 
             <span class="current">
-              Page {{ prestamos.number }} of {{ prestamos.paginator.num_pages }}.
+              Pagina {{ prestamos.number }} De {{ prestamos.paginator.num_pages }}.
             </span>
 
             {% if prestamos.has_next %}
-            <a href="?page={{ prestamos.next_page_number }}&buscar={{ search_term }}">next</a>
-            <a href="?page={{ prestamos.paginator.num_pages }}&buscar={{ search_term }}">last</a>
+            <a href="?page={{ prestamos.next_page_number }}&buscar={{ search_term }}">Proximo</a>
+            <a href="?page={{ prestamos.paginator.num_pages }}&buscar={{ search_term }}">Anterior</a>
             {% endif %}
           </span>
         </div>

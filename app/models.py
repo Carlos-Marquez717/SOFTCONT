@@ -146,11 +146,11 @@ class Utilesaseo(models.Model):
 
         # Verificar si ya existe un registro para este mes y año
         if same_month_records.count() >= 3:
-            raise ValidationError(f'Ya existen 3 registros para el mes {self.get_mes_display()} en el año actual.')
+            raise ValidationError(f'Ya existen 3 registros para el mes {self.get_mes_display()} en el año actual.Para el Trabajador')
 
         # Verificar si ya existe un registro para este mes y producto específico ('OMO', 'JABON', 'CONFORT')
         if self.producto in dict(self.STATUS_CHOICES1).keys() and same_month_product_records.exists():
-            raise ValidationError(f'Ya existe un registro para el mes {self.get_mes_display()} y el producto {self.get_producto_display()} en el año actual.')
+            raise ValidationError(f'Ya existe un registro para el mes {self.get_mes_display()} y el producto {self.get_producto_display()} en el año actual. Para el Trabajador')
 
     def save(self, *args, **kwargs):
         # Asegurar que fecha_creacion se establezca adecuadamente si no se proporciona al crear una nueva instancia de Utilesaseo

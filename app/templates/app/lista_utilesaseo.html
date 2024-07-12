@@ -1,4 +1,5 @@
 {% extends 'app/base.html' %}
+{% load static %}
 
 {% block css %}
 <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
@@ -51,7 +52,7 @@
                 <td>{{ utilesaseo.empresa }}</td>
                 <td>{{ utilesaseo.run }}</td>
                 <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}"
-                    class="btn btn-success">PDF</a></td>
+                    class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a></td>
               </tr>
               {% endfor %}
             </tbody>

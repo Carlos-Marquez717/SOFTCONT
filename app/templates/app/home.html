@@ -3,33 +3,57 @@
 {% load static %}
 {% block content %}
 <style>
-.card-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: white;
-    z-index: 1;
-    width: 100%;
-}
+    .card-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: white;
+        z-index: 1;
+        width: 90%; /* Ajuste para pantallas pequeñas */
+        max-width: 800px; /* Máximo tamaño en pantallas grandes */
+    }
 
-.card {
-    max-width: 800px; /* Ajusta el tamaño máximo de la tarjeta */
-    margin: auto;
-}
+    .card {
+        background-image: radial-gradient(circle at 87.5% 12.5%, #182423 0%, #121918 25%, #060606 50%, #000000 75%, #000000 100%);
+        color: white;
+        border: none; /* Eliminar borde */
+        border-radius: 15px; /* Bordes redondeados */
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Sombra */
+        overflow: hidden; /* Para que no se desborde */
+    }
 
-.card img {
-    max-width: 100%; /* Haz que la imagen del logo sea responsive */
-    height: auto;
-}
+    .card img {
+        max-width: 100%; /* Responsive */
+        height: auto;
+        margin-bottom: 20px; /* Espaciado inferior */
+    }
+
+    .card-body {
+        padding: 20px; /* Espaciado interno */
+    }
+
+    .card-title {
+        font-size: 1.5rem; /* Tamaño de fuente */
+    }
+
+    @media (max-width: 576px) {
+        .card-title {
+            font-size: 1.2rem; /* Tamaño de fuente más pequeño en móviles */
+        }
+
+        .card-overlay {
+            width: 95%; /* Ajustar más para móviles */
+        }
+    }
 </style>
-
+<br><br><br>
 <div class="container-fluid position-relative">
     <img src="{% static 'app/imgenes/fondo.jpg' %}" alt="Fondo" class="img-fluid w-100">
     <div class="card-overlay">
-        <div class="card bg-primary text-white">
-            <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="card-img-top mt-4 mx-auto" />
+        <div class="card">
+            <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="card-img-top mt-6 mx-auto" />
             <div class="card-body text-center">
                 <h5 class="card-title">BIENVENIDO A SOFTCON SISTEMA CONTROL PARA BODEGA-PAÑOL</h5>
             </div>

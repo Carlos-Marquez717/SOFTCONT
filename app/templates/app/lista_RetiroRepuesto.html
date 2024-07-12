@@ -15,7 +15,7 @@
       <h2 class="card-header text-center">RETIRO DE REPUESTOS</h2>
       <div class="card-body">
         <div class="mb-3">
-          <form method="GET" action="{% url 'lista_Repuesto' %}">
+          <form method="GET" action="{% url 'lista_RetiroRepuesto' %}">
             <label for="buscar" class="form-label">Buscar:</label>
             <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
               value="{{ search_term }}">
@@ -53,14 +53,14 @@
                 </td>
                 <td>
                   <div class="btn-group" role="group">
-                    <a href="{% url 'eliminar_RetiroRepuesto' retirorepuesto.id %}" class="btn btn-danger">Eliminar</a>
-                    <a href="{% url 'editar_RetiroRepuesto' retirorepuesto.id %}" class="btn btn-warning">Editar</a>
+                    <a href="{% url 'eliminar_RetiroRepuesto' retirorepuesto.id %}" class="btn btn-danger"><i class="bi bi-trash3-fill"></i></a>
+                    <a href="{% url 'editar_RetiroRepuesto' retirorepuesto.id %}" class="btn btn-warning"><i class="bi bi-pencil-square"></i></a>
                     {% if retirorepuesto.trabajador_id %}
                     <a href="{% url 'lista_RetiroRepuesto_obrero' retirorepuesto.trabajador.id %}"
-                      class="btn btn-success">Ver Retiros</a>
+                      class="btn btn-success"><i class="bi bi-person-lines-fill"></i></a>
                     {% else %}
                     <!-- Manejar el caso en el que trabajador_id es None o vacío -->
-                    <span class="btn btn-warning disabled">Ver Retiros</span>
+                    <span class="btn btn-warning disabled"><i class="bi bi-person-lines-fill"></i>s</span>
                     {% endif %}
                   </div>
                 </td>

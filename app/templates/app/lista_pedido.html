@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+
 
 <br><br><br><br>
 <div class="container">
@@ -46,10 +46,13 @@
                 <td>{{ pedido.fecha_pedido_formatted }}</td>
                 <td>
                   <div class="btn-group" role="group">
-                    <a href="{% url 'lista_pedido_trabajador' pedido.solicitante.id %}" class="btn btn-primary">Historial</a>
-                    <button class="btn btn-warning" onclick="window.location.href='{% url 'editar_pedido' pedido.id %}'">Editar</button>
-                    <button class="btn btn-secondary" onclick="confirmarEliminacion('{{ pedido.id }}')">Eliminar</button>
-                    <a href="{% url 'generar_pdf_pedidos' %}?buscar={{ search_term }}" class="btn btn-success">Exportar PDF</a>
+                    <a href="{% url 'lista_pedido_trabajador' pedido.solicitante.id %}" class="btn btn-primary"><i class="bi bi-person-lines-fill"></i></a>
+                    <button class="btn btn-warning" onclick="window.location.href='{% url 'editar_pedido' pedido.id %}'"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-danger" onclick="confirmarEliminacion('{{ pedido.id }}')">
+                      <i class="bi bi-trash3-fill"></i>
+                    </button>
+                  
+                    <a href="{% url 'generar_pdf_pedidos' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a>
                   </div>
                 </td>
               </tr>
@@ -79,15 +82,11 @@
   </div>
 </div>
 
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 
 <script>
-  $(document).ready(function () {
-    $('#tabla-pedidos').DataTable({
-      responsive: true  // Activar DataTables responsive para que se adapte en dispositivos móviles
-    });
-  });
+
 
   function confirmarEliminacion(pedidoId) {
     Swal.fire({
@@ -132,5 +131,10 @@
     });
   }
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 
 {% endblock %}

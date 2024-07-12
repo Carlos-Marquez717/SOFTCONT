@@ -41,8 +41,8 @@
                 <td>{{ repuesto.cantidad }}</td>
                 <td>
                   <div class="btn-group" role="group">
-                    <a href="{% url 'eliminar_repuesto' repuesto.id %}" class="btn btn-danger">Eliminar</a>
-                    <a href="{% url 'editar_Repuesto' repuesto.id %}" class="btn btn-warning">Editar</a>
+                    <a href="{% url 'eliminar_repuesto' repuesto.id %}" class="btn btn-danger"><i class="bi bi-trash3-fill"></i></a>
+                    <a href="{% url 'editar_Repuesto' repuesto.id %}" class="btn btn-warning"><i class="bi bi-pencil-square"></i></a>
                   </div>
                 </td>
               </tr>
