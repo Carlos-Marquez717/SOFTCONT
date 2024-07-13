@@ -291,12 +291,6 @@ def lista_pedido(request):
 
 
 
-
-
-
-
-
-
 def generar_pdf_pedido(request, obrero_id):
     # Obtener el obrero específico
     obrero = get_object_or_404(Obrero, id=obrero_id)
@@ -1081,25 +1075,61 @@ def editar_RetiroRepuesto(request, retirorepuesto_id):
 
 
 
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
+from datetime import datetime
+from .models import RetiroRepuesto, Obrero
+
 @login_required
 def lista_RetiroRepuesto_obrero(request, obrero_id):
     # Obtiene el obrero correspondiente al ID o devuelve un 404 si no existe
     obrero = get_object_or_404(Obrero, id=obrero_id)
 
-    # Filtra los préstamos por el obrero asociado
+    # Filtra los retiros de repuestos por el obrero asociado
     retirorepuesto_obrero = RetiroRepuesto.objects.filter(trabajador=obrero)
 
-    # Paginación (si es necesario)
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar')
+
+    # Filtrar retiros por cualquier campo si hay un término de búsqueda
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            retirorepuesto_obrero = retirorepuesto_obrero.filter(fecha_retiro__date=search_date)
+        except ValueError:
+            text_search = (
+                Q(repuesto__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(empresa__nombre__icontains=search_term) |
+                Q(fecha_retiro__icontains=search_term)
+            )
+            retirorepuesto_obrero = retirorepuesto_obrero.filter(text_search)
+    
+    retirorepuesto_obrero = retirorepuesto_obrero.order_by('-fecha_retiro')
+
+    # Paginación
     paginator = Paginator(retirorepuesto_obrero, 10)
     page = request.GET.get('page')
-    retirorepuesto_pagina = paginator.get_page(page)
 
-    # Formatear la fecha y la hora antes de pasarla a la plantilla
+    try:
+        retirorepuesto_pagina = paginator.page(page)
+    except PageNotAnInteger:
+        retirorepuesto_pagina = paginator.page(1)
+    except EmptyPage:
+        retirorepuesto_pagina = paginator.page(paginator.num_pages)
+
+    # Formatear la fecha antes de pasarla a la plantilla
     for retirorepuesto in retirorepuesto_pagina:
-        
-        retirorepuesto.fecha_retiro_formatted = retirorepuesto.fecha_retiro.strftime("%d/%m/%Y %H:%M") 
-        
-    return render(request, 'app/lista_RetiroRepuesto_obrero.html', {'retirorepuesto_obrero': retirorepuesto_obrero ,'obrero': obrero, })
+        retirorepuesto.fecha_retiro_formatted = retirorepuesto.fecha_retiro.strftime("%d/%m/%Y %H:%M")
+
+    return render(request, 'app/lista_RetiroRepuesto_obrero.html', {
+        'retirorepuesto_obrero': retirorepuesto_pagina,
+        'obrero': obrero,
+        'search_term': search_term
+    })
+
 
 
 
@@ -1313,4 +1343,165 @@ def generar_pdf_utiles_aseo(request):
 
     response.write(pdf)
 
+    return response
+
+
+
+
+def generar_pdf_retiro(request, obrero_id):
+    # Obtener el obrero específico
+    obrero = get_object_or_404(Obrero, id=obrero_id)
+
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar', '')
+
+    # Obtener los retiros asociados al obrero
+    retiros = RetiroRepuesto.objects.filter(trabajador=obrero)
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            retiros = retiros.filter(fecha_retiro__date=search_date)
+        except ValueError:
+            pass
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="retiros_{obrero.nombre}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    data = [
+        ['Fecha', 'Obrero', 'Repuesto', 'Cantidad', 'Empresa'],
+    ]
+
+    for retiro in retiros:
+        fecha_y_hora = retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M")
+        data.append([
+            fecha_y_hora,
+            retiro.trabajador.nombre,
+            retiro.repuesto.nombre,
+            retiro.cantidad,
+            retiro.empresa.nombre,
+        ])
+
+    if len(data) == 1:
+        # Si no hay datos, agregar un mensaje a la tabla
+        data.append(['No hay registros', '', '', '', ''])
+
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    table = Table(data)
+    table.setStyle(style)
+
+    width, height = letter
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 60, height - 200)
+
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, f"RETIRO DE REPUESTOS")
+    
+    
+    usuario = request.user
+    p.setFont("Helvetica-Bold", 12)
+    text = f"PAÑOLERO: {usuario.username}"
+    text_width = p.stringWidth(text, "Helvetica", 12)
+    p.setFillColor(colors.black)
+    p.drawString(100, height - 90, text)
+    p.line(100, height - 92, 100 + text_width, height - 92)
+
+
+
+    p.showPage()
+    p.save()
+
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    response.write(pdf)
+    return response
+
+
+
+def generar_pdf_retiros_general(request):
+    # Obtener el término de búsqueda de la URL
+    search_term = request.GET.get('buscar', '')
+
+    # Obtener todos los retiros de repuestos
+    retiros = RetiroRepuesto.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            retiros = retiros.filter(fecha_retiro__date=search_date)
+        except ValueError:
+            pass
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="retiros_general.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    data = [
+        ['FECHA', 'TRABAJADOR', 'REPUESTO', 'CANTIDAD', 'EMPRESA'],
+    ]
+
+    for retiro in retiros:
+        fecha_y_hora = retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M")
+        data.append([
+            fecha_y_hora,
+            retiro.trabajador.nombre,
+            retiro.repuesto.nombre,
+            retiro.cantidad,
+            retiro.empresa.nombre,
+        ])
+
+    if len(data) == 1:
+        # Si no hay datos, agregar un mensaje a la tabla
+        data.append(['No hay registros', '', '', '', ''])
+
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    table = Table(data)
+    table.setStyle(style)
+
+    width, height = letter
+    table.wrapOn(p, width, height)
+    table.drawOn(p, 60, height - 250)
+
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 40, f"RETIRO DE REPUESTOS")
+
+    usuario = request.user
+    p.setFont("Helvetica-Bold", 12)
+    text = f"PAÑOLERO: {usuario.username}"
+    text_width = p.stringWidth(text, "Helvetica", 12)
+    p.setFillColor(colors.black)
+    p.drawString(100, height - 60, text)
+  
+
+ 
+
+    p.showPage()
+    p.save()
+
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    response.write(pdf)
     return response

@@ -1,7 +1,7 @@
 # en trabajadores/urls.py
 from django.urls import path
 from django.contrib.auth.views import logout_then_login
-from .views import registrar_trabajador,lista_trabajador,registro_empresa,lista_empresa,eliminar,registro_obrero,lista_obrero,eliminar_obrero,registro_pedido,lista_pedido,eliminar_pedido,lista_pedido_trabajador,registro_material,eliminar_material,lista_material,editar_material,editar_obrero,editar_empresa,editar_pedido,home,registro_Herramienta,lista_Herramienta,editar_herramienta,eliminar_herramienta,lista_prestamo,registrar_prestamo,editar_prestamo,lista_prestamos_obrero,registro_Repuesto,eliminar_repuesto,lista_Repuesto,editar_Repuesto,registro_RetiroRepuesto,lista_RetiroRepuesto,eliminar_RetiroRepuesto,editar_RetiroRepuesto,lista_RetiroRepuesto_obrero,login,logout,generar_pdf_pedido,generar_pdf_pedidos,generar_pdf_prestamos,generar_pdf_prestamo,lista_utilesaseo,registro_utilesaseo,generar_pdf_utiles_aseo,registro_pedido_success,registro_prestamo_success,registro_RetiroRepuesto_success
+from .views import registrar_trabajador,lista_trabajador,registro_empresa,lista_empresa,eliminar,registro_obrero,lista_obrero,eliminar_obrero,registro_pedido,lista_pedido,eliminar_pedido,lista_pedido_trabajador,registro_material,eliminar_material,lista_material,editar_material,editar_obrero,editar_empresa,editar_pedido,home,registro_Herramienta,lista_Herramienta,editar_herramienta,eliminar_herramienta,lista_prestamo,registrar_prestamo,editar_prestamo,lista_prestamos_obrero,registro_Repuesto,eliminar_repuesto,lista_Repuesto,editar_Repuesto,registro_RetiroRepuesto,lista_RetiroRepuesto,eliminar_RetiroRepuesto,editar_RetiroRepuesto,lista_RetiroRepuesto_obrero,login,logout,generar_pdf_pedido,generar_pdf_pedidos,generar_pdf_prestamos,generar_pdf_prestamo,lista_utilesaseo,registro_utilesaseo,generar_pdf_utiles_aseo,registro_pedido_success,registro_prestamo_success,registro_RetiroRepuesto_success,generar_pdf_retiro,generar_pdf_retiros_general
 
 urlpatterns = [
     path('login/', login, name='login' ),
@@ -49,7 +49,8 @@ urlpatterns = [
     path('eliminar_RetiroRepuesto/<int:id>/', eliminar_RetiroRepuesto, name='eliminar_RetiroRepuesto'),
     path('editar_RetiroRepuesto/<int:retirorepuesto_id>/', editar_RetiroRepuesto, name='editar_RetiroRepuesto'),
     path('lista_RetiroRepuesto_obrero/<int:obrero_id>/', lista_RetiroRepuesto_obrero, name='lista_RetiroRepuesto_obrero'),
-
+    path('generar_pdf_retiro/<int:obrero_id>/', generar_pdf_retiro, name='generar_pdf_retiro'),
+     path('generar_pdf_retiros_general/', generar_pdf_retiros_general, name='generar_pdf_retiros_general'),
 
     path('', home, name='home'),
 
@@ -62,6 +63,8 @@ urlpatterns = [
     path('lista_utilesaseo/', lista_utilesaseo, name='lista_utilesaseo'),
     path('registro_utilesaseo/', registro_utilesaseo, name='registro_utilesaseo'), 
     path('generar_pdf_utiles_aseo/', generar_pdf_utiles_aseo, name='generar_pdf_utiles_aseo'),
+
+
 ]
 
 
