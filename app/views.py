@@ -494,8 +494,15 @@ def eliminar_pedido(request, pedido_id):
     # Redirige a la lista de pedidos después de la eliminación
     return redirect('lista_pedido')
 
+# views.py
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 @login_required
 def editar_pedido(request, pedido_id):
+    logger.info("Iniciando la edición del pedido con id %s", pedido_id)
     pedido = get_object_or_404(Pedido, id=pedido_id)
 
     if request.method == 'POST':
@@ -505,11 +512,13 @@ def editar_pedido(request, pedido_id):
             messages.success(request, 'El pedido se ha modificado correctamente.')
             return redirect('lista_pedido')
         else:
+            logger.error("Error al modificar el pedido: %s", form.errors)
             messages.error(request, 'Hubo un error al modificar el pedido. Por favor, verifica los datos.')
     else:
         form = PedidoForm(instance=pedido)
 
     return render(request, 'app/editar_pedido.html', {'form': form, 'pedido': pedido})
+
 
 
 @login_required
