@@ -184,9 +184,8 @@ WSGI_APPLICATION = 'bodega.wsgi.application'
 
 
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
+    'default': dj_database_url.parse(os.environ.get('DATABASE_URL', 'postgresql://softcon_user:ubG5o15jUIirdIw97ZORu0DOiK34Kwvz@dpg-cqha492j1k6c739k19h0-a/softcon'))
 }
-
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
