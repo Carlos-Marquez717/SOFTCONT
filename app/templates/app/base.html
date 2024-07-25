@@ -17,6 +17,7 @@
     <link rel="shortcut icon" href="{% static 'app/imgenes/favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
 
     <!-- SweetAlert CDN -->
     
@@ -82,7 +83,10 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            PEDIDOS
+                              PEDIDOS 
+                            <span class="material-icons">
+                                filter_frames
+                            </span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                             <li><a class="dropdown-item" href="{% url 'registro_pedido' %}"><span class="material-icons">
@@ -94,7 +98,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            PRESTAMOS
+                            PRESTAMOS   <span class="material-icons">
+                                             plumbing
+                                        </span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                             <li><a class="dropdown-item" href="{% url 'registrar_prestamo' %}"><span class="material-icons">
@@ -108,7 +114,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            REPUESTOS PAÑOL
+                            REPUESTOS PAÑOL <span class="material-icons">
+                                                home_repair_service
+                                            </span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                             <li><a class="dropdown-item" href="{% url 'registro_Repuesto' %}"><span class="material-icons">
@@ -130,7 +138,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            ENTREGA UTILES ASEO
+                            ENTREGA UTILES ASEO <span class="material-icons">
+                                                    clean_hands
+                                                </span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                             <li><a class="dropdown-item" href="{% url 'registro_utilesaseo' %}"><span class="material-icons">

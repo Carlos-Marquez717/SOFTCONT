@@ -17,34 +17,73 @@
             background-size: cover; /* Ajusta la imagen al tamaño del contenedor */
             background-repeat: no-repeat; /* Evita que la imagen se repita */
         }
+
+        .user_card {
+            background: #000; /* Fondo negro para el card */
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            color: white; /* Color de texto blanco para contraste */
+        }
+
+        .brand_logo_container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .brand_logo {
+            width: 350px; /* Ajusta el tamaño según tus necesidades */
+            height: auto;
+            border-radius: 50%;
+        }
+
+        .form_container {
+            text-align: center;
+        }
+
+        form h5 {
+            margin-bottom: 20px;
+        }
+
+        .input-group-text {
+            background: #333; /* Fondo oscuro para los input-group-text */
+            color: white;
+        }
+
+        .login_container input[type="submit"] {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login_container input[type="submit"]:hover {
+            background: #0056b3;
+        }
     </style>
 
 </head>
 
 <body>
 
-    <br>
-
-    <div class="container text-center mt-7">
-        <div>
-            <img src="{% static 'app/imgenes/Logo.png' %}">
-        </div>
-        <h1 style="color: white;">SISTEMA CONTROL HERRAMIENTAS E INSUMOS PAÑOL</h1>
-    </div>
+    <br><br><br><br><br><br><br><br><br><br><br><br>
 
     <div class="container h-100 mt-8">
         <div class="d-flex justify-content-center h-100">
             <div class="user_card">
                 <div class="d-flex justify-content-center form_container">
                     <div class="brand_logo_container">
-                        <img src="{% static 'app/imgenes/FONDO.png' %}" class="brand_logo" alt="Logo"
-                            style="max-width: 100%; max-height: 100%;">
-                        <br><br>
-                        <h5 style="color: white;">INICIA SESION</h5>
+                        <img src="{% static 'app/imgenes/FONDO.png' %}" class="brand_logo" alt="Logo">
                     </div>
 
                     <form action="" method="post">
                         {% csrf_token %}
+                        <h5>INICIA SESION</h5>
                         <div class="input-group mb-3">
                             <div class="input-group-append">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
@@ -67,7 +106,6 @@
                         </div>
                         <div class="d-flex justify-content-center mt-3 login_container">
                             <input type="submit" value="ENTRAR">
-                            <br>
                         </div>
                     </form>
                 </div>
