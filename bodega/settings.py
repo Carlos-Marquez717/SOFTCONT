@@ -47,6 +47,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 INSTALLED_APPS = [
+    'app.apps.AppConfig',
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -55,7 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'whitenoise.runserver_nostatic',
-    'app',
+    
     'django_select2',
     'crispy_forms',
     'django_session_timeout',
