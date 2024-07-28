@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'whitenoise.runserver_nostatic',
-    'django_extensions'
+    
     'django_select2',
     'crispy_forms',
     'django_session_timeout',
