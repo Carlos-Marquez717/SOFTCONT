@@ -243,7 +243,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': 'SOFTCON2/debug.log',
+            'filename': 'SOFTCON2/logs/debug.log',
         },
     },
     'loggers': {
