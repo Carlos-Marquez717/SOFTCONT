@@ -63,6 +63,9 @@ INSTALLED_APPS = [
     
 ]
 
+
+
+
 JAZZMIN_SETTINGS = {
     "site_title": "your_site_name",
     "site_header": "your_site_header",
