@@ -20,21 +20,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-=c*xc^a^%l2l%0*m=66o*bxeo*(m2w_n+mb2d@tn8#^awgtpwa'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # settings.py
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'https://softcont.up.railway.app']
-CSRF_TRUSTED_ORIGINS = ['https://softcont.up.railway.app/']
-
-print("DATABASE_URL:", os.getenv('DATABASE_URL'))
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'softcont.up.railway.app']
 
 
-
-
-
-
-
+# Edit the following line and place your railway URL, and your custom URL in the array.
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.up.railway.app", 
+    # NOTE: Place your custom url here if any
+]
 
 
 LOGIN_REDIRECT_URL = '/'
@@ -153,7 +150,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_session_timeout.middleware.SessionTimeoutMiddleware',
-    
 
 ]
 
@@ -188,8 +184,17 @@ WSGI_APPLICATION = 'bodega.wsgi.application'
 
 
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": os.environ["PGDATABASE"],
+        "USER": os.environ["PGUSER"],
+        "PASSWORD": os.environ["PGPASSWORD"],
+        "HOST": os.environ["PGHOST"],
+        "PORT": os.environ["PGPORT"],
+    }
 }
+
+
 
 
 # Password validation
@@ -226,6 +231,7 @@ USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
+
 
 
 
