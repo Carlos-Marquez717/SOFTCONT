@@ -24,7 +24,8 @@ DEBUG = False
 
 # settings.py
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'softcont.up.railway.app']
+
+ALLOWED_HOSTS = ["*"]
 
 
 # Edit the following line and place your railway URL, and your custom URL in the array.
@@ -54,7 +55,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'whitenoise.runserver_nostatic',
-    
     'django_select2',
     'crispy_forms',
     'django_session_timeout',
