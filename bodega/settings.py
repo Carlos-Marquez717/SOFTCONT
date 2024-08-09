@@ -65,7 +65,7 @@ INSTALLED_APPS = [
 
 
 JAZZMIN_SETTINGS = {
-    "site_title": "your_site_name",
+    "site_title": "SOFTCON",
     "site_header": "your_site_header",
     "site_brand": "SOFTCON",
     "site_icon": "images/favicon.png",
