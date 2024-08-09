@@ -74,27 +74,19 @@ class Prestamo(models.Model):
 
 class Repuesto(models.Model):
     nombre = models.CharField(max_length=100)
-    cantidad = models.IntegerField(default=0)
-    def __str__(self):
-        return self.nombre  
-    
+    cantidad = models.PositiveIntegerField()
 
+    def __str__(self):
+        return self.nombre
 
 class RetiroRepuesto(models.Model):
-    trabajador = models.ForeignKey(Obrero, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="Obrero")
-    empresa = models.ForeignKey(Empresa, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="empresa")
-    repuesto = models.ForeignKey(Repuesto, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="REPUESTO")
+    trabajador = models.CharField(max_length=100)
+    empresa = models.CharField(max_length=100)
+    repuesto = models.ForeignKey(Repuesto, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField()
-    fecha_retiro = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        # Actualizar la cantidad de repuestos al realizar un retiro
-        self.repuesto.cantidad -= self.cantidad
-        self.repuesto.save()
-        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f'{self.trabajador} - {self.repuesto.nombre}'
+        return f'{self.trabajador} - {self.repuesto} - {self.cantidad}'
 
 
 
