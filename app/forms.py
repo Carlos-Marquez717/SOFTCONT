@@ -134,3 +134,5 @@ class UtilesaseoForm(forms.ModelForm):
     class Meta:
         model = Utilesaseo
         fields = '__all__'
+
+

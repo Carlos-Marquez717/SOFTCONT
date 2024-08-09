@@ -1007,15 +1007,31 @@ def registro_RetiroRepuesto(request):
     if request.method == 'POST':
         form = RetiroRepuestoForm(request.POST)
         if form.is_valid():
-            # Obtener el objeto de repuesto
-            repuesto = form.cleaned_data['repuesto']  # Ajusta según tu formulario
+            repuesto = form.cleaned_data['repuesto']
+            cantidad_retirada = form.cleaned_data['cantidad']
+            
+            # Verifica si el repuesto existe y si hay suficiente cantidad disponible
+            try:
+                repuesto_obj = Repuesto.objects.get(id=repuesto.id)
+                
+                if repuesto_obj.cantidad < cantidad_retirada:
+                    messages.error(request, 'No hay suficiente cantidad disponible para retirar.')
+                    return redirect('registro_RetiroRepuesto')
 
-            # Actualizar la cantidad de repuestos
-            repuesto.cantidad = F('cantidad') - form.cleaned_data['cantidad']  # Ajusta según tu formulario
-            repuesto.save()
+                # Actualiza la cantidad de repuestos
+                repuesto_obj.cantidad = F('cantidad') - cantidad_retirada
+                repuesto_obj.save()
 
-            messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
-            return redirect('registro_RetiroRepuesto_success')
+                messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
+                return redirect('registro_RetiroRepuesto_success')
+
+            except Repuesto.DoesNotExist:
+                messages.error(request, 'El repuesto no se encontró en la base de datos.')
+                return redirect('registro_RetiroRepuesto')
+        else:
+            # Si el formulario no es válido, muestra errores
+            messages.error(request, f'Error en el formulario: {form.errors}')
+
     else:
         form = RetiroRepuestoForm()
 
