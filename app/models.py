@@ -78,16 +78,23 @@ class Repuesto(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+
 
 class RetiroRepuesto(models.Model):
-    trabajador = models.CharField(max_length=100)
-    empresa = models.CharField(max_length=100)
-    repuesto = models.ForeignKey(Repuesto, on_delete=models.CASCADE)
+    trabajador = models.ForeignKey(Obrero, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="Obrero")
+    empresa = models.ForeignKey(Empresa, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="empresa")
+    repuesto = models.ForeignKey(Repuesto, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="REPUESTO")
     cantidad = models.PositiveIntegerField()
+    fecha_retiro = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.trabajador} - {self.repuesto} - {self.cantidad}'
 
+
+
+
+    
 
 
 class Utilesaseo(models.Model):
