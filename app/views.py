@@ -1038,9 +1038,8 @@ def registro_RetiroRepuesto(request):
 
 @login_required
 def registro_RetiroRepuesto_success(request):
-    # La función no necesita hacer mucho, ya que el mensaje de éxito se maneja en la plantilla
-    return render(request, 'app/registro_RetiroRepuesto_success.html')
-
+    messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
+    return render(request, 'app/registro_RetiroRepuesto.html', {'form': RetiroRepuestoForm(), 'success_message': messages.get_messages(request)})
 
 @login_required
 def lista_RetiroRepuesto(request):
