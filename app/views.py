@@ -1010,7 +1010,6 @@ def registro_RetiroRepuesto(request):
             repuesto = form.cleaned_data['repuesto']
             cantidad_retirada = form.cleaned_data['cantidad']
             
-            # Verifica si el repuesto existe y si hay suficiente cantidad disponible
             try:
                 repuesto_obj = Repuesto.objects.get(id=repuesto.id)
                 
@@ -1018,10 +1017,11 @@ def registro_RetiroRepuesto(request):
                     messages.error(request, 'No hay suficiente cantidad disponible para retirar.')
                     return redirect('registro_RetiroRepuesto')
 
-                # Actualiza la cantidad de repuestos
-                repuesto_obj.cantidad = F('cantidad') - cantidad_retirada
-                repuesto_obj.save()
+                Repuesto.objects.filter(id=repuesto.id, cantidad__gte=cantidad_retirada).update(cantidad=F('cantidad') - cantidad_retirada)
 
+                form.save()
+
+                # Mensaje de éxito antes de redirigir
                 messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
                 return redirect('registro_RetiroRepuesto_success')
 
@@ -1029,7 +1029,6 @@ def registro_RetiroRepuesto(request):
                 messages.error(request, 'El repuesto no se encontró en la base de datos.')
                 return redirect('registro_RetiroRepuesto')
         else:
-            # Si el formulario no es válido, muestra errores
             messages.error(request, f'Error en el formulario: {form.errors}')
 
     else:
@@ -1039,8 +1038,9 @@ def registro_RetiroRepuesto(request):
 
 @login_required
 def registro_RetiroRepuesto_success(request):
-    messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
-    return render(request, 'app/registro_RetiroRepuesto.html', {'form': RetiroRepuestoForm(), 'success_message': messages.get_messages(request)})
+    # La función no necesita hacer mucho, ya que el mensaje de éxito se maneja en la plantilla
+    return render(request, 'app/registro_RetiroRepuesto_success.html')
+
 
 @login_required
 def lista_RetiroRepuesto(request):
