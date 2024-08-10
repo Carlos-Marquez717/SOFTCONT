@@ -160,6 +160,22 @@
                             <button type="submit" class="nav-link btn btn-link"><i class="bi bi-box-arrow-right"></i></button>
                         </form>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false"><span class="material-icons">manage_accounts</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <li>                        
+                                <form method="post" action="{% url 'logout' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="nav-link btn btn-link"><i class="bi bi-box-arrow-right"></i></button>
+                                </form>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'lista_utilesaseo' %}"><span class="material-icons">recent_actors</span>LISTADO</a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
         </div>
