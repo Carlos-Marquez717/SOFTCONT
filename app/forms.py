@@ -61,9 +61,9 @@ class PedidoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Aplica Select2 a los campos solicitante, compañia e insumo
-        self.fields['solicitante'].widget.attrs['class'] = 'select2'
-        self.fields['compañia'].widget.attrs['class'] = 'select2'
-        self.fields['insumo'].widget.attrs['class'] = 'select2'
+        self.fields['solicitante'].widget.attrs.update({'class': 'select2'})
+        self.fields['compañia'].widget.attrs.update({'class': 'select2'})
+        self.fields['insumo'].widget.attrs.update({'class': 'select2'})
 
 
 
@@ -96,6 +96,13 @@ class PrestamoForm(forms.ModelForm):
         model = Prestamo
         fields = ['nombre_solicitante', 'empresa', 'herramienta', 'status']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Aplica Select2 a los campos nombre_solicitante, empresa y herramienta
+        self.fields['nombre_solicitante'].widget.attrs.update({'class': 'select2'})
+        self.fields['empresa'].widget.attrs.update({'class': 'select2'})
+        self.fields['herramienta'].widget.attrs.update({'class': 'select2'})
+
 
 
 class PrestamoEditForm(forms.ModelForm):
@@ -120,19 +127,25 @@ class RepuestoForm(forms.ModelForm):
 class RetiroRepuestoForm(forms.ModelForm):
     class Meta:
         model = RetiroRepuesto
-        fields = ['trabajador', 'empresa', 'repuesto', 'cantidad']  # Ajustar los campos necesarios
+        fields = ['trabajador', 'empresa', 'repuesto', 'cantidad']
 
     def __init__(self, *args, **kwargs):
-        super(RetiroRepuestoForm, self).__init__(*args, **kwargs)
-        # Puedes personalizar las etiquetas aquí si es necesario
-        self.fields['trabajador'].label = 'trabajador'.upper()
-        self.fields['empresa'].label = 'Empresa'.upper()
-        self.fields['repuesto'].label = 'Repuesto'.upper()
-        self.fields['cantidad'].label = 'Cantidad'.upper()     
+        super().__init__(*args, **kwargs)
+        # Aplica Select2 a los campos trabajador, empresa y repuesto
+        self.fields['trabajador'].widget.attrs.update({'class': 'select2'})
+        self.fields['empresa'].widget.attrs.update({'class': 'select2'})
+        self.fields['repuesto'].widget.attrs.update({'class': 'select2'})   
 
 class UtilesaseoForm(forms.ModelForm):
     class Meta:
         model = Utilesaseo
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Aplica Select2 a los campos de selección
+        self.fields['mes'].widget.attrs.update({'class': 'select2'})
+        self.fields['producto'].widget.attrs.update({'class': 'select2'})
+        self.fields['nombre_solicitante'].widget.attrs.update({'class': 'select2'})
+        self.fields['empresa'].widget.attrs.update({'class': 'select2'})
 

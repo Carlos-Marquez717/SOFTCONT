@@ -50,16 +50,14 @@
 <script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
   $(document).ready(function() {
-      // Inicializa Select2 en los selectores deseados
-      $('select').select2({
-          theme: 'bootstrap4', // Usa este tema para que combine con Bootstrap
-          placeholder: "Selecciona una opción", // Placeholder
-          allowClear: true // Permitir limpiar la selección
-      });
+    $('.select2').select2();
   });
+</script>
+<script>
+
 
   var successMessage = "{% if success_message %}{{ success_message }}{% endif %}";
   var errorMessage = "{% if error_message %}{{ error_message }}{% endif %}";
