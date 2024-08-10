@@ -66,10 +66,10 @@ INSTALLED_APPS = [
 
 JAZZMIN_SETTINGS = {
     "site_title": "SOFTCON",
-    "site_header": "your_site_header",
+   
     "site_brand": "SOFTCON",
     "site_icon": "imgenes/favicon.ico",
-    "site_logo": "imgenes/FONDO.png", 
+    "site_header": "imgenes/FONDO.png", 
     
     "welcome_sign": "BIENVENIDO",
     # Copyright on the footer
