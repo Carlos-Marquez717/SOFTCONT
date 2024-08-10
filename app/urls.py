@@ -13,7 +13,7 @@ from .views import (
     generar_pdf_pedidos, generar_pdf_prestamos, generar_pdf_prestamo, lista_utilesaseo, 
     registro_utilesaseo, generar_pdf_utiles_aseo, registro_pedido_success, 
     registro_prestamo_success, registro_RetiroRepuesto_success, generar_pdf_retiro, 
-    generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales
+    generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia
 )
 
 urlpatterns = [
@@ -71,4 +71,5 @@ urlpatterns = [
     path('lista_utilesaseo/', lista_utilesaseo, name='lista_utilesaseo'),
     path('registro_utilesaseo/', registro_utilesaseo, name='registro_utilesaseo'),
     path('generar_pdf_utiles_aseo/', generar_pdf_utiles_aseo, name='generar_pdf_utiles_aseo'),
+    path('pedidos_dia/', pedidos_dia, name='pedidos_dia'),
 ]
