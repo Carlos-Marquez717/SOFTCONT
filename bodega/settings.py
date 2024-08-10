@@ -69,7 +69,7 @@ JAZZMIN_SETTINGS = {
     "site_header": "your_site_header",
     "site_brand": "SOFTCON",
     "site_icon": "imgenes/favicon.ico",
-    "site_logo": "imgenes/Logo.png", 
+    "site_logo": "imgenes/FONDO.png", 
     
     "welcome_sign": "BIENVENIDO",
     # Copyright on the footer
