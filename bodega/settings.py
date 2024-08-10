@@ -68,7 +68,7 @@ JAZZMIN_SETTINGS = {
     "site_title": "SOFTCON",
     "site_header": "your_site_header",
     "site_brand": "SOFTCON",
-    "site_icon": "images/favicon.png",
+    "site_icon": "images/FONDO.png",
     # Add your own branding here
     "site_logo": None,
     "welcome_sign": "BIENVENIDO",
