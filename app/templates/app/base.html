@@ -165,9 +165,14 @@
                                     <button type="submit" class="dropdown-item btn btn-link"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
                                 </form>
                             </li>
+                            {% if user.is_superuser %}
+                            <!-- Botón para ir a la administración visible solo para administradores -->
                             <li>
-                                <a class="dropdown-item" href="{% url 'admin:index' %}"><span class="material-icons">admin_panel_settings</span> Administración</a>
+                                <a class="dropdown-item" href="{% url 'admin:index' %}">
+                                    <span class="material-icons">admin_panel_settings</span> Administración
+                                </a>
                             </li>
+                            {% endif %}
                         </ul>
                     </li>
                     
