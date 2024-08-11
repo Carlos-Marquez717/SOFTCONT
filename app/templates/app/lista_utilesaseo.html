@@ -21,8 +21,7 @@
         <div class="mb-3">
           <form method="GET" action="{% url 'lista_utilesaseo' %}">
             <label for="buscar" class="form-label">Buscar:</label>
-            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
-              value="{{ search_term }}">
+            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..." value="{{ search_term }}">
             <br>
             <button type="submit" class="btn btn-primary">Buscar</button>
           </form>
@@ -45,14 +44,17 @@
               {% for utilesaseo in utilesaseos %}
               <tr>
                 <td>{{ utilesaseo.mes }}</td>
-                <td>{{ utilesaseo.producto }}</td>
+                <td>
+                  {% for producto in utilesaseo.productos.all %}
+                    {{ producto.nombre }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                </td>
                 <td>{{ utilesaseo.cantidad }}</td>
                 <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
                 <td>{{ utilesaseo.nombre_solicitante }}</td>
                 <td>{{ utilesaseo.empresa }}</td>
                 <td>{{ utilesaseo.run }}</td>
-                <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}"
-                    class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a></td>
+                <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a></td>
               </tr>
               {% endfor %}
             </tbody>
@@ -101,6 +103,7 @@
     </div>
   </div>
 </div>
+
 
 
 

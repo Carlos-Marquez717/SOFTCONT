@@ -2,7 +2,7 @@
 from django_select2.forms import Select2Widget
 from django_select2.forms import ModelSelect2Widget
 from django import forms
-from .models import Trabajador,Empresa, Obrero, Pedido, Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto,Utilesaseo
+from .models import Trabajador,Empresa, Obrero, Pedido, Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto,Utilesaseo,Producto
 
 from django.contrib.auth.forms import AuthenticationForm
 
@@ -136,16 +136,19 @@ class RetiroRepuestoForm(forms.ModelForm):
         self.fields['empresa'].widget.attrs.update({'class': 'select2'})
         self.fields['repuesto'].widget.attrs.update({'class': 'select2'})   
 
+
+
 class UtilesaseoForm(forms.ModelForm):
     class Meta:
         model = Utilesaseo
         fields = '__all__'
+        widgets = {
+            'Producto': forms.CheckboxSelectMultiple,  # Utiliza CheckboxSelectMultiple para múltiples selecciones
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Aplica Select2 a los campos de selección
         self.fields['mes'].widget.attrs.update({'class': 'select2'})
-        self.fields['producto'].widget.attrs.update({'class': 'select2'})
+        self.fields['productos'].widget.attrs.update({'class': 'select2'})
         self.fields['nombre_solicitante'].widget.attrs.update({'class': 'select2'})
         self.fields['empresa'].widget.attrs.update({'class': 'select2'})
-

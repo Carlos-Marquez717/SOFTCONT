@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from datetime import datetime
+from django.contrib.postgres.fields import ArrayField 
 
 
 class Empresa(models.Model):
@@ -97,6 +98,20 @@ class RetiroRepuesto(models.Model):
     
 
 
+
+from django.core.exceptions import ValidationError
+
+
+class Producto(models.Model):
+    nombre = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.nombre
+
+
+
+
+
 class Utilesaseo(models.Model):
     STATUS_CHOICES = [
         ('ENERO', 'ENERO'),
@@ -113,18 +128,14 @@ class Utilesaseo(models.Model):
         ('DICIEMBRE', 'DICIEMBRE'),
     ]
 
-    STATUS_CHOICES1 = [
-        ('OMO', 'OMO'),
-        ('JABON', 'JABON'),
-        ('CONFORT', 'CONFORT'),
-    ]
+  
 
     mes = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ENERO')
-    producto = models.CharField(max_length=20, choices=STATUS_CHOICES1, default='OMO')
+    productos = models.ManyToManyField('Producto', related_name='utilesaseos', verbose_name="Producto")
     cantidad = models.PositiveIntegerField()
     fecha_creacion = models.DateField(auto_now_add=True)
-    nombre_solicitante = models.ForeignKey(Obrero, related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="Obrero")
-    empresa = models.ForeignKey(Empresa, related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="empresa")
+    nombre_solicitante = models.ForeignKey('Obrero', related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="Obrero")
+    empresa = models.ForeignKey('Empresa', related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="empresa")
     run = models.CharField(max_length=100)
 
     def clean(self):
@@ -132,7 +143,7 @@ class Utilesaseo(models.Model):
         now = datetime.now()
         current_year = now.year
 
-        # Contar cuántos registros existen para este mes y año
+        # Verificar registros existentes
         same_month_records = Utilesaseo.objects.filter(
             mes=self.mes,
             fecha_creacion__year=current_year,
@@ -140,25 +151,23 @@ class Utilesaseo(models.Model):
             empresa=self.empresa
         )
 
-        # Contar cuántos registros existen para este mes y producto específico ('OMO', 'JABON', 'CONFORT')
-        same_month_product_records = same_month_records.filter(producto=self.producto)
-
-        # Verificar si ya existe un registro para este mes y año
         if same_month_records.count() >= 3:
-            raise ValidationError(f'Ya existen 3 registros para el mes {self.get_mes_display()} en el año actual.Para el Trabajador')
+            raise ValidationError(f'Ya existen 3 registros para el mes {self.get_mes_display()} en el año actual. Para el Trabajador')
 
-        # Verificar si ya existe un registro para este mes y producto específico ('OMO', 'JABON', 'CONFORT')
-        if self.producto in dict(self.STATUS_CHOICES1).keys() and same_month_product_records.exists():
-            raise ValidationError(f'Ya existe un registro para el mes {self.get_mes_display()} y el producto {self.get_producto_display()} en el año actual. Para el Trabajador')
+        # Después de guardar el objeto, puedes verificar las relaciones ManyToMany
+        if self.pk:  # Solo si el objeto ya tiene un ID
+            for producto in self.productos.all():
+                same_month_product_records = same_month_records.filter(productos=producto)
+                if same_month_product_records.exists():
+                    raise ValidationError(f'Ya existe un registro para el mes {self.get_mes_display()} y el producto {producto.nombre} en el año actual. Para el Trabajador')
 
     def save(self, *args, **kwargs):
-        # Asegurar que fecha_creacion se establezca adecuadamente si no se proporciona al crear una nueva instancia de Utilesaseo
-        if not self.fecha_creacion:
-            self.fecha_creacion = datetime.now().date()
         super().save(*args, **kwargs)
+        # Guardar la relación ManyToMany después de guardar el objeto principal
+        self.productos.set(self.productos.all())
 
-    def __str__(self):
-        return f"Utilesaseo - {self.id}"
+
+
 
 
 

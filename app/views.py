@@ -1653,17 +1653,15 @@ def registro_utilesaseo(request):
     if request.method == 'POST':
         form = UtilesaseoForm(request.POST)
         if form.is_valid():
-            form.save()
+            # Guardar el formulario para crear el objeto Utilesaseo
+            utilesaseo = form.save(commit=False)
+            utilesaseo.save()  # Guardar primero el objeto principal
 
-            # El pedido
-            utilesaseo = form.instance
+            # Guardar las relaciones ManyToMany
+            form.save_m2m()  # Guardar las relaciones ManyToMany después de guardar el objeto
 
-            # El mensaje de éxito
+            # Mensaje de éxito
             success_message = 'El pedido se ha guardado correctamente.'
-
-            # Guardar el pedido
-            utilesaseo.save()
-
             return render(request, 'app/registro_utilesaseo.html', {'form': UtilesaseoForm(), 'success_message': success_message})
     else:
         form = UtilesaseoForm()
@@ -1675,14 +1673,15 @@ def registro_utilesaseo(request):
 @login_required
 def generar_pdf_utiles_aseo(request):
     search_term = request.GET.get('buscar', '')
-    
+
     if search_term:
         try:
             search_datetime = parse_datetime(search_term)
             search_date = search_datetime.date() if search_datetime else None
 
+            # Construir la consulta de búsqueda
             text_search = Q(mes__icontains=search_term) | \
-                           Q(producto__icontains=search_term) | \
+                           Q(productos__nombre__icontains=search_term) | \
                            Q(cantidad__icontains=search_term) | \
                            Q(nombre_solicitante__nombre__icontains=search_term) | \
                            Q(empresa__nombre__icontains=search_term) | \
@@ -1695,7 +1694,7 @@ def generar_pdf_utiles_aseo(request):
             if search_date:
                 utilesaseos = utilesaseos.filter(fecha_creacion__date=search_date)
 
-            utilesaseos = utilesaseos.filter(text_search)
+            utilesaseos = utilesaseos.filter(text_search).distinct()
 
         except ValueError:
             utilesaseos = Utilesaseo.objects.all()
@@ -1760,9 +1759,10 @@ def generar_pdf_utiles_aseo(request):
     ]
 
     for utilesaseo in utilesaseos:
+        productos_nombres = ', '.join([producto.nombre for producto in utilesaseo.productos.all()])
         data.append([
             utilesaseo.mes,
-            utilesaseo.producto,
+            productos_nombres,
             str(utilesaseo.cantidad),
             utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
         ])
