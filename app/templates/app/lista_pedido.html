@@ -11,20 +11,58 @@
     <div class="card bg-dark text-white">
       <h2 class="card-header text-center">PEDIDOS</h2>
       <div class="card-body">
-        <div class="mb-3">
-          <form method="GET" action="{% url 'lista_pedido' %}">
-            <label for="buscar" class="form-label">Buscar:</label>
-            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..."
-              value="{{ search_term }}">
-            <br>
-            <button type="submit" class="btn btn-primary">Buscar</button>
-          </form>
-          <form method="get" action="{% url 'pedidos_dia' %}">
-            <label for="fecha">INFORME DE INSUMOS POR DIA:</label>
-            <input type="date" id="fecha" name="fecha">
-            <button type="submit" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></button>
-          </form>
+        <div class="row mb-3">
+          <!-- Formulario de búsqueda -->
+          <div class="col-md-3 mb-2">
+            <form method="GET" action="{% url 'lista_pedido' %}">
+              <label for="buscar" class="form-label">BUSCAR:</label>
+              <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..." value="{{ search_term }}">
+              <button type="submit" class="btn btn-primary mt-2 w-100">Buscar</button>
+            </form>
+          </div>
+
+          <!-- Formulario de PDF por día -->
+          <div class="col-md-3 mb-2">
+            <form method="get" action="{% url 'pedidos_dia' %}">
+              <label for="fecha">INFORME DE INSUMOS POR DIA:</label>
+              <input type="date" id="fecha" name="fecha" class="form-control">
+              <button type="submit" class="btn btn-success mt-2 w-100"><i class="bi bi-filetype-pdf"></i> DIA</button>
+            </form>
+          </div>
+
+          <!-- Formulario de PDF por semana -->
+          <div class="col-md-3 mb-2">
+            <form method="get" action="{% url 'pedidos_semana' %}">
+              <label for="fecha_inicio">FECHA INICIO:</label>
+              <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control" required>
+              <label for="fecha_fin" class="mt-2">FECHA FIN:</label>
+              <input type="date" id="fecha_fin" name="fecha_fin" class="form-control" required>
+              <button type="submit" class="btn btn-success mt-2 w-100"><i class="bi bi-filetype-pdf"></i> SEMANA</button>
+            </form>
+          </div>
+
+          <!-- Formulario de PDF por mes -->
+          <div class="col-md-3 mb-2">
+            <form method="get" action="{% url 'pedidos_mes' %}">
+              <label for="mes">MES:</label>
+              <input type="number" id="mes" name="mes" class="form-control" min="1" max="12" required>
+              <label for="anio" class="mt-2">AÑO:</label>
+              <input type="number" id="anio" name="anio" class="form-control" min="2000" max="{{ current_year }}" required>
+              <button type="submit" class="btn btn-success mt-2 w-100"><i class="bi bi-filetype-pdf"></i> MES</button>
+            </form>
+          </div>
+          <!-- Formulario de PDF por año -->
+          <div class="col-md-3 mb-2">
+            <form method="get" action="{% url 'pedidos_anio' %}">
+              <label for="anio">AÑO:</label>
+              <input type="number" id="anio" name="anio" class="form-control" min="2000" max="{{ current_year }}" required>
+              <button type="submit" class="btn btn-success mt-2 w-100"><i class="bi bi-filetype-pdf"></i> AÑO</button>
+            </form>
+          </div>
+
         </div>
+
+        <!-- Tabla de pedidos -->
         <div class="table-responsive">
           <table class="table mx-auto table-dark table-striped" id="tabla-pedidos">
             <thead>
@@ -52,29 +90,22 @@
                 <td>
                   <div class="btn-group" role="group">
                     <a href="{% url 'lista_pedido_trabajador' pedido.solicitante.id %}" class="btn btn-primary"><i class="bi bi-person-lines-fill"></i></a>
-                    
                     <button class="btn btn-warning" onclick="window.location.href='{% url 'editar_pedido' pedido.id %}'"><i class="bi bi-pencil-square"></i></button>
-                    
                     <button class="btn btn-danger" onclick="confirmarEliminacion('{{ pedido.id }}')">
                       <i class="bi bi-trash3-fill"></i>
                     </button>
-                  
                     <a href="{% url 'generar_pdf_pedidos' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a>
-                    <!-- Botón para generar el PDF de pedidos totales -->
-                    <a href="{% url 'pedidos_total' %}?buscar={{ search_term }}" class="btn btn-primary"><span class="material-icons">work_history</span></a>
                     
-                    <a href="{% url 'pedidos_semanales' %}" class="btn btn-success"><span class="material-icons">date_range</span></a>
-                    <a href="{% url 'pedidos_mensuales' %}" class="btn btn-primary"><span class="material-icons">date_range</span></a>
-     
-                  
+
                   </div>
-  
                 </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Paginación -->
         <div class="pagination">
           <span class="step-links">
             {% if pedidos.has_previous %}
@@ -96,6 +127,7 @@
     </div>
   </div>
 </div>
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>

@@ -13,7 +13,8 @@ from .views import (
     generar_pdf_pedidos, generar_pdf_prestamos, generar_pdf_prestamo, lista_utilesaseo, 
     registro_utilesaseo, generar_pdf_utiles_aseo, registro_pedido_success, 
     registro_prestamo_success, registro_RetiroRepuesto_success, generar_pdf_retiro, 
-    generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia
+    generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia,pedidos_semana,
+    pedidos_mes,pedidos_anio
 )
 
 urlpatterns = [
@@ -65,6 +66,9 @@ urlpatterns = [
     path('generar_pdf_pedidos/', generar_pdf_pedidos, name='generar_pdf_pedidos'),
     path('pedidos_total/', pedidos_total, name='pedidos_total'),
     path('pedidos_semanales/', pedidos_semanales, name='pedidos_semanales'),
+    path('pedidos_semana/', pedidos_semana, name='pedidos_semana'),
+    path('pedidos_mes/', pedidos_mes, name='pedidos_mes'),
+    path('pedidos-anio/', pedidos_anio, name='pedidos_anio'),
     path('pedidos_mensuales/', pedidos_mensuales, name='pedidos_mensuales'),
     path('generar_pdf_prestamos/', generar_pdf_prestamos, name='generar_pdf_prestamos'),
     path('generar_pdf_prestamo/<int:obrero_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),

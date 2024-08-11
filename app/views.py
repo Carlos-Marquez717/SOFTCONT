@@ -2085,3 +2085,328 @@ def pedidos_dia(request):
     response.write(pdf)
 
     return response
+
+
+def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
+    """
+    Calcula los totales por semana para cada insumo en los pedidos.
+    """
+    insumos_totales = {}
+
+    for pedido in pedidos:
+        insumo = pedido.insumo.nombre
+        fecha_pedido = pedido.fecha_pedido.date()  # Convertir a datetime.date
+        cantidad = pedido.cantidad
+
+        if not (fecha_inicio <= fecha_pedido <= fecha_fin):
+            continue  # Solo procesar pedidos dentro del rango de fechas
+
+        if insumo not in insumos_totales:
+            insumos_totales[insumo] = {
+                'total': 0,
+            }
+
+        # Total general
+        insumos_totales[insumo]['total'] += cantidad
+
+    return insumos_totales
+
+
+
+def pedidos_semana(request):
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    if not fecha_inicio_str:
+        return HttpResponse("Por favor, seleccione una fecha de inicio.")
+
+    try:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+        # Calcula el fin de semana (sábado) de la semana correspondiente
+        fecha_fin = fecha_inicio + timedelta(days=6 - fecha_inicio.weekday())
+    except ValueError:
+        return HttpResponse("Fecha inválida. Asegúrese de usar el formato YYYY-MM-DD.")
+
+    # Filtrar pedidos por la semana seleccionada
+    pedidos = Pedido.objects.filter(fecha_pedido__date__range=(fecha_inicio, fecha_fin))
+
+    # Calcular totales
+    insumos_totales = calcular_totales_semana(pedidos, fecha_inicio, fecha_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{fecha_inicio}_a_{fecha_fin}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    mes_espanol = traducir_mes_en_espanol(fecha_inicio)
+    fecha_formateada_inicio = fecha_inicio.strftime(f'%d {mes_espanol} %Y')
+    fecha_formateada_fin = fecha_fin.strftime(f'%d {mes_espanol} %Y')
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS - {fecha_formateada_inicio} a {fecha_formateada_fin}")
+
+    # Configurar la tabla
+    data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        total = totales['total']
+        # Añadir insumo y total
+        data.append([insumo, total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+
+def pedidos_mes(request):
+    mes_str = request.GET.get('mes')
+    anio_str = request.GET.get('anio')
+    
+    if not mes_str or not anio_str:
+        return HttpResponse("Por favor, seleccione el mes y el año.")
+
+    try:
+        mes = int(mes_str)
+        anio = int(anio_str)
+        fecha_inicio = datetime(anio, mes, 1).date()
+        # Determinar el último día del mes
+        if mes == 12:
+            fecha_fin = datetime(anio + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            fecha_fin = datetime(anio, mes + 1, 1).date() - timedelta(days=1)
+    except ValueError:
+        return HttpResponse("Mes o año inválido. Asegúrese de ingresar valores válidos.")
+
+    # Filtrar pedidos por el rango de fechas del mes seleccionado
+    pedidos = Pedido.objects.filter(fecha_pedido__date__range=(fecha_inicio, fecha_fin))
+
+    # Calcular totales
+    insumos_totales = calcular_totales_mes(pedidos, fecha_inicio, fecha_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{fecha_inicio.strftime("%Y_%m")}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    mes_espanol = traducir_mes_en_espanol(fecha_inicio)
+    fecha_formateada_inicio = fecha_inicio.strftime(f'%d {mes_espanol} %Y')
+    fecha_formateada_fin = fecha_fin.strftime(f'%d {mes_espanol} %Y')
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS MENSUAL - {fecha_formateada_inicio} a {fecha_formateada_fin}")
+
+    # Configurar la tabla
+    data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        total = totales['total']
+        # Añadir insumo y total
+        data.append([insumo, total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
+    """
+    Calcula los totales por mes para cada insumo en los pedidos.
+    """
+    insumos_totales = {}
+
+    for pedido in pedidos:
+        insumo = pedido.insumo.nombre
+        cantidad = pedido.cantidad
+
+        if insumo not in insumos_totales:
+            insumos_totales[insumo] = {
+                'total': 0,
+            }
+
+        # Total general
+        insumos_totales[insumo]['total'] += cantidad
+
+    return insumos_totales
+
+def traducir_mes_en_espanol(fecha):
+    """ 
+    Traduce el mes al español.
+    """
+    meses = [
+        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+    ]
+    return meses[fecha.month - 1]
+
+
+def pedidos_anio(request):
+    anio_str = request.GET.get('anio')
+    if not anio_str:
+        return HttpResponse("Por favor, seleccione un año.")
+
+    try:
+        anio = int(anio_str)
+    except ValueError:
+        return HttpResponse("Año inválido. Asegúrese de ingresar un número válido.")
+
+    # Filtrar pedidos por el año seleccionado
+    pedidos = Pedido.objects.filter(fecha_pedido__year=anio)
+
+    # Calcular totales
+    insumos_totales = calcular_totales_anio(pedidos, anio)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{anio}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS AÑO - {anio}")
+
+    # Configurar la tabla
+    data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        total = totales['total']
+        data.append([insumo, total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+def calcular_totales_anio(pedidos, anio):
+    """
+    Calcula los totales por insumo en los pedidos de un año.
+    """
+    insumos_totales = {}
+
+    for pedido in pedidos:
+        insumo = pedido.insumo.nombre
+        cantidad = pedido.cantidad
+
+        if insumo not in insumos_totales:
+            insumos_totales[insumo] = {
+                'total': 0,
+            }
+
+        # Total general
+        insumos_totales[insumo]['total'] += cantidad
+
+    return insumos_totales
