@@ -2611,8 +2611,8 @@ def generate_pdf(request, personal=None, empresa=None):
         congelados = congelados.filter(empresa=empresa)
 
     # Obtener la URL absoluta de la imagen
-    logo_url = request.build_absolute_uri(static('app/imgenes/Minera.png'))
-    logo_url1 = request.build_absolute_uri(static('app/imgenes/Logo.png'))
+    logo_url = request.build_absolute_uri(static('app/imgenes/minera.png'))
+    logo_url1 = request.build_absolute_uri(static('app/imgenes/logo.png'))
 
     # Obtener la lista de personas dentro de la empresa
     personas = congelados.values_list('personal', flat=True).distinct()
