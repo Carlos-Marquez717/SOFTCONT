@@ -181,10 +181,10 @@ class Utilesaseo(models.Model):
 
 class congelado(models.Model):
     orden= models.IntegerField()
-    caso=models.CharField(max_length=30, null=True, blank=True)
-    tag=models.CharField(max_length=30)
-    descripcion_de_equipo=models.CharField(max_length=30)
-    Descripcion_del_fallo=models.CharField(max_length=30)
+    caso=models.CharField(max_length=100, null=True, blank=True)
+    tag=models.CharField(max_length=100)
+    descripcion_de_equipo=models.CharField(max_length=100)
+    Descripcion_del_fallo=models.CharField(max_length=100)
     personal=models.CharField(max_length=80)
     fecha_de_inicio=models.DateField()
     especialidad=models.CharField(max_length=80)
