@@ -45,7 +45,7 @@ class Pedido(models.Model):
     fecha_pedido = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"Pedido-{self.id}"
+        return f"{self.solicitante.nombre} - {self.compañia.nombre} - {self.insumo.nombre} - {self.cantidad} - {self.area} - {self.fecha_pedido} "
 
     def fecha_pedido_formatted(self):
         return self.fecha_pedido.strftime("%d/%m/%Y %H:%M")
@@ -72,6 +72,10 @@ class Prestamo(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NO_ENTREGADO')
     fecha_creacion = models.DateField(auto_now_add=True)
     fecha_recepcion = models.DateField(null=True, blank=True)    
+
+    def __str__(self):
+        return f"{self.nombre_solicitante.nombre} - {self.empresa.nombre} - {self.herramienta.nombre} - {self.status} - {self.fecha_creacion}"
+
 
 class Repuesto(models.Model):
     nombre = models.CharField(max_length=100)
@@ -166,8 +170,27 @@ class Utilesaseo(models.Model):
         # Guardar la relación ManyToMany después de guardar el objeto principal
         self.productos.set(self.productos.all())
 
+    def __str__(self):
+        productos_nombres = ", ".join([producto.nombre for producto in self.productos.all()])
+        return f"{self.mes} - {productos_nombres} - {self.cantidad}"
 
 
 
 
 
+
+class congelado(models.Model):
+    orden= models.IntegerField()
+    caso=models.CharField(max_length=30, null=True, blank=True)
+    tag=models.CharField(max_length=30)
+    descripcion_de_equipo=models.CharField(max_length=30)
+    Descripcion_del_fallo=models.CharField(max_length=30)
+    personal=models.CharField(max_length=80)
+    fecha_de_inicio=models.DateField()
+    especialidad=models.CharField(max_length=80)
+    empresa=models.CharField(max_length=80)
+    turno=models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.orden} - {self.caso} - {self.tag} - {self.personal} - {self.fecha_de_inicio} - {self.turno}"

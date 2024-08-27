@@ -107,6 +107,7 @@ def eliminar(request, id):
     messages.success(request,"ELIMINADO CORRECTAMENTE")
     return redirect(to='lista_empresa')
 
+@login_required
 def editar_empresa(request, empresa_id):
     empresa = get_object_or_404(Empresa, id=empresa_id)
 
@@ -290,7 +291,7 @@ def lista_pedido(request):
     return render(request, 'app/lista_pedido.html', context)
 
 
-
+@login_required
 def generar_pdf_pedido(request, obrero_id):
     # Obtener el obrero específico
     obrero = get_object_or_404(Obrero, id=obrero_id)
@@ -385,7 +386,7 @@ def generar_pdf_pedido(request, obrero_id):
 
     return response
 
-
+@login_required
 def generar_pdf_pedidos(request):
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
@@ -482,7 +483,7 @@ def generar_pdf_pedidos(request):
 
 
 
-
+@login_required
 def calcular_totales(pedidos):
     """
     Calcula los totales por semana, mes y año para cada insumo en los pedidos.
@@ -539,6 +540,7 @@ MESES_EN_ESPAÑOL = {
     "December": "Diciembre"
 }
 
+@login_required
 def pedidos_total(request):
     search_term = request.GET.get('buscar')
     pedidos = Pedido.objects.all()
@@ -648,7 +650,7 @@ def pedidos_total(request):
 
 
 
-
+@login_required
 def calcular_totales_semanales(pedidos, semana_inicio, semana_fin):
     insumos_totales = {}
 
@@ -672,6 +674,7 @@ def calcular_totales_semanales(pedidos, semana_inicio, semana_fin):
 
     return insumos_totales
 
+@login_required
 def pedidos_semanales(request):
     search_term = request.GET.get('buscar')
     pedidos = Pedido.objects.all()
@@ -780,6 +783,7 @@ MESES_EN_ESPAÑOL = {
     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
 }
 
+@login_required
 def calcular_totales_mensuales(pedidos, mes_inicio, mes_fin):
     insumos_totales = {}
     semana_inicio = mes_inicio - timedelta(days=mes_inicio.weekday())
@@ -816,7 +820,7 @@ def calcular_totales_mensuales(pedidos, mes_inicio, mes_fin):
     return insumos_totales
 
 
-
+@login_required
 def pedidos_mensuales(request):
     search_term = request.GET.get('buscar')
     pedidos = Pedido.objects.all()
@@ -1119,7 +1123,7 @@ def registro_prestamo_success(request):
     return render(request, 'app/registrar_prestamo.html', {'form': PrestamoForm(), 'success_message': messages.get_messages(request)})
 
 
-
+@login_required
 def lista_prestamo(request):
     # Initialize search_term to an empty string
     search_term = request.GET.get('buscar', '')
@@ -1178,7 +1182,7 @@ def lista_prestamo(request):
     return render(request, 'app/lista_Prestamo.html', {'prestamos': prestamos, 'search_term': search_term})
 
 
-
+@login_required
 def generar_pdf_prestamos(request):
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
@@ -1278,7 +1282,7 @@ def generar_pdf_prestamos(request):
 
 
 
-
+@login_required
 def generar_pdf_prestamo(request, obrero_id):
     # Obtener el trabajador específico
     trabajador = get_object_or_404(Obrero, id=obrero_id)
@@ -1804,7 +1808,7 @@ def generar_pdf_utiles_aseo(request):
 
 
 
-
+@login_required
 def generar_pdf_retiro(request, obrero_id):
     # Obtener el obrero específico
     obrero = get_object_or_404(Obrero, id=obrero_id)
@@ -1886,7 +1890,7 @@ def generar_pdf_retiro(request, obrero_id):
     return response
 
 
-
+@login_required
 def generar_pdf_retiros_general(request):
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar', '')
@@ -1978,11 +1982,12 @@ MESES_EN_ESPAÑOL = {
     "December": "Diciembre"
 }
 
+@login_required
 def traducir_mes_en_espanol(fecha):
     """Convierte el nombre del mes en inglés a español."""
     return MESES_EN_ESPAÑOL[fecha.strftime('%B')]
 
-
+@login_required
 def calcular_totales_dia(pedidos, fecha_seleccionada):
     """
     Calcula los totales por día para cada insumo en los pedidos.
@@ -2007,6 +2012,7 @@ def calcular_totales_dia(pedidos, fecha_seleccionada):
 
     return insumos_totales
 
+@login_required
 def pedidos_dia(request):
     fecha_seleccionada_str = request.GET.get('fecha')
     if not fecha_seleccionada_str:
@@ -2086,7 +2092,7 @@ def pedidos_dia(request):
 
     return response
 
-
+@login_required
 def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
     """
     Calcula los totales por semana para cada insumo en los pedidos.
@@ -2112,7 +2118,7 @@ def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
     return insumos_totales
 
 
-
+@login_required
 def pedidos_semana(request):
     fecha_inicio_str = request.GET.get('fecha_inicio')
     if not fecha_inicio_str:
@@ -2195,7 +2201,7 @@ def pedidos_semana(request):
 
     return response
 
-
+@login_required
 def pedidos_mes(request):
     mes_str = request.GET.get('mes')
     anio_str = request.GET.get('anio')
@@ -2285,6 +2291,8 @@ def pedidos_mes(request):
 
     return response
 
+
+@login_required
 def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
     """
     Calcula los totales por mes para cada insumo en los pedidos.
@@ -2305,6 +2313,8 @@ def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
 
     return insumos_totales
 
+
+@login_required
 def traducir_mes_en_espanol(fecha):
     """ 
     Traduce el mes al español.
@@ -2315,7 +2325,7 @@ def traducir_mes_en_espanol(fecha):
     ]
     return meses[fecha.month - 1]
 
-
+@login_required
 def pedidos_anio(request):
     anio_str = request.GET.get('anio')
     if not anio_str:
@@ -2391,6 +2401,7 @@ def pedidos_anio(request):
 
     return response
 
+@login_required
 def calcular_totales_anio(pedidos, anio):
     """
     Calcula los totales por insumo en los pedidos de un año.
@@ -2410,3 +2421,256 @@ def calcular_totales_anio(pedidos, anio):
         insumos_totales[insumo]['total'] += cantidad
 
     return insumos_totales
+
+
+
+from django.shortcuts import render
+from django.contrib import messages
+from tablib import Dataset
+from openpyxl import load_workbook
+from .models import congelado
+
+@login_required
+def upload_csv(request):
+    if request.method == 'POST':
+        # Obtener el archivo cargado
+        new_congelado = request.FILES['file']
+
+        # Verificar que el archivo tenga extensión .xlsx
+        if not new_congelado.name.endswith('.xlsx'):
+            messages.error(request, 'Por favor sube un archivo en formato Excel (.xlsx).')
+            return render(request, 'app/upload_csv.html')
+
+        # Cargar los datos del archivo Excel
+        workbook = load_workbook(filename=new_congelado, read_only=True)
+        sheet = workbook.active
+        data = list(sheet.values)
+
+        # Eliminar la primera fila si contiene encabezados
+        headers = data[0]
+        rows = data[1:]
+
+        # Iterar sobre las filas e insertar los datos en la base de datos
+        for row in rows:
+            congelado_obj = congelado(
+                orden=row[0],
+                caso=row[1] if row[1] is not None else "",  # Asignar vacío si el valor es None
+                tag=row[2],
+                descripcion_de_equipo=row[3],
+                Descripcion_del_fallo=row[4],
+                personal=row[5],
+                fecha_de_inicio=row[6],
+                especialidad=row[7],
+                empresa=row[8],
+                turno=row[9]
+            )
+            congelado_obj.save()
+
+        messages.success(request, 'Los datos han sido importados exitosamente.')
+
+    return render(request, 'app/upload_csv.html')
+
+
+# views.py
+from django.core.paginator import Paginator
+
+@login_required
+def lista_congelado(request):
+    # Obtener todos los objetos Congelado
+    queryset = congelado.objects.all()
+
+    # Obtener los valores de los campos de búsqueda
+    orden = request.GET.get('orden', '')
+    caso = request.GET.get('caso', '')
+    tag = request.GET.get('tag', '')
+    descripcion_de_equipo = request.GET.get('descripcion_de_equipo', '')
+    descripcion_del_fallo = request.GET.get('descripcion_del_fallo', '')
+    personal = request.GET.get('personal', '')
+    fecha_de_inicio = request.GET.get('fecha_de_inicio', '')
+    especialidad = request.GET.get('especialidad', '')
+    empresa = request.GET.get('empresa', '')
+    turno = request.GET.get('turno', '')
+
+    # Filtrar el queryset en función de los valores de búsqueda
+    if orden:
+        queryset = queryset.filter(orden__icontains=orden)
+    if caso:
+        queryset = queryset.filter(caso__icontains=caso)
+    if tag:
+        queryset = queryset.filter(tag__icontains=tag)
+    if descripcion_de_equipo:
+        queryset = queryset.filter(descripcion_de_equipo__icontains=descripcion_de_equipo)
+    if descripcion_del_fallo:
+        queryset = queryset.filter(descripcion_del_fallo__icontains=descripcion_del_fallo)
+    if personal:
+        queryset = queryset.filter(personal__icontains=personal)
+    if fecha_de_inicio:
+        queryset = queryset.filter(fecha_de_inicio__icontains=fecha_de_inicio)
+    if especialidad:
+        queryset = queryset.filter(especialidad__icontains=especialidad)
+    if empresa:
+        queryset = queryset.filter(empresa__icontains=empresa)
+    if turno:
+        queryset = queryset.filter(turno__icontains=turno)
+
+    # Paginar los resultados filtrados
+    paginator = Paginator(queryset, 6)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Renderizar la página con los resultados filtrados
+    return render(request, 'app/lista_congelado.html', {
+        'page_obj': page_obj,
+        'orden': orden,
+        'caso': caso,
+        'tag': tag,
+        'descripcion_de_equipo': descripcion_de_equipo,
+        'descripcion_del_fallo': descripcion_del_fallo,
+        'personal': personal,
+        'fecha_de_inicio': fecha_de_inicio,
+        'especialidad': especialidad,
+        'empresa': empresa,
+        'turno': turno,
+    })
+
+
+
+
+
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.template.loader import get_template
+from django.utils import timezone
+from io import BytesIO
+import logging
+from xhtml2pdf import pisa
+from django.core.paginator import Paginator
+
+@login_required
+def render_to_pdf(template_src, context_dict={}):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+
+    pisa_status = pisa.CreatePDF(
+        BytesIO(html.encode("UTF-8")),
+        dest=result,
+        # Tamaño A4 Landscape
+        page_size=(842, 595)
+    )
+    
+    if pisa_status.err:
+        logging.error(f"Error en la generación del PDF: {pisa_status.err}")
+        return None
+
+    return HttpResponse(result.getvalue(), content_type='application/pdf')
+
+from io import BytesIO
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from PyPDF2 import PdfFileMerger
+from django.templatetags.static import static
+from django.utils import timezone
+
+from PyPDF2 import PdfMerger
+from io import BytesIO
+from django.http import HttpResponse
+from django.template.loader import get_template
+from django.templatetags.static import static
+from xhtml2pdf import pisa
+from django.utils import timezone
+
+
+def render_to_pdf(template_src, context_dict={}):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+
+    pisa_status = pisa.CreatePDF(
+        BytesIO(html.encode("UTF-8")),
+        dest=result,
+        # Tamaño A4 Landscape
+        page_size=(842, 595)
+    )
+
+    if pisa_status.err:
+        return None
+
+    return result.getvalue()
+
+@login_required
+def generate_pdf(request, personal=None, empresa=None):
+    personal = personal or request.GET.get('personal')
+    empresa = empresa or request.GET.get('empresa')
+
+    congelados = congelado.objects.all()
+    if personal:
+        congelados = congelados.filter(personal=personal)
+    if empresa:
+        congelados = congelados.filter(empresa=empresa)
+
+    # Obtener la URL absoluta de la imagen
+    logo_url = request.build_absolute_uri(static('app/imgenes/minera.png'))
+    logo_url1 = request.build_absolute_uri(static('app/imgenes/Logo.png'))
+
+    # Obtener la lista de personas dentro de la empresa
+    personas = congelados.values_list('personal', flat=True).distinct()
+
+    # Crear un PdfMerger para combinar los PDFs
+    merger = PdfMerger()
+
+    # Generar un PDF por cada persona
+    for persona in personas:
+        # Filtrar los congelados para la persona actual
+        congelados_persona = congelados.filter(personal=persona)
+
+        # Calcular filas_vacias para llenar las filas vacías
+        max_filas = 16  # O el número de filas que deseas tener en el PDF
+        filas_vacias = max_filas - congelados_persona.count()
+        
+        # Crear una lista de vacías filas
+        vacias_filas = [{}] * filas_vacias
+        
+        context = {
+            'congelados': congelados_persona,
+            'date': timezone.now().strftime("%d/%m/%Y"),
+            'vacias_filas': vacias_filas,
+            'logo_url': logo_url,
+            'logo_url1': logo_url1,
+        }
+
+        # Renderizar el PDF para la persona actual
+        pdf = render_to_pdf('app/pdf_template.html', context)
+        if pdf:
+            # Añadir el PDF generado al merger
+            merger.append(BytesIO(pdf))
+        else:
+            return HttpResponse("Error al generar el PDF para persona: {}".format(persona), status=500)
+
+    # Crear una respuesta HTTP con el PDF combinado
+    result = BytesIO()
+    merger.write(result)
+    merger.close()
+    result.seek(0)
+
+    return HttpResponse(result, content_type='application/pdf')
+
+
+@login_required
+def pagina_con_botones(request):
+    # Obtener listas únicas de personal y empresas
+    lista_personal = congelado.objects.values_list('personal', flat=True).distinct()
+    lista_empresas = congelado.objects.values_list('empresa', flat=True).distinct()
+    
+    # Agregar paginación a la lista de personal
+    paginator = Paginator(lista_personal, 10)  # Mostrar 10 elementos por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'lista_personal': page_obj,  # Pasa el objeto de paginación a la plantilla
+        'lista_empresas': lista_empresas,
+    }
+    
+    return render(request, 'app/pagina_con_botones.html', context)

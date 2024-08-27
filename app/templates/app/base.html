@@ -154,7 +154,32 @@
                                 </span>LISTADO</a></li>
                         </ul>
                     </li>
-                    
+                              
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false"><span class="material-icons">assignment</span>CONGELADO
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'upload_csv' %}">
+                                    <span class="material-icons">insert_page_break</span> INGRESAR ORDENES
+                                </a>
+                            </li>
+                            {% if user.is_superuser %}
+                            <!-- Botón para ir a la administración visible solo para administradores -->
+                            <li>
+                                <a class="dropdown-item" href="{% url 'lista_congelado' %}">
+                                    <span class="material-icons">list</span> LISTA DE ORDENES
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'pagina_con_botones' %}">
+                                    <span class="material-icons">print</span> IMPRIMIR ORDENES
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false"><span class="material-icons">manage_accounts</span>
@@ -176,6 +201,7 @@
                             {% endif %}
                         </ul>
                     </li>
+
                     
                 </ul>
             </div>

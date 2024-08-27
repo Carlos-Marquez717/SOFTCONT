@@ -152,3 +152,7 @@ class UtilesaseoForm(forms.ModelForm):
         self.fields['productos'].widget.attrs.update({'class': 'select2'})
         self.fields['nombre_solicitante'].widget.attrs.update({'class': 'select2'})
         self.fields['empresa'].widget.attrs.update({'class': 'select2'})
+
+
+class CSVUploadForm(forms.Form):
+    csv_file = forms.FileField()

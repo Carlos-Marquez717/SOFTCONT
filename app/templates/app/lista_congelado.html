@@ -1,0 +1,180 @@
+{% extends 'app/base.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Congelados</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      width: 90%;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      background-color: #333333;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    th, td {
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid #555555;
+    }
+    tr:nth-child(even) {
+      background-color: #444444;
+    }
+    th {
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    /* Estilos de la paginación */
+    .pagination {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .pagination .step-links a {
+      color: #ffffff;
+      background-color: #444444;
+      padding: 5px 10px;
+      text-decoration: none;
+      border-radius: 5px;
+      margin: 0 5px;
+    }
+    .pagination .step-links a:hover {
+      background-color: #555555;
+    }
+    .pagination .step-links .current {
+      color: #ffffff;
+      background-color: #333333;
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+    /* Estilos de los campos de búsqueda */
+    .search-form {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #555555;
+      border-radius: 5px;
+      background-color: #2a2a2a;
+      color: #ffffff;
+    }
+    .search-button {
+      grid-column: span 3;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #1e90ff;
+      color: #ffffff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .search-button:hover {
+      background-color: #1c7ed6;
+    }
+  </style>
+</head>
+<body>
+  <br><br>
+  <div class="container">
+    <div class="card">
+      <h1>Lista de Congelados</h1>
+
+      <!-- Campos de búsqueda -->
+      <form method="GET" action="" class="search-form">
+        <input type="text" name="orden" placeholder="Buscar por Orden" value="{{ orden }}" class="search-input">
+        <input type="text" name="prioridad" placeholder="Buscar por Prioridad" value="{{ prioridad }}" class="search-input">
+        <input type="text" name="tag" placeholder="Buscar por Tag" value="{{ tag }}" class="search-input">
+        <input type="text" name="descripcion_de_equipo" placeholder="Buscar por Descripción de Equipo" value="{{ descripcion_de_equipo }}" class="search-input">
+        <input type="text" name="descripcion_del_fallo" placeholder="Buscar por Descripción del Fallo" value="{{ descripcion_del_fallo }}" class="search-input">
+        <input type="text" name="personal" placeholder="Buscar por Personal" value="{{ personal }}" class="search-input">
+        <input type="text" name="fecha_de_inicio" placeholder="Buscar por Fecha de Inicio" value="{{ fecha_de_inicio }}" class="search-input">
+        <input type="text" name="especialidad" placeholder="Buscar por Especialidad" value="{{ especialidad }}" class="search-input">
+        <input type="text" name="empresa" placeholder="Buscar por Empresa" value="{{ empresa }}" class="search-input">
+        <input type="text" name="turno" placeholder="Buscar por turno" value="{{ turno }}" class="search-input">
+        <button type="submit" class="search-button">Buscar</button>
+      </form>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Orden</th>
+            <th>Caso</th>
+            <th>Tag</th>
+            <th>Descripción de Equipo</th>
+            <th>Descripción del Fallo</th>
+            <th>Personal</th>
+            <th>Fecha de Inicio</th>
+            <th>Especialidad</th>
+            <th>Empresa</th>
+            <th>Turno</th>
+      
+
+          </tr>
+        </thead>
+        <tbody id="dataTable">
+          {% for item in page_obj %}
+          <tr>
+            <td>{{ item.orden }}</td>
+            <td>{{ item.caso }}</td>
+            <td>{{ item.tag }}</td>
+            <td>{{ item.descripcion_de_equipo }}</td>
+            <td>{{ item.Descripcion_del_fallo }}</td>
+            <td>{{ item.personal }}</td>
+            <td>{{ item.fecha_de_inicio }}</td>
+            <td>{{ item.especialidad }}</td>
+            <td>{{ item.empresa }}</td>
+            <td>{{ item.turno }}</td>
+    
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <span class="step-links">
+          {% if page_obj.has_previous %}
+          <a href="?page=1">&laquo; Primero</a>
+          <a href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+          {% endif %}
+
+          <span class="current">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+          </span>
+
+          {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}">Último &raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+{% endblock %}

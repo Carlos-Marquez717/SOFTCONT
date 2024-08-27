@@ -1,0 +1,258 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programa de Mantenimiento</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 2px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .title-cell {
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid black;
+            text-align: center;
+            padding: 2px;
+            height: 60px;
+        }
+
+        .narrow-col {
+            width: 15%;
+        }
+
+        .medium-col {
+            width: 40%;
+        }
+
+        .wide-col {
+            width: 8%;
+            font-size: 7px;
+        }
+
+        .empty-row {
+            height: 30px;
+        }
+
+        .title-cell img {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .custom-table td {
+            height: 20px;
+            padding: 2px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 12px;
+        }
+
+        .full-width-cell {
+            width: 100%;
+        }
+
+        .signature-table {
+            width: 100%;
+            padding: 5px;
+            /* Reduce el padding para disminuir la altura */
+            font-size: 9px;
+            /* Puedes ajustar el tamaño de la fuente si es necesario */
+            line-height: 0.2;
+        }
+
+        .programador-cell {
+            width: 54%;
+            /* Ajusta el ancho según sea necesario */
+            text-align: left;
+            padding-left: 15px;
+        }
+
+        .jefe-cell {
+            width: 46%;
+            /* Ajusta el ancho según sea necesario */
+            text-align: right;
+            padding-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <table>
+        <tr>
+            <td colspan="3" class="title-cell">
+                <img src="{{ logo_url }}" alt="Logo 1" style="width: 80%; height: 100px" />
+            </td>
+
+            </td>
+            <td colspan="2" class="title-cell">
+                PROGRAMA DE MANTENIMIENTO<br>
+                {{ date }}<br>
+                ORDENES DE TRABAJOS DIARIAS
+            </td>
+            {% if congelados %}
+            <td colspan="2" class="title-cell" style="font-size: 9px;"> <!-- Segunda parte de la división -->
+                <br> <br>TURNO: {{congelados.0.turno}}
+            </td>
+            {% else %}
+            <td colspan="2" class="title-cell" style="font-size: 9px;"> <!-- Segunda parte de la división -->
+                <br> <br>TURNO:
+            </td>
+            {% endif %}
+            <td colspan="2" class="title-cell" style="font-size: 8px; display: flex; justify-content: space-between;">
+                <div style="flex: 3; text-align: center;">
+                    <!-- Primera mitad de la celda -->
+                    <img src="{{ logo_url1 }}" alt="Logo 2" style="height: 120px; width: 100%; object-fit: contain;" />
+                    <div style="margin-top: 10px;">GM-M-F-25</div>
+                </div>
+            </td>
+
+
+
+
+
+
+        </tr>
+
+        <tr>
+            <td colspan="3" class="custom-table" style="vertical-align: top;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="height: 20px;">RESPONSABLE:</td>
+                    </tr>
+                    {% if congelados %}
+                    <tr>
+                        <td style="height: 20px;">{{ congelados.0.personal }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td style="height: 20px;">No Data</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </td>
+
+            <!-- Segunda Columna (4 Celdas, 2 filas con 2 celdas cada una) -->
+            <td colspan="6" class="custom-table" style="vertical-align: top;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="width: 50%;">EMPRESA</td>
+                        <td style="width: 50%;">ESPECIALIDAD</td>
+
+                    </tr>
+                    {% if congelados %}
+                    <tr>
+                        <td style="width: 49.8%;">{{ congelados.0.empresa }}</td>
+                        <td style="width: 50.2%;">{{ congelados.0.especialidad }}</td>
+                        <td class="full-width-cell" style="width:39.8%;font-size: 11px;">DATOS DE FINALIZACIÓN TRABAJO
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td style="width: 50%;">No Data</td>
+                        <td style="width: 50%;">No Data</td>
+
+                    </tr>
+                    {% endif %}
+
+                </table>
+
+            </td>
+
+        </tr>
+        <thead>
+            <tr>
+                <th class="narrow-col">N° O.T</th>
+                <th class="narrow-col">caso</th>
+                <th class="narrow-col">TAG DE EQUIPO</th>
+                <th class="medium-col">DESCRIPCIÓN DE EQUIPO</th>
+                <th class="medium-col">DESCRIPCIÓN ORDEN DE TRABAJO</th>
+                <th class="wide-col">HOROMETRO [HR]</th>
+                <th class="wide-col">DURACIÓN DE TRABAJO [HR]</th>
+                <th class="wide-col">N° PERSONAS</th>
+                <th class="wide-col">AVANCE TRABAJO [%]</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for congelado in congelados %}
+            <tr>
+                <td class="narrow-col">{{ congelado.orden }}</td>
+                <td class="narrow-col">{{ congelado.caso }}</td>
+                <td class="narrow-col">{{ congelado.tag }}</td>
+                <td class="medium-col">{{ congelado.descripcion_de_equipo }}</td>
+                <td class="medium-col">{{ congelado.Descripcion_del_fallo }}</td>
+                <td class="wide-col">{{ congelado.horometro }}</td>
+                <td class="wide-col">{{ congelado.duracion_trabajo }}</td>
+                <td class="wide-col"></td>
+                <td class="wide-col">{{ congelado.avance_trabajo }}</td>
+            </tr>
+            {% endfor %}
+            {% for _ in vacias_filas %}
+            <tr class="empty-row">
+                <td class="narrow-col"></td>
+                <td class="narrow-col"></td>
+                <td class="narrow-col"></td>
+                <td class="medium-col"></td>
+                <td class="medium-col"></td>
+                <td class="wide-col"></td>
+                <td class="wide-col"></td>
+                <td class="wide-col"></td>
+                <td class="wide-col"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+
+        <!-- Agregar 6 celdas adicionales aquí -->
+        <tfoot>
+            {% for i in "1234" %}
+            <tr>
+                <td colspan="9" class="custom-table">
+
+                </td>
+            </tr>
+            {% endfor %}
+        </tfoot>
+    </table>
+
+    <table class="signature-table">
+        <tr>
+            <td class="programador-cell">
+                <br><br><br>_______________________________<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;V°B°
+                PROGRAMADOR <br>
+            </td>
+            <td class="jefe-cell"><br><br><br>_______________________________<br>V°B° JEFE DE TURNO MANTENCIÓN <br></td>
+        </tr>
+    </table>
+</body>
+
+</html>

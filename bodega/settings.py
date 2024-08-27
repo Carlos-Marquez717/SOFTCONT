@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from telnetlib import LOGOUT
-
+from django.conf import settings
 
 load_dotenv()
 
@@ -243,7 +243,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+RUTINAS_DIR = os.path.join(BASE_DIR, 'rutinas')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
+template_path = os.path.join(settings.BASE_DIR, 'data', 'ordenes_trabajo_template.xlsx')
 

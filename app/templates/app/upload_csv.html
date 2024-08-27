@@ -1,0 +1,57 @@
+{% extends 'app/base.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        /* Estilos comunes para el formulario dentro de la tarjeta */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Ocupa toda la altura de la ventana */
+        }
+
+        .card {
+            background-color: #212529; /* Color de fondo oscuro */
+            border-radius: 5px; /* Bordes redondeados */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Sombra */
+            width: 400px; /* Ajusta el ancho deseado */
+            padding: 20px; /* Espacio interno */
+            text-align: center; /* Centrar el contenido */
+        }
+
+        .btn {
+            background-color: #007bff; /* Azul */
+            border: none; /* Sin borde */
+            color: #fff; /* Texto blanco */
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #0056b3; /* Azul más oscuro al pasar el cursor */
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 0 auto 20px auto; /* Centrar el input y añadir margen inferior */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <H1> INGRESO DE ORDENES</H1>
+            <form method="post" enctype="multipart/form-data" action="{% url 'upload_csv' %}">
+                {% csrf_token %}
+                <input type="file" name="file" required>
+                <button type="submit" class="btn">Subir archivo</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+{% endblock %}
