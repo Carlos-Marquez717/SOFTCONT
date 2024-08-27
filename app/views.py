@@ -2610,9 +2610,9 @@ def generate_pdf(request, personal=None, empresa=None):
     if empresa:
         congelados = congelados.filter(empresa=empresa)
 
-    # Definir URLs absolutas directamente
-    logo_url = "http://softcont-production.up.railway.app/static/app/imgenes/minera.png"
-    logo_url1 = "http://softcont-production.up.railway.app/static/app/imgenes/logo.png"
+    # Obtener la URL absoluta de la imagen
+    logo_url = request.build_absolute_uri(static('static/app/imgenes/minera.png'))
+    logo_url1 = request.build_absolute_uri(static('static/app/imgenes/logo.png'))
 
     # Obtener la lista de personas dentro de la empresa
     personas = congelados.values_list('personal', flat=True).distinct()
@@ -2628,10 +2628,10 @@ def generate_pdf(request, personal=None, empresa=None):
         # Calcular filas_vacias para llenar las filas vacías
         max_filas = 16  # O el número de filas que deseas tener en el PDF
         filas_vacias = max_filas - congelados_persona.count()
-
+        
         # Crear una lista de vacías filas
         vacias_filas = [{}] * filas_vacias
-
+        
         context = {
             'congelados': congelados_persona,
             'date': timezone.now().strftime("%d/%m/%Y"),
@@ -2655,7 +2655,6 @@ def generate_pdf(request, personal=None, empresa=None):
     result.seek(0)
 
     return HttpResponse(result, content_type='application/pdf')
-
 
 
 @login_required
