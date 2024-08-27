@@ -2599,10 +2599,12 @@ def render_to_pdf(template_src, context_dict={}):
 
     return result.getvalue()
 
-@login_required
 def generate_pdf(request, personal=None, empresa=None):
     personal = personal or request.GET.get('personal')
     empresa = empresa or request.GET.get('empresa')
+
+    # Ruta absoluta a la imagen
+    image_path = os.path.join(settings.STATIC_ROOT, 'app/imgenes/minera.png')
 
     congelados = congelado.objects.all()
     if personal:
@@ -2610,51 +2612,38 @@ def generate_pdf(request, personal=None, empresa=None):
     if empresa:
         congelados = congelados.filter(empresa=empresa)
 
-    # Obtener la URL absoluta de la imagen
-    logo_url = request.build_absolute_uri(static('app/imgenes/minera.png'))
-    logo_url1 = request.build_absolute_uri(static('app/imgenes/logo.png'))
-
-    # Obtener la lista de personas dentro de la empresa
     personas = congelados.values_list('personal', flat=True).distinct()
 
-    # Crear un PdfMerger para combinar los PDFs
     merger = PdfMerger()
 
-    # Generar un PDF por cada persona
     for persona in personas:
-        # Filtrar los congelados para la persona actual
         congelados_persona = congelados.filter(personal=persona)
-
-        # Calcular filas_vacias para llenar las filas vacías
-        max_filas = 16  # O el número de filas que deseas tener en el PDF
+        max_filas = 16
         filas_vacias = max_filas - congelados_persona.count()
-        
-        # Crear una lista de vacías filas
         vacias_filas = [{}] * filas_vacias
-        
+
         context = {
             'congelados': congelados_persona,
             'date': timezone.now().strftime("%d/%m/%Y"),
             'vacias_filas': vacias_filas,
-            'logo_url': logo_url,
-            'logo_url1': logo_url1,
+            'logo_url': request.build_absolute_uri(static('app/imgenes/logo.png')),
+            'logo_url1': request.build_absolute_uri(static('app/imgenes/minera.png')),
         }
 
-        # Renderizar el PDF para la persona actual
         pdf = render_to_pdf('app/pdf_template.html', context)
         if pdf:
-            # Añadir el PDF generado al merger
             merger.append(BytesIO(pdf))
         else:
             return HttpResponse("Error al generar el PDF para persona: {}".format(persona), status=500)
 
-    # Crear una respuesta HTTP con el PDF combinado
     result = BytesIO()
     merger.write(result)
     merger.close()
     result.seek(0)
 
     return HttpResponse(result, content_type='application/pdf')
+
+
 
 
 @login_required
@@ -2674,3 +2663,6 @@ def pagina_con_botones(request):
     }
     
     return render(request, 'app/pagina_con_botones.html', context)
+
+
+
