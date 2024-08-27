@@ -237,7 +237,7 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'app/static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     
@@ -248,5 +248,6 @@ RUTINAS_DIR = os.path.join(BASE_DIR, 'rutinas')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-template_path = os.path.join(settings.BASE_DIR, 'data', 'ordenes_trabajo_template.xlsx')
+
+
 
