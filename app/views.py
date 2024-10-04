@@ -33,6 +33,10 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from django.contrib.auth.forms import UserCreationForm
+from .forms import LoginForm
+from .forms import UserRegistrationForm
+from django.contrib.auth.models import User
 from io import BytesIO
 from django.conf import settings
 import os
@@ -52,6 +56,40 @@ def registrar_trabajador(request):
         form = TrabajadorForm()
 
     return render(request, 'app/registrar_trabajador.html', {'form': form})
+
+def login_view(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')  # Redirige a la vista deseada
+            else:
+                form.add_error(None, 'Credenciales inválidas.')
+    else:
+        form = LoginForm()
+
+    return render(request, 'registration/login.html', {'form': form})
+
+def register_view(request):
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            # Crea el usuario
+            User.objects.create_user(
+                username=form.cleaned_data['username'],
+                email=form.cleaned_data['email'],
+                password=form.cleaned_data['password']
+            )
+            # Redirige a la vista de inicio de sesión
+            return redirect('login')  # Asegúrate de que 'login' es el nombre correcto de la vista
+    else:
+        form = UserRegistrationForm()
+
+    return render(request, 'registration/register.html', {'form': form})
 
 @login_required
 def lista_trabajador(request):

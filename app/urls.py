@@ -14,11 +14,13 @@ from .views import (
     registro_utilesaseo, generar_pdf_utiles_aseo, registro_pedido_success, 
     registro_prestamo_success, registro_RetiroRepuesto_success, generar_pdf_retiro, 
     generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia,pedidos_semana,
-    pedidos_mes,pedidos_anio,upload_csv,lista_congelado,generate_pdf,pagina_con_botones
+    pedidos_mes,pedidos_anio,upload_csv,lista_congelado,generate_pdf,pagina_con_botones,register_view  ,login_view
+
 )
 
 urlpatterns = [
-    path('login/', login, name='login'),
+    path('login/', login_view, name='login'),
+    path('register/', register_view, name='register'),
     path('logout/', logout_then_login, name='logout'),
     path('registrar/', registrar_trabajador, name='registrar_trabajador'),
     path('listar/', lista_trabajador, name='lista_trabajador'),
