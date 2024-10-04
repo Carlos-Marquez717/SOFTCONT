@@ -72,7 +72,7 @@ def login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'login.html', {'form': form})
+    return render(request, 'Registration/login.html', {'form': form})
 
 
 
@@ -91,7 +91,7 @@ def register_view(request):
     else:
         form = UserRegistrationForm()
 
-    return render(request, 'register.html', {'form': form})
+    return render(request, 'Registration/register.html', {'form': form})
 
 @login_required
 def lista_trabajador(request):
