@@ -74,6 +74,8 @@ def login_view(request):
 
     return render(request, 'registration/login.html', {'form': form})
 
+
+
 def register_view(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
@@ -84,7 +86,7 @@ def register_view(request):
                 email=form.cleaned_data['email'],
                 password=form.cleaned_data['password']
             )
-            # Redirige a la vista de inicio de sesión
+            messages.success(request, 'Registro exitoso. Ahora puedes iniciar sesión.')
             return redirect('login')  # Asegúrate de que 'login' es el nombre correcto de la vista
     else:
         form = UserRegistrationForm()
