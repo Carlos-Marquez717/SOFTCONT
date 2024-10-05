@@ -34,9 +34,12 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from django.contrib.auth.forms import UserCreationForm
+from .forms import CustomUserCreationForm
+
 from .forms import LoginForm
 from .forms import UserRegistrationForm
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
+
 from io import BytesIO
 from django.conf import settings
 import os
@@ -57,41 +60,27 @@ def registrar_trabajador(request):
 
     return render(request, 'app/registrar_trabajador.html', {'form': form})
 
-def login_view(request):
+
+
+
+def register(request):
+    data = {
+        'form': CustomUserCreationForm()
+    }
+
     if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect('home')  # Redirige a la vista deseada
-            else:
-                form.add_error(None, 'Credenciales inválidas.')
-    else:
-        form = LoginForm()
+        user_creation_form = CustomUserCreationForm(data=request.POST)
 
-    return render(request, 'Registration/login.html', {'form': form})
+        if user_creation_form.is_valid():
+            user_creation_form.save()
 
+            user = authenticate(username=user_creation_form.cleaned_data['username'], password=user_creation_form.cleaned_data['password1'])
+            login(request, user)
+            return redirect('home')
+        else:
+            data['form'] = user_creation_form
 
-
-def register_view(request):
-    if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            # Crea el usuario
-            User.objects.create_user(
-                username=form.cleaned_data['username'],
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password']
-            )
-            messages.success(request, 'Registro exitoso. Ahora puedes iniciar sesión.')
-            return redirect('login')  # Asegúrate de que 'login' es el nombre correcto de la vista
-    else:
-        form = UserRegistrationForm()
-
-    return render(request, 'Registration/register.html', {'form': form})
+    return render(request, 'Registration/register.html', data)
 
 @login_required
 def lista_trabajador(request):

@@ -3,8 +3,10 @@ from django_select2.forms import Select2Widget
 from django_select2.forms import ModelSelect2Widget
 from django import forms
 from .models import Trabajador,Empresa, Obrero, Pedido, Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto,Utilesaseo,Producto
-from django.contrib.auth.models import User
+
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 
 class TrabajadorForm(forms.ModelForm):
     class Meta:
@@ -172,3 +174,18 @@ class UtilesaseoForm(forms.ModelForm):
 
 class CSVUploadForm(forms.Form):
     csv_file = forms.FileField()
+
+
+
+class CustomUserCreationForm(UserCreationForm):
+	email = forms.EmailField(required=True)
+
+	class Meta:
+		model = User
+		fields = ['username', 'email', 'password1', 'password2']
+	def clean_email(self):
+		email = self.cleaned_data['email']
+
+		if User.objects.filter(email=email).exists():
+			raise forms.ValidationError('Este correo electrónico ya está registrado')
+		return email
