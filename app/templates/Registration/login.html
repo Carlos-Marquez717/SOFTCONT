@@ -85,25 +85,31 @@
                         {% csrf_token %}
                         <h5>INICIA SESION</h5>
                         <div class="input-group mb-3">
-                            <div class="input-group-append">
+                            <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
                             </div>
+                            <div class="input-group-text">USERNAME</div>
                             {{ form.username }}
+                        </div>
                             {% for error in form.username.errors %}
-                            <p class="text-danger">{{ error }}</p>
+                                <p class="text-danger">{{ error }}</p>
                             {% endfor %}
-                        </div>
-                        <div class="input-group mb-2">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                            
+                    
+                            <div class="input-group mb-2">
+                                <div class="input-group-append">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                </div>
+                                <div class="input-group-text">PASSWORD</div>
+                                {{ form.password }}
                             </div>
-                            {{ form.password }}
-                            {% if form.non_field_errors %}
-                            {% for error in form.non_field_errors %}
-                            <p class="text-danger">{{ error }}</p>
-                            {% endfor %}
-                            {% endif %}
-                        </div>
+                                {% if form.non_field_errors %}
+                                    {% for error in form.non_field_errors %}
+                                        <p class="text-danger">{{ error }}</p>
+                                    {% endfor %}
+                                {% endif %}
+                                
+                            
                         <div class="d-flex justify-content-center mt-3">
                             <a href="{% url 'register' %}" class="btn btn-link">¿No tienes una cuenta? Regístrate aquí</a>
                         </div>
