@@ -432,7 +432,6 @@ def generar_pdf_pedidos(request):
     pedidos = Pedido.objects.all()
 
     if search_term:
-        # Formatear la fecha si se proporciona
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
             pedidos = pedidos.filter(
@@ -444,8 +443,7 @@ def generar_pdf_pedidos(request):
                 Q(fecha_pedido__date=search_date)
             )
         except ValueError:
-            # Manejar el caso en que el término de búsqueda no sea una fecha válida
-            pass
+            pass  # Si la búsqueda no es una fecha válida, se ignora
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
@@ -453,13 +451,14 @@ def generar_pdf_pedidos(request):
 
     # Crear el objeto PDF con ReportLab, con orientación horizontal
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+    p = canvas.Canvas(buffer, pagesize=letter)
 
-    # Crear una tabla para los datos
+    # Crear una tabla con los datos
     data = [
-        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO','EMPRESA'],
+        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA'],
     ]
 
+    # Rellenar la tabla con los datos de los pedidos
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         data.append([
@@ -486,13 +485,16 @@ def generar_pdf_pedidos(request):
     table = Table(data)
     table.setStyle(style)
 
-    # Establecer el ancho y las alturas de las filas de la tabla
-    table_width, table_height = letter[1] - 100, letter[0] - 100
-    table.wrapOn(p, table_width, table_height)
+    # Establecer el ancho máximo de la tabla y su envoltura en la página
+    table_width, table_height = table.wrapOn(p, letter[0] - 100, letter[1] - 100)
 
-    # Agregar título
+    # Calcular la posición de la tabla centrada en la página
+    x_position = (letter[0] - table_width) / 2
+    y_position = (letter[1] - table_height) / 2
+
+    # Agregar el título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(letter[1] / 2, letter[0] - 70, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+    p.drawCentredString(letter[0] / 2, letter[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
 
     # Agregar el nombre del usuario que está generando el PDF
     usuario = request.user
@@ -500,16 +502,16 @@ def generar_pdf_pedidos(request):
     text = f"PAÑOLERO: {usuario.username}"
     text_width = p.stringWidth(text, "Helvetica", 12)
     p.setFillColor(colors.black)
-    p.drawString(100, letter[0] - 90, text)
-    p.line(100, letter[0] - 92, 100 + text_width, letter[0] - 92)  # Subrayar el texto
+    p.drawString(100, letter[1] - 70, text)
+    p.line(100, letter[1] - 72, 100 + text_width, letter[1] - 72)  # Subrayar el texto
 
-    # Ajustar la posición de la tabla
-    table.drawOn(p, 55, letter[0] - 250)  # Ajustar según la altura
+    # Dibujar la tabla centrada
+    table.drawOn(p, x_position, y_position)
 
-    # Manejar el contenido que se puede extender a varias páginas
-    if table_height > letter[0] - 250:
-        p.showPage()
-        table.drawOn(p, 55, letter[0] - 250)  # Nueva página si es necesario
+    # Si la tabla es demasiado grande para una sola página, paginarla
+    if table_height > letter[1] - 100:
+        p.showPage()  # Crear una nueva página
+        table.drawOn(p, x_position, letter[1] - 100 - table_height)  # Dibujar en la nueva página
 
     # Guardar el PDF en el buffer
     p.showPage()
