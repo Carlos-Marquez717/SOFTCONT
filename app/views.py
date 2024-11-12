@@ -439,9 +439,6 @@ def generar_pdf_pedidos(request):
             # Manejar el caso en que el término de búsqueda no sea una fecha válida
             pass
 
-    # Después de aplicar el filtro
-    print("Pedidos después de aplicar filtro:", pedidos)
-
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
@@ -473,20 +470,21 @@ def generar_pdf_pedidos(request):
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
     ])
 
     # Crear la tabla
     table = Table(data)
     table.setStyle(style)
 
-    # Posicionar la tabla en la página
-    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 55, height - 250)  # Bajar la tabla
+    # Establecer el ancho y las alturas de las filas de la tabla
+    table_width, table_height = letter[1] - 100, letter[0] - 100
+    table.wrapOn(p, table_width, table_height)
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+    p.drawCentredString(letter[1] / 2, letter[0] - 70, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
 
     # Agregar el nombre del usuario que está generando el PDF
     usuario = request.user
@@ -494,8 +492,16 @@ def generar_pdf_pedidos(request):
     text = f"PAÑOLERO: {usuario.username}"
     text_width = p.stringWidth(text, "Helvetica", 12)
     p.setFillColor(colors.black)
-    p.drawString(100, height - 90, text)
-    p.line(100, height - 92, 100 + text_width, height - 92)  # Subrayar el texto
+    p.drawString(100, letter[0] - 90, text)
+    p.line(100, letter[0] - 92, 100 + text_width, letter[0] - 92)  # Subrayar el texto
+
+    # Ajustar la posición de la tabla
+    table.drawOn(p, 55, letter[0] - 250)  # Ajustar según la altura
+
+    # Manejar el contenido que se puede extender a varias páginas
+    if table_height > letter[0] - 250:
+        p.showPage()
+        table.drawOn(p, 55, letter[0] - 250)  # Nueva página si es necesario
 
     # Guardar el PDF en el buffer
     p.showPage()
@@ -509,7 +515,6 @@ def generar_pdf_pedidos(request):
     response.write(pdf)
 
     return response
-
 
 
 @login_required
