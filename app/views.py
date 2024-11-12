@@ -35,14 +35,16 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from django.contrib.auth.forms import UserCreationForm
 from .forms import CustomUserCreationForm
-
 from .forms import LoginForm
 from .forms import UserRegistrationForm
 from django.contrib.auth.models import Group, User
-
-from io import BytesIO
 from django.conf import settings
 import os
+from io import BytesIO
+from datetime import datetime
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import landscape, letter
+from django.contrib.auth.decorators import login_required
 
 @login_required
 def home(request):
@@ -424,6 +426,8 @@ def generar_pdf_pedido(request, obrero_id):
     return response
 
 
+
+
 @login_required
 def generar_pdf_pedidos(request):
     # Obtener el término de búsqueda de la URL
@@ -526,6 +530,7 @@ def generar_pdf_pedidos(request):
     response.write(pdf)
 
     return response
+
 
 
 @login_required
