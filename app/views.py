@@ -426,8 +426,6 @@ def generar_pdf_pedido(request, obrero_id):
     return response
 
 
-
-
 @login_required
 def generar_pdf_pedidos(request):
     # Obtener el término de búsqueda de la URL
