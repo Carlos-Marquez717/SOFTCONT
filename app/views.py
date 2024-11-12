@@ -423,6 +423,7 @@ def generar_pdf_pedido(request, obrero_id):
 
     return response
 
+
 @login_required
 def generar_pdf_pedidos(request):
     # Obtener el término de búsqueda de la URL
@@ -449,9 +450,9 @@ def generar_pdf_pedidos(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
 
-    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    # Crear el objeto PDF con ReportLab, con orientación horizontal (landscape)
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))  # Usar landscape
 
     # Crear una tabla con los datos
     data = [
@@ -486,15 +487,15 @@ def generar_pdf_pedidos(request):
     table.setStyle(style)
 
     # Establecer el ancho máximo de la tabla y su envoltura en la página
-    table_width, table_height = table.wrapOn(p, letter[0] - 100, letter[1] - 100)
+    table_width, table_height = table.wrapOn(p, landscape(letter)[0] - 100, landscape(letter)[1] - 100)
 
     # Calcular la posición de la tabla centrada en la página
-    x_position = (letter[0] - table_width) / 2
-    y_position = (letter[1] - table_height) / 2
+    x_position = (landscape(letter)[0] - table_width) / 2
+    y_position = (landscape(letter)[1] - table_height) / 2
 
     # Agregar el título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(letter[0] / 2, letter[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+    p.drawCentredString(landscape(letter)[0] / 2, landscape(letter)[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
 
     # Agregar el nombre del usuario que está generando el PDF
     usuario = request.user
@@ -502,16 +503,16 @@ def generar_pdf_pedidos(request):
     text = f"PAÑOLERO: {usuario.username}"
     text_width = p.stringWidth(text, "Helvetica", 12)
     p.setFillColor(colors.black)
-    p.drawString(100, letter[1] - 70, text)
-    p.line(100, letter[1] - 72, 100 + text_width, letter[1] - 72)  # Subrayar el texto
+    p.drawString(100, landscape(letter)[1] - 70, text)
+    p.line(100, landscape(letter)[1] - 72, 100 + text_width, landscape(letter)[1] - 72)  # Subrayar el texto
 
     # Dibujar la tabla centrada
     table.drawOn(p, x_position, y_position)
 
     # Si la tabla es demasiado grande para una sola página, paginarla
-    if table_height > letter[1] - 100:
+    if table_height > landscape(letter)[1] - 100:
         p.showPage()  # Crear una nueva página
-        table.drawOn(p, x_position, letter[1] - 100 - table_height)  # Dibujar en la nueva página
+        table.drawOn(p, x_position, landscape(letter)[1] - 100 - table_height)  # Dibujar en la nueva página
 
     # Guardar el PDF en el buffer
     p.showPage()
