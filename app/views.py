@@ -322,42 +322,47 @@ def lista_pedido(request):
 
 @login_required
 def generar_pdf_pedido(request, obrero_id):
-    # Obtener el obrero específico
-    obrero = get_object_or_404(Obrero, id=obrero_id)
-
     # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar', '')
+    search_term = request.GET.get('buscar')
 
-    # Obtener los préstamos asociados al obrero
-    pedidos = Pedido.objects.filter(solicitante=obrero)
+    # Obtener los pedidos del obrero específico y aplicar filtro de búsqueda si es necesario
+    pedidos = Pedido.objects.filter(obrero_id=obrero_id)
 
     if search_term:
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            pedidos = pedidos.filter(fecha_pedido=search_date)
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date=search_date)
+            )
         except ValueError:
-            pass
+            pass  # Si la búsqueda no es una fecha válida, se ignora
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="prestamos_{obrero.nombre}.pdf"'
+    response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
 
     # Crear el objeto PDF con ReportLab, con orientación horizontal
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+    p = canvas.Canvas(buffer, pagesize=letter)  # Usar el tamaño de página por defecto (letra)
 
-    # Crear una tabla para los datos
+    # Crear una lista con los encabezados de la tabla
     data = [
-        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO','EMPRESA'],
+        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA'],
     ]
 
+    # Añadir los pedidos a la tabla
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         data.append([
             fecha_y_hora,
             pedido.solicitante.nombre,
             pedido.insumo.nombre,
-            pedido.cantidad,  # Elimina la llamada a str() aquí
+            str(pedido.cantidad),
             pedido.area,
             pedido.compañia.nombre,
         ])
@@ -369,20 +374,24 @@ def generar_pdf_pedido(request, obrero_id):
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
     ])
 
     # Crear la tabla
     table = Table(data)
     table.setStyle(style)
 
-    # Posicionar la tabla en la página
-    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 100, height - 200)  # Bajar la tabla
+    # Calcular el ancho y la altura de la tabla
+    table_width, table_height = table.wrapOn(p, letter[0] - 100, letter[1] - 100)
+
+    # Centrar la tabla horizontalmente y verticalmente
+    x_position = (letter[0] - table_width) / 2
+    y_position = (letter[1] - table_height) / 2
 
     # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+    p.drawCentredString(letter[0] / 2, letter[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
 
     # Agregar el nombre del usuario que está generando el PDF
     usuario = request.user
@@ -390,17 +399,16 @@ def generar_pdf_pedido(request, obrero_id):
     text = f"PAÑOLERO: {usuario.username}"
     text_width = p.stringWidth(text, "Helvetica", 12)
     p.setFillColor(colors.black)
-    p.drawString(100, height - 90, text)
-    p.line(100, height - 92, 100 + text_width, height - 92)  # Subrayar el texto
+    p.drawString(100, letter[1] - 70, text)
+    p.line(100, letter[1] - 72, 100 + text_width, letter[1] - 72)  # Subrayar el texto
 
-    # Agregar la fecha filtrada debajo del nombre del usuario
-    if search_term:
-        p.setFont("Helvetica", 12)
-        p.setFillColor(colors.black)
-        p.drawString(100, height - 110, f"Fecha filtrada: {search_term}")
+    # Dibujar la tabla en el centro
+    table.drawOn(p, x_position, y_position)
 
-
- 
+    # Si la tabla es demasiado grande para una página, dividirla en varias
+    if table_height > letter[1] - 100:
+        p.showPage()  # Crear una nueva página
+        table.drawOn(p, x_position, letter[1] - 100 - table_height)  # Dibujar en la nueva página
 
     # Guardar el PDF en el buffer
     p.showPage()
