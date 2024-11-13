@@ -387,30 +387,54 @@ def generar_pdf_pedido(request, obrero_id):
     # Calcular el ancho y la altura de la tabla
     table_width, table_height = table.wrapOn(p, letter[0] - 100, letter[1] - 100)
 
-    # Centrar la tabla horizontalmente y verticalmente
-    x_position = (letter[0] - table_width) / 2
-    y_position = (letter[1] - table_height) / 2
+    # Reservar espacio para el título y el subrayado
+    y_position = letter[1] - 50  # Comienza justo debajo del título
 
-    # Agregar título
+    # Agregar título de documento
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(letter[0] / 2, letter[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+    p.drawCentredString(letter[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
 
-    # Agregar el nombre del usuario que está generando el PDF
+    # Ajustar la posición para el nombre del Pañolero
     usuario = request.user
+    y_position -= 20  # Espacio para el nombre del Pañolero
     p.setFont("Helvetica-Bold", 12)
     text = f"PAÑOLERO: {usuario.username}"
     text_width = p.stringWidth(text, "Helvetica", 12)
     p.setFillColor(colors.black)
-    p.drawString(100, letter[1] - 70, text)
-    p.line(100, letter[1] - 72, 100 + text_width, letter[1] - 72)  # Subrayar el texto
+    p.drawString(100, y_position, text)
+    p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado del texto
 
-    # Dibujar la tabla en el centro
-    table.drawOn(p, x_position, y_position)
+    # Ajustar la posición para la tabla, asegurándose de que el título y nombre del pañolero no se sobrepongan
+    y_position -= 40  # Espacio entre el nombre del Pañolero y la tabla
 
-    # Si la tabla es demasiado grande para una página, dividirla en varias
-    if table_height > letter[1] - 100:
-        p.showPage()  # Crear una nueva página
-        table.drawOn(p, x_position, letter[1] - 100 - table_height)  # Dibujar en la nueva página
+    # Dibujar la tabla
+    if y_position - table_height < 100:  # Si no cabe en la página
+        p.showPage()  # Nueva página
+        y_position = letter[1] - 50  # Restablecer la posición en la nueva página
+        p.drawCentredString(letter[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")  # Repetir el título
+        y_position -= 20
+        p.setFont("Helvetica-Bold", 12)
+        text = f"PAÑOLERO: {usuario.username}"
+        p.drawString(100, y_position, text)
+        p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado
+
+        y_position -= 40
+
+    # Dibujar la tabla en la página actual
+    table.drawOn(p, 50, y_position)
+
+    # Si la tabla es demasiado grande, divídela en varias páginas
+    while y_position - table_height < 100:
+        p.showPage()  # Nueva página
+        y_position = letter[1] - 50  # Restablecer la posición en la nueva página
+        p.drawCentredString(letter[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+        y_position -= 20
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, y_position, text)
+        p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado
+
+        y_position -= 40
+        table.drawOn(p, 50, y_position)  # Dibujar la tabla en la nueva página
 
     # Guardar el PDF en el buffer
     p.showPage()
