@@ -450,9 +450,6 @@ def generar_pdf_pedido(request, obrero_id):
     return response
 
 
-
-
-@login_required
 def generar_pdf_pedidos(request):
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
@@ -517,11 +514,11 @@ def generar_pdf_pedidos(request):
     # Establecer el ancho máximo de la tabla y su envoltura en la página
     table_width, table_height = table.wrapOn(p, landscape(letter)[0] - 100, landscape(letter)[1] - 100)
 
-    # Posición inicial de la tabla
+    # Calcular la posición de la tabla centrada en la página
     x_position = (landscape(letter)[0] - table_width) / 2
-    y_position = landscape(letter)[1] - 100  # Dejar espacio para el título y el nombre del usuario
+    y_position = (landscape(letter)[1] - table_height) / 2
 
-    # Agregar título
+    # Agregar el título
     p.setFont("Helvetica-Bold", 12)
     p.drawCentredString(landscape(letter)[0] / 2, landscape(letter)[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
 
@@ -534,28 +531,13 @@ def generar_pdf_pedidos(request):
     p.drawString(100, landscape(letter)[1] - 70, text)
     p.line(100, landscape(letter)[1] - 72, 100 + text_width, landscape(letter)[1] - 72)  # Subrayar el texto
 
-    # Dibujar la tabla
-    table.drawOn(p, x_position, y_position - table_height)
+    # Dibujar la tabla centrada
+    table.drawOn(p, x_position, y_position)
 
     # Si la tabla es demasiado grande para una sola página, paginarla
-    while y_position - table_height < 100:
+    if table_height > landscape(letter)[1] - 100:
         p.showPage()  # Crear una nueva página
-        y_position = landscape(letter)[1] - 100  # Restablecer la posición en la nueva página
-
-        # Repetir título y nombre del pañolero en la nueva página
-        p.setFont("Helvetica-Bold", 12)
-        p.drawCentredString(landscape(letter)[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
-        y_position -= 20
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(100, y_position, text)
-        p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado
-
-        # Ajustar la posición para la tabla
-        y_position -= 40  # Espacio entre el nombre y la tabla
-        table.drawOn(p, x_position, y_position)
-
-        # Actualizar la posición para la siguiente tabla en la siguiente página
-        y_position -= table_height
+        table.drawOn(p, x_position, landscape(letter)[1] - 100 - table_height)  # Dibujar en la nueva página
 
     # Guardar el PDF en el buffer
     p.showPage()
