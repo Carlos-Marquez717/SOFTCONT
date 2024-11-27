@@ -2059,7 +2059,7 @@ def traducir_mes_en_espanol(fecha):
     """Convierte el nombre del mes en inglés a español."""
     return MESES_EN_ESPAÑOL[fecha.strftime('%B')]
 
-@login_required
+
 def calcular_totales_dia(pedidos, fecha_seleccionada):
     """
     Calcula los totales por día para cada insumo en los pedidos.
@@ -2152,7 +2152,7 @@ def pedidos_dia(request):
     response.write(pdf)
     return response
 
-@login_required
+
 def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
     """
     Calcula los totales por semana para cada insumo en los pedidos.
@@ -2352,7 +2352,7 @@ def pedidos_mes(request):
     return response
 
 
-@login_required
+
 def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
     """
     Calcula los totales por mes para cada insumo en los pedidos.
@@ -2461,7 +2461,7 @@ def pedidos_anio(request):
 
     return response
 
-@login_required
+
 def calcular_totales_anio(pedidos, anio):
     """
     Calcula los totales por insumo en los pedidos de un año.
