@@ -2374,7 +2374,7 @@ def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
     return insumos_totales
 
 
-@login_required
+
 def traducir_mes_en_espanol(fecha):
     """ 
     Traduce el mes al español.
