@@ -2086,25 +2086,29 @@ def calcular_totales_dia(pedidos, fecha_seleccionada):
 
 @login_required
 def pedidos_dia(request):
+    # Obtener y validar la fecha seleccionada
     fecha_seleccionada_str = request.GET.get('fecha')
     if not fecha_seleccionada_str:
-        return HttpResponse("Por favor, seleccione una fecha.")
+        return HttpResponse("Por favor, seleccione una fecha válida.", status=400)
 
     try:
         fecha_seleccionada = datetime.strptime(fecha_seleccionada_str, "%Y-%m-%d").date()
     except ValueError:
-        return HttpResponse("Fecha inválida. Asegúrese de usar el formato YYYY-MM-DD.")
+        return HttpResponse("Fecha inválida. Asegúrese de usar el formato YYYY-MM-DD.", status=400)
 
     # Filtrar pedidos por la fecha seleccionada
     pedidos = Pedido.objects.filter(fecha_pedido__date=fecha_seleccionada)
+    if not pedidos.exists():
+        return HttpResponse(f"No se encontraron pedidos para la fecha {fecha_seleccionada}.", status=404)
 
     # Calcular totales
     insumos_totales = calcular_totales_dia(pedidos, fecha_seleccionada)
 
-    # Crear el objeto PDF con ReportLab
+    # Crear el objeto PDF
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{fecha_seleccionada}.pdf"'
 
+    # Configurar ReportLab
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
 
@@ -2114,54 +2118,38 @@ def pedidos_dia(request):
     p.setFont("Helvetica-Bold", 16)
     p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS - {fecha_formateada}")
 
-    # Configurar la tabla
+    # Configurar la tabla de datos
     data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
-    
     for insumo, totales in insumos_totales.items():
         total = totales['total']
-        # Añadir insumo y total
         data.append([insumo, total])
 
-    # Estilo para la tabla
+    # Estilo de la tabla
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ])
-
-    # Aplicar el estilo de fondo amarillo para las celdas específicas
-    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
-    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'CANTIDAD TOTAL'
-    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
-    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'CANTIDAD TOTAL'
-
-    # Crear la tabla
     table = Table(data)
     table.setStyle(style)
 
-    # Posicionar la tabla en la página
+    # Posicionar la tabla
     width, height = letter
     table_width, table_height = table.wrap(width, height)
-
-    # Calcular la posición para centrar la tabla horizontalmente
     x = (width - table_width) / 2
-    y = height - table_height - 100  # Ajustar la posición vertical
-
+    y = height - table_height - 100
     table.drawOn(p, x, y)
 
-    # Guardar el PDF en el buffer
+    # Finalizar el PDF
     p.showPage()
     p.save()
 
-    # Obtener el valor del buffer
+    # Enviar el PDF como respuesta
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
-
     return response
 
 @login_required
