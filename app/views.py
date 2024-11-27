@@ -2298,7 +2298,7 @@ def pedidos_mes(request):
     mes_espanol = traducir_mes_en_espanol(fecha_inicio)
     fecha_formateada_inicio = fecha_inicio.strftime(f'%d {mes_espanol} %Y')
     fecha_formateada_fin = fecha_fin.strftime(f'%d {mes_espanol} %Y')
-    p.setFont("Helvetica-Bold", 16)
+    p.setFont("Helvetica-Bold", 14)
     p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS MENSUAL - {fecha_formateada_inicio} a {fecha_formateada_fin}")
 
     # Configurar la tabla
