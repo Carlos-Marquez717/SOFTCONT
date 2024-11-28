@@ -47,6 +47,7 @@ class Pedido(models.Model):
     def __str__(self):
         return f"{self.solicitante.nombre} - {self.compañia.nombre} - {self.insumo.nombre} - {self.cantidad} - {self.area} - {self.fecha_pedido} "
 
+    @property
     def fecha_pedido_formatted(self):
         return self.fecha_pedido.strftime("%d/%m/%Y %H:%M")
 
