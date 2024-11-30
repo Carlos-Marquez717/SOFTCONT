@@ -1685,6 +1685,13 @@ from django.core.paginator import Paginator
 
 
 
+from datetime import datetime
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Utilesaseo
+
 @login_required
 def lista_utilesaseo(request):
     search_term = request.GET.get('buscar', '')
@@ -1695,12 +1702,11 @@ def lista_utilesaseo(request):
             # Intentar parsear el término de búsqueda como fecha en formato dd/mm/yyyy
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
             # Filtrar por fecha exacta
-            date_search = Q(fecha_creacion=search_date)
-            utilesaseos_list = utilesaseos_list.filter(date_search)
+            utilesaseos_list = utilesaseos_list.filter(fecha_creacion=search_date)
         except ValueError:
             # Si el término de búsqueda no es una fecha, buscar en otros campos de texto
             text_search = Q(mes__icontains=search_term) | \
-                          Q(producto__icontains=search_term) | \
+                          Q(productos__nombre__icontains=search_term) | \
                           Q(cantidad__icontains=search_term) | \
                           Q(nombre_solicitante__nombre__icontains=search_term) | \
                           Q(empresa__nombre__icontains=search_term) | \
@@ -1721,6 +1727,7 @@ def lista_utilesaseo(request):
     }
 
     return render(request, 'app/lista_utilesaseo.html', context)
+
 
 
 
