@@ -1879,7 +1879,6 @@ def generar_pdf_utiles_aseo(request):
     return response
 
 
-
 @login_required
 def generar_pdf_retiro(request, obrero_id):
     # Obtener el obrero específico
@@ -1892,11 +1891,13 @@ def generar_pdf_retiro(request, obrero_id):
     retiros = RetiroRepuesto.objects.filter(trabajador=obrero)
 
     if search_term:
+        # Intentar parsear la búsqueda como una fecha
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
             retiros = retiros.filter(fecha_retiro__date=search_date)
         except ValueError:
-            pass
+            # Si no es una fecha, buscar por nombre del trabajador
+            retiros = retiros.filter(trabajador__nombre__icontains=search_term)
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
@@ -1905,10 +1906,12 @@ def generar_pdf_retiro(request, obrero_id):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
 
+    # Encabezado de la tabla
     data = [
         ['Fecha', 'Obrero', 'Repuesto', 'Cantidad', 'Empresa'],
     ]
 
+    # Agregar los datos de los retiros a la tabla
     for retiro in retiros:
         fecha_y_hora = retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M")
         data.append([
@@ -1919,10 +1922,11 @@ def generar_pdf_retiro(request, obrero_id):
             retiro.empresa.nombre,
         ])
 
+    # Si no hay registros, agregar un mensaje a la tabla
     if len(data) == 1:
-        # Si no hay datos, agregar un mensaje a la tabla
         data.append(['No hay registros', '', '', '', ''])
 
+    # Estilos de la tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
@@ -1931,6 +1935,7 @@ def generar_pdf_retiro(request, obrero_id):
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ])
 
+    # Crear la tabla en el PDF
     table = Table(data)
     table.setStyle(style)
 
@@ -1938,9 +1943,9 @@ def generar_pdf_retiro(request, obrero_id):
     table.wrapOn(p, width, height)
     table.drawOn(p, 60, height - 200)
 
+    # Título y usuario
     p.setFont("Helvetica-Bold", 12)
     p.drawCentredString(width / 2, height - 70, f"RETIRO DE REPUESTOS")
-    
     
     usuario = request.user
     p.setFont("Helvetica-Bold", 12)
@@ -1950,11 +1955,11 @@ def generar_pdf_retiro(request, obrero_id):
     p.drawString(100, height - 90, text)
     p.line(100, height - 92, 100 + text_width, height - 92)
 
-
-
+    # Finalizar el documento PDF
     p.showPage()
     p.save()
 
+    # Obtener el contenido del PDF y enviarlo al navegador
     pdf = buffer.getvalue()
     buffer.close()
 
