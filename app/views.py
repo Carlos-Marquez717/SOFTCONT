@@ -1753,6 +1753,22 @@ def registro_utilesaseo(request):
 
 
 
+
+from django.db.models import Q
+
+import os
+from django.conf import settings
+from django.http import HttpResponse
+from django.template.defaultfilters import date
+from django.db.models import Q
+from django.contrib.staticfiles import finders
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Image
+from reportlab.lib.styles import ParagraphStyle
+from django.utils.dateparse import parse_datetime
+from app.models import Utilesaseo  # Assuming this is your model
+
 @login_required
 def generar_pdf_utiles_aseo(request):
     search_term = request.GET.get('buscar', '')
@@ -1762,7 +1778,7 @@ def generar_pdf_utiles_aseo(request):
             search_datetime = parse_datetime(search_term)
             search_date = search_datetime.date() if search_datetime else None
 
-            # Construir la consulta de búsqueda
+            # Build search query
             text_search = Q(mes__icontains=search_term) | \
                            Q(productos__nombre__icontains=search_term) | \
                            Q(cantidad__icontains=search_term) | \
@@ -1773,7 +1789,7 @@ def generar_pdf_utiles_aseo(request):
 
             utilesaseos = Utilesaseo.objects.all()
 
-            # Filtrar por fecha_creacion solo si search_date no es None
+            # Filter by fecha_creacion if search_date is provided
             if search_date:
                 utilesaseos = utilesaseos.filter(fecha_creacion__date=search_date)
 
@@ -1784,6 +1800,7 @@ def generar_pdf_utiles_aseo(request):
     else:
         utilesaseos = Utilesaseo.objects.all()
 
+    # Set up the PDF response
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="UTILES_ASEO.pdf"'
 
@@ -1792,58 +1809,57 @@ def generar_pdf_utiles_aseo(request):
 
     elements = []
 
-    # Ruta al archivo del logo
-    logo_path = os.path.join(settings.STATIC_ROOT, 'app', 'imgenes', 'Logo.png')
-
-    # Verificar si el archivo del logo existe
-    if not os.path.exists(logo_path):
+    # Locate the logo file
+    logo_path = finders.find('app/imgenes/Logo.png')
+    if not logo_path:
         raise FileNotFoundError(f'El archivo {logo_path} no existe.')
 
-    # Agregar el logo al documento con un ancho de 200 unidades y altura de 50 unidades
+    # Add logo to the document with a width of 200 units and height of 50 units
     logo = Image(logo_path, width=200, height=50)
     elements.append(logo)
 
-    # Agregar el título centrado y en negrita con texto negro
+    # Title of the document
     title_style = ParagraphStyle(
         'Title',
         parent=getSampleStyleSheet()['Title'],
         alignment=1,
         textColor='black',
         fontName='Helvetica-Bold',
-        fontSize=18  # Tamaño de fuente ajustado
+        fontSize=18
     )
     elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
 
-    # Obtener los datos del trabajador y la empresa (asumiendo que se relacionan con el primer utilesaseo)
+    # Get the worker and company details from the first Utilesaseo object (if available)
     primer_utilesaseo = utilesaseos.first()
+
+    # Aquí accedemos directamente al campo 'run' de Utilesaseo y no de Obrero
     trabajador_nombre = primer_utilesaseo.nombre_solicitante.nombre if primer_utilesaseo and primer_utilesaseo.nombre_solicitante else ""
+    run_trabajador = primer_utilesaseo.run if primer_utilesaseo else ""  # Acceder a 'run' directamente desde Utilesaseo
     empresa_nombre = primer_utilesaseo.empresa.nombre if primer_utilesaseo and primer_utilesaseo.empresa else ""
 
-    # Agregar nombre del trabajador y empresa debajo del título
+    # Agregar nombre del trabajador, RUN y empresa debajo del título
     nombre_style = ParagraphStyle(
         'NombreTrabajador',
         parent=getSampleStyleSheet()['Normal'],
         alignment=1,
         textColor='black',
-        fontSize=12,
-        leading=16  # Ajusta el espacio entre líneas
+        fontSize=10,
+        leading=16
     )
-    elements.append(Paragraph(f"NOMBRE TRABAJADOR: {trabajador_nombre} | EMPRESA: {empresa_nombre}", nombre_style))
 
-    # Agregar espacio en blanco centrado
+    elements.append(Paragraph(f"NOMBRE TRABAJADOR: {trabajador_nombre} | RUN: {run_trabajador} | EMPRESA: {empresa_nombre}", nombre_style))
+
+    # Add space before the table
     elements.append(Spacer(1, 12))
 
-    # Agregar espacio en blanco antes de la tabla
-    elements.append(Spacer(1, 12))
-
-    # Agregar la tabla de datos centrada
+    # Add the table with data
     data = [
         ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA DE ENTREGA'],
     ]
 
     for utilesaseo in utilesaseos:
         productos_nombres = ', '.join([producto.nombre for producto in utilesaseo.productos.all()])
-        data.append([
+        data.append([ 
             utilesaseo.mes,
             productos_nombres,
             str(utilesaseo.cantidad),
@@ -1862,20 +1878,21 @@ def generar_pdf_utiles_aseo(request):
     table.setStyle(style)
     elements.append(table)
 
-    # Agregar espacio en blanco antes del campo de firma
+    # Add space before the signature line
     elements.append(Spacer(1, 24))
 
-    # Agregar el campo de firma más ancho
+    # Add the signature field
     signature_style = ParagraphStyle(
         'Signature',
         parent=getSampleStyleSheet()['Normal'],
         alignment=1,
         textColor='black',
         fontSize=12,
-        leading=16  # Ajusta el espacio entre líneas
+        leading=16
     )
     elements.append(Paragraph("Firma: ____________________________________________", signature_style))
 
+    # Build the PDF document
     doc.build(elements)
 
     pdf = buffer.getvalue()
@@ -1884,7 +1901,6 @@ def generar_pdf_utiles_aseo(request):
     response.write(pdf)
 
     return response
-
 
 @login_required
 def generar_pdf_retiro(request, obrero_id):
