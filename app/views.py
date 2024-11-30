@@ -1847,7 +1847,7 @@ def generar_pdf_utiles_aseo(request):
         leading=16
     )
 
-    elements.append(Paragraph(f"NOMBRE TRABAJADOR: {trabajador_nombre} | RUN: {run_trabajador} | EMPRESA: {empresa_nombre}", nombre_style))
+    elements.append(Paragraph(f"NOMBRE: {trabajador_nombre} | RUN: {run_trabajador} | EMPRESA: {empresa_nombre}", nombre_style))
 
     # Add space before the table
     elements.append(Spacer(1, 12))
