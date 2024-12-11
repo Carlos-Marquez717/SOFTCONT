@@ -327,11 +327,11 @@ from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
 from reportlab.pdfgen import canvas
 from io import BytesIO
-from django.db.models import Q
 from django.http import HttpResponse
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from .models import Pedido
+from reportlab.lib.units import inch
 
 @login_required
 def generar_pdf_pedido(request, obrero_id):
@@ -359,20 +359,16 @@ def generar_pdf_pedido(request, obrero_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Encabezado del documento
-    def add_header(c, title, user, y_pos):
-        c.setFont("Helvetica-Bold", 12)
-        c.drawCentredString(width / 2, y_pos, title)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(50, y_pos - 20, f"PAÑOLERO: {user.username}")
-        c.line(50, y_pos - 22, 150, y_pos - 22)  # Subrayado
-        return y_pos - 40
+    # Encabezado
+    def add_header(canvas_obj, title, user_name, y):
+        canvas_obj.setFont("Helvetica-Bold", 12)
+        canvas_obj.drawCentredString(width / 2, y, title)
+        canvas_obj.setFont("Helvetica", 10)
+        canvas_obj.drawString(50, y - 20, f"PAÑOLERO: {user_name}")
+        canvas_obj.line(50, y - 22, 150, y - 22)
+        return y - 40
 
-    # Configuración inicial
-    y_position = height - 50
-    y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user, y_position)
-
-    # Datos de la tabla
+    # Crear tabla
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
@@ -382,44 +378,45 @@ def generar_pdf_pedido(request, obrero_id):
             pedido.insumo.nombre,
             str(pedido.cantidad),
             pedido.area,
-            pedido.compañia.nombre,
+            pedido.compañia.nombre
         ])
 
-    # Crear tabla con estilo
+    # Estilo de tabla
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
     ])
-    table = Table(data, colWidths=[70, 120, 120, 50, 80, 80])
+    table = Table(data, colWidths=[1.5 * inch, 2.5 * inch, 2.5 * inch, 1 * inch, 1.5 * inch, 2 * inch])
     table.setStyle(style)
 
-    # Dividir tabla si es necesario
+    # Dividir tabla si no cabe
+    y_position = height - 50
+    y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, y_position)
     available_height = y_position - 50
-    table.wrapOn(p, width, available_height)
+    table.wrapOn(p, width - 100, available_height)
     parts = table.split(width - 100, available_height)
 
-    # Dibujar partes de la tabla
     for part in parts:
-        part.wrapOn(p, width, available_height)
-        part.drawOn(p, 50, y_position - part._height)
-        y_position -= part._height + 50
         if y_position < 100:
             p.showPage()
             y_position = height - 50
-            y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user, y_position)
+            y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, y_position)
+        part.wrapOn(p, width - 100, available_height)
+        part.drawOn(p, 50, y_position - part._height)
+        y_position -= part._height + 20
 
-    # Finalizar PDF
+    # Guardar PDF
     p.save()
     pdf = buffer.getvalue()
     buffer.close()
     response.write(pdf)
-
     return response
+
 
 
 def generar_pdf_pedidos(request):
