@@ -418,7 +418,6 @@ def generar_pdf_pedido(request, obrero_id):
     return response
 
 
-
 def generar_pdf_pedidos(request):
     # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
