@@ -322,12 +322,20 @@ def lista_pedido(request):
     return render(request, 'app/lista_pedido.html', context)
 
 
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from django.db.models import Q
+from django.http import HttpResponse
+from datetime import datetime
+from django.contrib.auth.decorators import login_required
+from .models import Pedido
+
 @login_required
 def generar_pdf_pedido(request, obrero_id):
-    # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
-
-    # Obtener los pedidos del obrero específico y aplicar filtro de búsqueda si es necesario
     pedidos = Pedido.objects.filter(obrero_id=obrero_id)
 
     if search_term:
@@ -342,22 +350,30 @@ def generar_pdf_pedido(request, obrero_id):
                 Q(fecha_pedido__date=search_date)
             )
         except ValueError:
-            pass  # Si la búsqueda no es una fecha válida, se ignora
+            pass
 
-    # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
 
-    # Crear el objeto PDF con ReportLab, con orientación horizontal
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)  # Usar el tamaño de página por defecto (letra)
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
 
-    # Crear una lista con los encabezados de la tabla
-    data = [
-        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA'],
-    ]
+    # Encabezado del documento
+    def add_header(c, title, user, y_pos):
+        c.setFont("Helvetica-Bold", 12)
+        c.drawCentredString(width / 2, y_pos, title)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(50, y_pos - 20, f"PAÑOLERO: {user.username}")
+        c.line(50, y_pos - 22, 150, y_pos - 22)  # Subrayado
+        return y_pos - 40
 
-    # Añadir los pedidos a la tabla
+    # Configuración inicial
+    y_position = height - 50
+    y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user, y_position)
+
+    # Datos de la tabla
+    data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         data.append([
@@ -369,7 +385,7 @@ def generar_pdf_pedido(request, obrero_id):
             pedido.compañia.nombre,
         ])
 
-    # Configurar el estilo de la tabla
+    # Crear tabla con estilo
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
@@ -379,72 +395,28 @@ def generar_pdf_pedido(request, obrero_id):
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
     ])
-
-    # Crear la tabla
-    table = Table(data)
+    table = Table(data, colWidths=[70, 120, 120, 50, 80, 80])
     table.setStyle(style)
 
-    # Calcular el ancho y la altura de la tabla
-    table_width, table_height = table.wrapOn(p, letter[0] - 100, letter[1] - 100)
+    # Dividir tabla si es necesario
+    available_height = y_position - 50
+    table.wrapOn(p, width, available_height)
+    parts = table.split(width - 100, available_height)
 
-    # Reservar espacio para el título y el subrayado
-    y_position = letter[1] - 50  # Comienza justo debajo del título
+    # Dibujar partes de la tabla
+    for part in parts:
+        part.wrapOn(p, width, available_height)
+        part.drawOn(p, 50, y_position - part._height)
+        y_position -= part._height + 50
+        if y_position < 100:
+            p.showPage()
+            y_position = height - 50
+            y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user, y_position)
 
-    # Agregar título de documento
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(letter[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
-
-    # Ajustar la posición para el nombre del Pañolero
-    usuario = request.user
-    y_position -= 20  # Espacio para el nombre del Pañolero
-    p.setFont("Helvetica-Bold", 12)
-    text = f"PAÑOLERO: {usuario.username}"
-    text_width = p.stringWidth(text, "Helvetica", 12)
-    p.setFillColor(colors.black)
-    p.drawString(100, y_position, text)
-    p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado del texto
-
-    # Ajustar la posición para la tabla, asegurándose de que el título y nombre del pañolero no se sobrepongan
-    y_position -= 40  # Espacio entre el nombre del Pañolero y la tabla
-
-    # Dibujar la tabla
-    if y_position - table_height < 100:  # Si no cabe en la página
-        p.showPage()  # Nueva página
-        y_position = letter[1] - 50  # Restablecer la posición en la nueva página
-        p.drawCentredString(letter[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")  # Repetir el título
-        y_position -= 20
-        p.setFont("Helvetica-Bold", 12)
-        text = f"PAÑOLERO: {usuario.username}"
-        p.drawString(100, y_position, text)
-        p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado
-
-        y_position -= 40
-
-    # Dibujar la tabla en la página actual
-    table.drawOn(p, 50, y_position)
-
-    # Si la tabla es demasiado grande, divídela en varias páginas
-    while y_position - table_height < 100:
-        p.showPage()  # Nueva página
-        y_position = letter[1] - 50  # Restablecer la posición en la nueva página
-        p.drawCentredString(letter[0] / 2, y_position, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
-        y_position -= 20
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(100, y_position, text)
-        p.line(100, y_position - 2, 100 + text_width, y_position - 2)  # Subrayado
-
-        y_position -= 40
-        table.drawOn(p, 50, y_position)  # Dibujar la tabla en la nueva página
-
-    # Guardar el PDF en el buffer
-    p.showPage()
+    # Finalizar PDF
     p.save()
-
-    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
 
     return response
