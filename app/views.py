@@ -322,16 +322,14 @@ def lista_pedido(request):
     return render(request, 'app/lista_pedido.html', context)
 
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from io import BytesIO
-from django.http import HttpResponse
 from datetime import datetime
-from django.contrib.auth.decorators import login_required
-from .models import Pedido
-from reportlab.lib.units import inch
+from django.db.models import Q
 
 @login_required
 def generar_pdf_pedido(request, obrero_id):
@@ -368,7 +366,7 @@ def generar_pdf_pedido(request, obrero_id):
         canvas_obj.line(50, y - 22, 150, y - 22)
         return y - 40
 
-    # Crear tabla
+    # Crear datos de la tabla
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
@@ -394,15 +392,15 @@ def generar_pdf_pedido(request, obrero_id):
     table = Table(data, colWidths=[1.5 * inch, 2.5 * inch, 2.5 * inch, 1 * inch, 1.5 * inch, 2 * inch])
     table.setStyle(style)
 
-    # Dividir tabla si no cabe
+    # Paginación y dibujo
     y_position = height - 50
     y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, y_position)
     available_height = y_position - 50
-    table.wrapOn(p, width - 100, available_height)
+
     parts = table.split(width - 100, available_height)
 
     for part in parts:
-        if y_position < 100:
+        if y_position < 100:  # Si no hay espacio suficiente, crear nueva página
             p.showPage()
             y_position = height - 50
             y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, y_position)
@@ -410,12 +408,13 @@ def generar_pdf_pedido(request, obrero_id):
         part.drawOn(p, 50, y_position - part._height)
         y_position -= part._height + 20
 
-    # Guardar PDF
+    # Guardar el PDF
     p.save()
     pdf = buffer.getvalue()
     buffer.close()
     response.write(pdf)
     return response
+
 
 
 def generar_pdf_pedidos(request):
