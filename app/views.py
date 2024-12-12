@@ -323,10 +323,11 @@ def lista_pedido(request):
 
 
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.pagesizes import letter
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
 from io import BytesIO
 from datetime import datetime
 from django.db.models import Q
@@ -357,16 +358,20 @@ def generar_pdf_pedido(request, obrero_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Encabezado
-    def add_header(canvas_obj, title, user_name, y):
-        canvas_obj.setFont("Helvetica-Bold", 12)
-        canvas_obj.drawCentredString(width / 2, y, title)
-        canvas_obj.setFont("Helvetica", 10)
-        canvas_obj.drawString(50, y - 20, f"PAÑOLERO: {user_name}")
-        canvas_obj.line(50, y - 22, 150, y - 22)
-        return y - 40
+    # Configuración de márgenes
+    margin = 50
+    max_rows_per_page = 20  # Número máximo de filas por página
 
-    # Crear datos de la tabla
+    # Crear encabezado
+    def draw_header(canvas_obj, title, user_name, page_num):
+        canvas_obj.setFont("Helvetica-Bold", 12)
+        canvas_obj.drawCentredString(width / 2, height - margin, title)
+        canvas_obj.setFont("Helvetica", 10)
+        canvas_obj.drawString(margin, height - margin - 20, f"PAÑOLERO: {user_name}")
+        canvas_obj.drawRightString(width - margin, height - margin - 20, f"PÁGINA: {page_num}")
+        canvas_obj.line(margin, height - margin - 30, width - margin, height - margin - 30)
+
+    # Crear tabla
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
@@ -379,7 +384,6 @@ def generar_pdf_pedido(request, obrero_id):
             pedido.compañia.nombre
         ])
 
-    # Estilo de tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -389,39 +393,49 @@ def generar_pdf_pedido(request, obrero_id):
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
     ])
-    table = Table(data, colWidths=[1.5 * inch, 2.5 * inch, 2.5 * inch, 1 * inch, 1.5 * inch, 2 * inch])
-    table.setStyle(style)
 
-    # Paginación y dibujo
-    y_position = height - 50
-    y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, y_position)
-    available_height = y_position - 50
+    page_num = 1
+    current_data = data[1:]  # Excluye el encabezado
+    while current_data:
+        draw_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, page_num)
 
-    parts = table.split(width - 100, available_height)
+        # Dividir los datos para la página actual
+        page_data = [data[0]] + current_data[:max_rows_per_page]
+        current_data = current_data[max_rows_per_page:]
 
-    for part in parts:
-        if y_position < 100:  # Si no hay espacio suficiente, crear nueva página
+        # Dibujar tabla
+        table = Table(page_data, colWidths=[1.5 * inch, 2.5 * inch, 2.5 * inch, 1 * inch, 1.5 * inch, 2 * inch])
+        table.setStyle(style)
+        table.wrapOn(p, width - 2 * margin, height - 2 * margin)
+        table.drawOn(p, margin, height - margin - 50 - table._height)
+
+        # Salto de página si quedan más registros
+        if current_data:
             p.showPage()
-            y_position = height - 50
-            y_position = add_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, y_position)
-        part.wrapOn(p, width - 100, available_height)
-        part.drawOn(p, 50, y_position - part._height)
-        y_position -= part._height + 20
+            page_num += 1
 
-    # Guardar el PDF
+    # Guardar PDF
     p.save()
     pdf = buffer.getvalue()
     buffer.close()
     response.write(pdf)
     return response
 
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, PageBreak
+from reportlab.platypus import Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from django.http import HttpResponse
+from datetime import datetime
+from io import BytesIO
+from django.db.models import Q
+from reportlab.lib.units import inch
 
 
+@login_required
 def generar_pdf_pedidos(request):
-    # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
-
-    # Obtener todos los pedidos y aplicar filtro de búsqueda si es necesario
     pedidos = Pedido.objects.all()
 
     if search_term:
@@ -436,22 +450,44 @@ def generar_pdf_pedidos(request):
                 Q(fecha_pedido__date=search_date)
             )
         except ValueError:
-            pass  # Si la búsqueda no es una fecha válida, se ignora
+            pass
 
     # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
-
-    # Crear el objeto PDF con ReportLab, con orientación horizontal (landscape)
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=landscape(letter))  # Usar landscape
 
-    # Crear una tabla con los datos
-    data = [
-        ['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA'],
-    ]
+    # Configurar el documento
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(letter),
+        rightMargin=50,
+        leftMargin=50,
+        topMargin=50,
+        bottomMargin=50,
+    )
 
-    # Rellenar la tabla con los datos de los pedidos
+    # Encabezado
+    def add_header(canvas, doc):
+        canvas.setFont("Helvetica-Bold", 12)
+        canvas.drawCentredString(
+            landscape(letter)[0] / 2, landscape(letter)[1] - 30, "ENTREGA DE INSUMOS DIARIOS | PAÑOL"
+        )
+        canvas.setFont("Helvetica", 10)
+        usuario = request.user.username
+        canvas.drawString(50, landscape(letter)[1] - 50, f"PAÑOLERO: {usuario}")
+        canvas.line(50, landscape(letter)[1] - 55, 150, landscape(letter)[1] - 55)
+
+    doc.build_on_page = add_header
+
+    # Crear contenido
+    elements = []
+    styles = getSampleStyleSheet()
+    elements.append(Paragraph("", styles['Title']))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    # Datos de la tabla
+    data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         data.append([
@@ -463,61 +499,28 @@ def generar_pdf_pedidos(request):
             pedido.compañia.nombre,
         ])
 
-    # Configurar el estilo de la tabla
+    # Crear la tabla
+    table = Table(data, colWidths=[1.5 * inch, 2 * inch, 2 * inch, 1 * inch, 1.5 * inch, 2 * inch])
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
     ])
-
-    # Crear la tabla
-    table = Table(data)
     table.setStyle(style)
+    elements.append(table)
 
-    # Establecer el ancho máximo de la tabla y su envoltura en la página
-    table_width, table_height = table.wrapOn(p, landscape(letter)[0] - 100, landscape(letter)[1] - 100)
+    # Generar el PDF con paginación
+    doc.build(elements, onFirstPage=add_header, onLaterPages=add_header)
 
-    # Calcular la posición de la tabla centrada en la página
-    x_position = (landscape(letter)[0] - table_width) / 2
-    y_position = (landscape(letter)[1] - table_height) / 2
-
-    # Agregar el título
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(landscape(letter)[0] / 2, landscape(letter)[1] - 50, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
-
-    # Agregar el nombre del usuario que está generando el PDF
-    usuario = request.user
-    p.setFont("Helvetica-Bold", 12)
-    text = f"PAÑOLERO: {usuario.username}"
-    text_width = p.stringWidth(text, "Helvetica", 12)
-    p.setFillColor(colors.black)
-    p.drawString(100, landscape(letter)[1] - 70, text)
-    p.line(100, landscape(letter)[1] - 72, 100 + text_width, landscape(letter)[1] - 72)  # Subrayar el texto
-
-    # Dibujar la tabla centrada
-    table.drawOn(p, x_position, y_position)
-
-    # Si la tabla es demasiado grande para una sola página, paginarla
-    if table_height > landscape(letter)[1] - 100:
-        p.showPage()  # Crear una nueva página
-        table.drawOn(p, x_position, landscape(letter)[1] - 100 - table_height)  # Dibujar en la nueva página
-
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
-
-    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
-
     return response
+
 
 
 
