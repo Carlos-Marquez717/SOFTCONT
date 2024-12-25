@@ -335,7 +335,7 @@ from django.db.models import Q
 @login_required
 def generar_pdf_pedido(request, obrero_id):
     search_term = request.GET.get('buscar')
-    pedidos = Pedido.objects.filter(obrero_id=obrero_id)
+    pedidos = Pedido.objects.filter(solicitante_id=obrero_id)
 
     if search_term:
         try:
