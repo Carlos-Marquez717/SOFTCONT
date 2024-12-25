@@ -359,9 +359,10 @@ def generar_pdf_pedido(request, obrero_id):
     p = canvas.Canvas(buffer, pagesize=landscape(letter))
     width, height = landscape(letter)
 
-    # Configuración de márgenes
-    margin = 50
-    max_rows_per_page = 20  # Número máximo de filas por página
+    # Configuración de márgenes y tamaño de tabla
+    margin = 40
+    table_width = width - 2 * margin
+    column_widths = [1.5 * inch, 2 * inch, 2 * inch, 1 * inch, 1.5 * inch, 2 * inch]
 
     # Crear encabezado
     def draw_header(canvas_obj, title, user_name, page_num):
@@ -372,7 +373,7 @@ def generar_pdf_pedido(request, obrero_id):
         canvas_obj.drawRightString(width - margin, height - margin - 20, f"PÁGINA: {page_num}")
         canvas_obj.line(margin, height - margin - 30, width - margin, height - margin - 30)
 
-    # Crear tabla
+    # Crear datos para la tabla
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
@@ -385,8 +386,9 @@ def generar_pdf_pedido(request, obrero_id):
             pedido.compañia.nombre
         ])
 
+    # Estilo de la tabla
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -401,14 +403,15 @@ def generar_pdf_pedido(request, obrero_id):
         draw_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, page_num)
 
         # Dividir los datos para la página actual
+        max_rows_per_page = int((height - margin - 100) / 15)  # Ajustar filas según el espacio
         page_data = [data[0]] + current_data[:max_rows_per_page]
         current_data = current_data[max_rows_per_page:]
 
         # Dibujar tabla
-        table = Table(page_data, colWidths=[1.5 * inch, 2.5 * inch, 2.5 * inch, 1 * inch, 1.5 * inch, 2 * inch])
+        table = Table(page_data, colWidths=column_widths)
         table.setStyle(style)
-        table.wrapOn(p, width - 2 * margin, height - 2 * margin)
-        table.drawOn(p, margin, height - margin - 50 - table._height)
+        table_width, table_height = table.wrap(0, 0)
+        table.drawOn(p, margin, height - margin - 50 - table_height)
 
         # Salto de página si quedan más registros
         if current_data:
@@ -421,6 +424,7 @@ def generar_pdf_pedido(request, obrero_id):
     buffer.close()
     response.write(pdf)
     return response
+
 
 
 from reportlab.lib.pagesizes import letter, landscape
