@@ -323,14 +323,15 @@ def lista_pedido(request):
 
 
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import Table, TableStyle
-from reportlab.lib import colors
+from django.contrib.auth.decorators import login_required
+from io import BytesIO
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
-from io import BytesIO
-from datetime import datetime
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
 from django.db.models import Q
+from datetime import datetime
 
 @login_required
 def generar_pdf_pedido(request, obrero_id):
@@ -355,8 +356,8 @@ def generar_pdf_pedido(request, obrero_id):
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
 
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
 
     # Configuración de márgenes
     margin = 50
@@ -385,7 +386,7 @@ def generar_pdf_pedido(request, obrero_id):
         ])
 
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -420,6 +421,7 @@ def generar_pdf_pedido(request, obrero_id):
     buffer.close()
     response.write(pdf)
     return response
+
 
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, PageBreak
