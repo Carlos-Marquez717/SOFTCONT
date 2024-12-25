@@ -388,7 +388,7 @@ def generar_pdf_pedido(request, obrero_id):
 
     # Estilo de la tabla
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
