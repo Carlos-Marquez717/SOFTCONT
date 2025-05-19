@@ -50,7 +50,7 @@ html5lib==1.1
 httpcore==1.0.5
 httpx==0.27.0
 idna==3.7
-iniconfig @ file:///home/linux1/recipes/ci/iniconfig_1610983019677/work
+iniconfig 
 joblib==1.4.2
 kiwisolver==1.4.5
 lxml==5.3.0
@@ -66,7 +66,7 @@ packaging==24.1
 pandas==2.2.2
 pillow==10.4.0
 platformdirs==4.2.2
-pluggy @ file:///C:/b/abs_dfec_m79vo/croot/pluggy_1733170145382/work
+pluggy 
 psycopg2==2.9.9
 psycopg2-binary==2.9.9
 pycparser==2.22
@@ -80,7 +80,7 @@ pypdf==4.3.1
 PyPDF2==3.0.1
 pyphen==0.16.0
 pypng==0.20220715.0
-pytest @ file:///C:/b/abs_9dllqyhfs_/croot/pytest_1738938859288/work
+pytest 
 python-bidi==0.6.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
