@@ -33,20 +33,18 @@ class Trabajador(models.Model):
     empresa = models.ForeignKey(Empresa, related_name="Trabajador",on_delete=models.CASCADE, verbose_name="empresa o grupo")
 
     def __str__(self):
-        return self.nombre
+        return str(self.nombre)
+
     
 
 class Pedido(models.Model):
-    solicitante = models.ForeignKey(Obrero, related_name="pedido", on_delete=models.CASCADE, verbose_name="OBRERO")
+    solicitante = models.ForeignKey(Obrero, on_delete=models.CASCADE)
     compañia = models.ForeignKey(Empresa, related_name="Pedido", on_delete=models.CASCADE, verbose_name="EMPRESA")
-    insumo = models.ForeignKey(Material, related_name="Pedido", on_delete=models.CASCADE, verbose_name="INSUMO")
-    cantidad = models.IntegerField(verbose_name="CANTIDAD")
     area = models.CharField(max_length=100, verbose_name="AREA")
     fecha_pedido = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.solicitante.nombre} - {self.compañia.nombre} - {self.insumo.nombre} - {self.cantidad} - {self.area} - {self.fecha_pedido} "
-
+        return f"{self.solicitante.nombre} - {self.compañia.nombre} - {self.area} - {self.fecha_pedido.strftime('%d/%m/%Y')}"
 
     @property
     def fecha_pedido_formatted(self):
@@ -54,8 +52,19 @@ class Pedido(models.Model):
 
     @fecha_pedido_formatted.setter
     def fecha_pedido_formatted(self, value):
-        # Parse the input and update `fecha_pedido`
         self.fecha_pedido = datetime.strptime(value, "%d/%m/%Y %H:%M")
+
+
+class PedidoInsumo(models.Model):
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    insumos = models.ForeignKey(Material, on_delete=models.CASCADE, verbose_name="INSUMO")
+    cantidad = models.PositiveIntegerField(verbose_name="CANTIDAD")
+    trabajador = models.ForeignKey(Obrero, on_delete=models.CASCADE, verbose_name="Obrero asignado")
+    area = models.CharField(max_length=100, verbose_name="Área específica", blank=True)
+
+    def __str__(self):
+        return f"{self.insumos.nombre} x {self.cantidad} - {self.trabajador.nombre}"
+
 
 
 
@@ -85,14 +94,14 @@ class Prestamo(models.Model):
         return f"{self.nombre_solicitante.nombre} - {self.empresa.nombre} - {self.herramienta.nombre} - {self.status} - {self.fecha_creacion}"
 
 
-class Repuesto(models.Model):
+class Repuesto(models.Model): 
     nombre = models.CharField(max_length=100)
     cantidad = models.PositiveIntegerField()
+    ubicacion = models.CharField(max_length=100, blank=True, null=True)  # Nuevo campo
 
     def __str__(self):
         return self.nombre
     
-
 
 class RetiroRepuesto(models.Model):
     trabajador = models.ForeignKey(Obrero, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="Obrero")
@@ -100,6 +109,7 @@ class RetiroRepuesto(models.Model):
     repuesto = models.ForeignKey(Repuesto, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="REPUESTO")
     cantidad = models.PositiveIntegerField()
     fecha_retiro = models.DateTimeField(auto_now_add=True)
+    area = models.CharField(max_length=100, blank=True, null=True)  # Nuevo campo
 
     def __str__(self):
         return f'{self.trabajador} - {self.repuesto} - {self.cantidad}'

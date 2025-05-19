@@ -1,8 +1,8 @@
 # en trabajadores/views.py
 from datetime import datetime
 from django.shortcuts import render, redirect
-from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm,RetiroRepuestoForm,UtilesaseoForm
-from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo
+from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset
+from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -45,6 +45,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import landscape, letter
 from django.contrib.auth.decorators import login_required
+
 
 @login_required
 def home(request):
@@ -216,99 +217,92 @@ def editar_obrero(request, obrero_id):
     return render(request, 'app/editar_obrero.html', {'form': form, 'obrero': obrero})
 
 
+
+from django.forms import modelformset_factory
+
+
 @login_required
 def registro_pedido(request):
     if request.method == 'POST':
-        form = PedidoForm(request.POST)
-        if form.is_valid():
-            form.save()
-            success_message = 'El pedido se ha guardado correctamente.'
-            return redirect('registro_pedido_success')  # Redirigir a una página de éxito o simplemente refrescar esta página
-
+        pedido_form = PedidoForm(request.POST)
+        insumo_formset = PedidoInsumoInlineFormset(request.POST)
+        if pedido_form.is_valid() and insumo_formset.is_valid():
+            pedido = pedido_form.save()
+            insumos = insumo_formset.save(commit=False)
+            for insumo in insumos:
+                insumo.trabajador = pedido.solicitante  # Asigna el trabajador del pedido
+                insumo.area = pedido.area               # Asigna el área del pedido
+                insumo.pedido = pedido                  # Asocia el pedido
+                insumo.save()
+            # Si tienes insumos eliminados, puedes borrarlos así:
+            for obj in insumo_formset.deleted_objects:
+                obj.delete()
+            # Redirige o muestra mensaje de éxito
+            return redirect('registro_pedido_success')
     else:
-        form = PedidoForm()
+        pedido_form = PedidoForm()
+        insumo_formset = PedidoInsumoInlineFormset()
+    
+    return render(request, 'app/registro_pedido.html', {
+        'pedido_form': pedido_form,
+        'insumo_formset': insumo_formset
+    })
 
-    return render(request, 'app/registro_pedido.html', {'form': form})
 
 @login_required
 def registro_pedido_success(request):
     success_message = 'El pedido se ha guardado correctamente.'
-    return render(request, 'app/registro_pedido.html', {'form': PedidoForm(), 'success_message': success_message})
+    pedido_form = PedidoForm()
+    insumo_formset = PedidoInsumoInlineFormset(queryset=PedidoInsumo.objects.none())
+    
+    return render(request, 'app/registro_pedido.html', {
+        'pedido_form': pedido_form,
+        'insumo_formset': insumo_formset,
+        'success_message': success_message
+    })
 
 
 
 
 @login_required
 def lista_pedido_trabajador(request, trabajador_id):
-    # Obtén el obrero o muestra una página de error si no existe
     obrero = get_object_or_404(Obrero, id=trabajador_id)
-
-    # Filtra los pedidos por el obrero asociado
-    pedidos = Pedido.objects.filter(solicitante=obrero)
-
-    # Formatear la fecha en el lado del servidor
-    for pedido in pedidos:
-        pedido.fecha_pedido_formatted = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
-
-    # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar')
-
-    # Filtrar pedidos por cualquier campo si hay un término de búsqueda
-    if search_term:
-        # Utilizar Q() para construir consultas OR entre campos
-        pedidos = pedidos.filter(
-            Q(solicitante__nombre__icontains=search_term) |
-            Q(compañia__nombre__icontains=search_term) |
-            Q(insumo__nombre__icontains=search_term) |
-            Q(cantidad__icontains=search_term) |
-            Q(area__nombre__icontains=search_term) |
-            Q(fecha_pedido__icontains=search_term)
-        )
-
-    # Paginación
-    paginator = Paginator(pedidos, 9)
-    page = request.GET.get('page')
-
-    try:
-        pedidos = paginator.page(page)
-    except PageNotAnInteger:
-        pedidos = paginator.page(1)
-    except EmptyPage:
-        pedidos = paginator.page(paginator.num_pages)
-
-    return render(request, 'app/lista_pedido_trabajador.html', {'pedidos': pedidos, 'obrero': obrero, 'search_term': search_term})
-
-
+    pedidos_insumos = PedidoInsumo.objects.filter(trabajador=obrero).select_related('pedido', 'insumos', 'pedido__compañia')
+    # Si quieres paginar:
+    paginator = Paginator(pedidos_insumos, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'app/lista_pedido_trabajador.html', {
+        'obrero': obrero,
+        'pedidos': page_obj,
+        'search_term': request.GET.get('buscar', ''),
+    })
 
 
 
 @login_required
 def lista_pedido(request):
-    # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
+    
+    pedidos_list = PedidoInsumo.objects.select_related(
+        'pedido__solicitante', 'pedido__compañia', 'insumos', 'trabajador'
+    ).all()
 
-    # Obtener todos los pedidos sin filtrar inicialmente
-    pedidos_list = Pedido.objects.all()
-
-    # Filtrar pedidos por cualquier campo si hay un término de búsqueda
     if search_term:
         try:
-            # Intentar parsear el término de búsqueda como fecha en formato dd/mm/yyyy
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            # Filtrar por fecha exacta o parcial
-            pedidos_list = pedidos_list.filter(fecha_pedido__date=search_date)
+            pedidos_list = pedidos_list.filter(pedido__fecha_pedido__date=search_date)
         except ValueError:
-            # Si el término de búsqueda no es una fecha, buscar en otros campos de texto
-            text_search = Q(insumo__nombre__icontains=search_term) | \
-                          Q(solicitante__nombre__icontains=search_term) | \
-                          Q(compañia__nombre__icontains=search_term) | \
-                          Q(area__icontains=search_term)
+            text_search = (
+                Q(insumos__nombre__icontains=search_term) |
+                Q(pedido__solicitante__nombre__icontains=search_term) |
+                Q(pedido__compañia__nombre__icontains=search_term) |
+                Q(pedido__area__icontains=search_term)
+            )
             pedidos_list = pedidos_list.filter(text_search)
 
-    # Ordenar los resultados por fecha_pedido descendente
-    pedidos_list = pedidos_list.order_by('-fecha_pedido')
+    pedidos_list = pedidos_list.order_by('-pedido__fecha_pedido')
 
-    # Paginar los resultados
     paginator = Paginator(pedidos_list, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -318,8 +312,9 @@ def lista_pedido(request):
         'search_term': search_term,
     }
 
-    # Renderizar la plantilla con los resultados paginados y filtrados
     return render(request, 'app/lista_pedido.html', context)
+
+  
 
 
 from django.http import HttpResponse
@@ -377,14 +372,15 @@ def generar_pdf_pedido(request, obrero_id):
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
-        data.append([
-            fecha_y_hora,
-            pedido.solicitante.nombre,
-            pedido.insumo.nombre,
-            str(pedido.cantidad),
-            pedido.area,
-            pedido.compañia.nombre
-        ])
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            data.append([
+                fecha_y_hora,
+                pedido.solicitante.nombre,
+                pedido_insumo.insumos.nombre,  # <-- CORRECTO
+                str(pedido_insumo.cantidad),
+                pedido.area,
+                pedido.compañia.nombre
+            ])
 
     # Estilo de la tabla
     style = TableStyle([
@@ -437,6 +433,7 @@ from datetime import datetime
 from io import BytesIO
 from django.db.models import Q
 from reportlab.lib.units import inch
+from reportlab.lib.styles import ParagraphStyle
 
 
 @login_required
@@ -458,68 +455,87 @@ def generar_pdf_pedidos(request):
         except ValueError:
             pass
 
-    # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
     buffer = BytesIO()
 
-    # Configurar el documento
+    # Configuración del documento
     doc = SimpleDocTemplate(
         buffer,
         pagesize=landscape(letter),
-        rightMargin=50,
-        leftMargin=50,
-        topMargin=50,
-        bottomMargin=50,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=40,
     )
 
     # Encabezado
     def add_header(canvas, doc):
+        width, height = landscape(letter)
         canvas.setFont("Helvetica-Bold", 12)
-        canvas.drawCentredString(
-            landscape(letter)[0] / 2, landscape(letter)[1] - 30, "ENTREGA DE INSUMOS DIARIOS | PAÑOL"
-        )
+        canvas.drawCentredString(width / 2, height - 30, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
         canvas.setFont("Helvetica", 10)
         usuario = request.user.username
-        canvas.drawString(50, landscape(letter)[1] - 50, f"PAÑOLERO: {usuario}")
-        canvas.line(50, landscape(letter)[1] - 55, 150, landscape(letter)[1] - 55)
+        canvas.drawString(40, height - 50, f"PAÑOLERO: {usuario}")
+        canvas.line(40, height - 55, width - 40, height - 55)
 
-    doc.build_on_page = add_header
-
-    # Crear contenido
     elements = []
+    elements.append(Spacer(1, 60))
     styles = getSampleStyleSheet()
-    elements.append(Paragraph("", styles['Title']))
-    elements.append(Spacer(1, 0.2 * inch))
+    styleN = styles['Normal']
+    style_centered = ParagraphStyle(name='centered', alignment=1, fontSize=9)  # 1 = TA_CENTER
 
-    # Datos de la tabla
+    # Encabezado de la tabla
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
+
+    # Agrega los datos
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
-        data.append([
-            fecha_y_hora,
-            pedido.solicitante.nombre,
-            pedido.insumo.nombre,
-            str(pedido.cantidad),
-            pedido.area,
-            pedido.compañia.nombre,
-        ])
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            data.append([
+                fecha_y_hora,
+            Paragraph(str(pedido.solicitante.nombre), style_centered),
+            Paragraph(str(pedido_insumo.insumos.nombre), style_centered),
+            Paragraph(str(pedido_insumo.cantidad), style_centered),
+            Paragraph(str(pedido.area), style_centered),
+            Paragraph(str(pedido.compañia.nombre), style_centered),
+            ])
 
-    # Crear la tabla
-    table = Table(data, colWidths=[1.5 * inch, 2 * inch, 2 * inch, 1 * inch, 1.5 * inch, 2 * inch])
+    # Espaciado antes de la tabla
+    elements.append(Spacer(1, 20))
+
+    # Crear la tabla con anchos ajustados
+    table = Table(
+        data,
+        colWidths=[
+            1.5 * inch,   # FECHA
+            2 * inch,     # NOMBRE DEL SOLICITANTE
+            2 * inch,     # INSUMO SOLICITADO
+            1 * inch,     # CANTIDAD
+            1.5 * inch,   # AREA TRABAJO
+            2 * inch,     # EMPRESA
+        ]
+    )
+
+    # Estilos de la tabla (igual que generar_pdf_pedido)
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        
     ])
+
     table.setStyle(style)
+
     elements.append(table)
 
-    # Generar el PDF con paginación
+    # Generar el PDF con paginación y encabezado
     doc.build(elements, onFirstPage=add_header, onLaterPages=add_header)
 
     pdf = buffer.getvalue()
@@ -527,497 +543,49 @@ def generar_pdf_pedidos(request):
     response.write(pdf)
     return response
 
-
-
-
-
-@login_required
-def calcular_totales(pedidos):
-    """
-    Calcula los totales por semana, mes y año para cada insumo en los pedidos.
-    """
-    insumos_totales = {}
-
-    # Obtener la fecha actual
-    fecha_actual = datetime.now().date()
-
-    for pedido in pedidos:
-        insumo = pedido.insumo.nombre
-        fecha_pedido = pedido.fecha_pedido.date()  # Convertir a datetime.date
-        cantidad = pedido.cantidad
-
-        if insumo not in insumos_totales:
-            insumos_totales[insumo] = {
-                'total': 0,
-                'totales_por_periodo': {
-                    'semana': 0,
-                    'mes': 0,
-                    'año': 0,
-                }
-            }
-
-        # Total general
-        insumos_totales[insumo]['total'] += cantidad
-
-        # Totales por semana, mes y año
-        semana_inicio = fecha_pedido - timedelta(days=fecha_pedido.weekday())
-        if semana_inicio <= fecha_actual <= semana_inicio + timedelta(days=6):
-            insumos_totales[insumo]['totales_por_periodo']['semana'] += cantidad
-
-        if fecha_pedido.month == fecha_actual.month and fecha_pedido.year == fecha_actual.year:
-            insumos_totales[insumo]['totales_por_periodo']['mes'] += cantidad
-
-        if fecha_pedido.year == fecha_actual.year:
-            insumos_totales[insumo]['totales_por_periodo']['año'] += cantidad
-
-    return insumos_totales
-
-
-MESES_EN_ESPAÑOL = {
-    "January": "Enero",
-    "February": "Febrero",
-    "March": "Marzo",
-    "April": "Abril",
-    "May": "Mayo",
-    "June": "Junio",
-    "July": "Julio",
-    "August": "Agosto",
-    "September": "Septiembre",
-    "October": "Octubre",
-    "November": "Noviembre",
-    "December": "Diciembre"
-}
-
-@login_required
-def pedidos_total(request):
-    search_term = request.GET.get('buscar')
-    pedidos = Pedido.objects.all()
-
-    if search_term:
-        try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            pedidos = pedidos.filter(
-                Q(solicitante__nombre__icontains=search_term) |
-                Q(compañia__nombre__icontains=search_term) |
-                Q(insumo__nombre__icontains=search_term) |
-                Q(cantidad__icontains=search_term) |
-                Q(area__icontains=search_term) |
-                Q(fecha_pedido__date=search_date)
-            )
-        except ValueError:
-            pass
-
-    # Calcular totales
-    insumos_totales = calcular_totales(pedidos)
-
-    # Crear el objeto PDF con ReportLab
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="PEDIDOS_TOTAL.pdf"'
-
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-
-    # Agregar título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(letter[0] / 2, letter[1] - 40, "INFORME DE INSUMOS")
-
-    # Obtener el mes y el año actual
-    fecha_actual = datetime.now()
-    mes_actual = fecha_actual.strftime("%B")
-    año_actual = fecha_actual.year
-
-    # Traducir el nombre del mes al español
-    mes_actual_es = MESES_EN_ESPAÑOL.get(mes_actual, mes_actual).capitalize()
-
-    # Agregar la fecha del mes y año
-    p.setFont("Helvetica", 12)
-    p.drawString(50, letter[1] - 80, f"Mes: {mes_actual_es} {año_actual}")
-
-    # Configurar la tabla
-    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
-    
-    for insumo, totales in insumos_totales.items():
-        total = totales['total']
-        mes_total = totales['totales_por_periodo']['mes']
-        año_total = totales['totales_por_periodo']['año']
-
-        # Añadir insumo y totales
-        data.append(['INSUMO', insumo, total])
-        data.append(['TOTAL POR MES', '', mes_total])
-        data.append(['TOTAL POR AÑO', '', año_total])
-
-    # Estilo para la tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
-
-    # Aplicar el estilo de fondo amarillo para las celdas específicas
-    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
-    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
-    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
-    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
-    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
-    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
-
-    # Aplicar el estilo para las celdas con 'INSUMO'
-    for row in range(len(data)):
-        for col in range(len(data[row])):
-            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
-                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
-
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla en la página
-    width, height = letter
-    table_width, table_height = table.wrap(width, height)
-
-    # Calcular la posición para centrar la tabla horizontalmente
-    x = (width - table_width) / 2
-    y = height - table_height - 120  # Ajustar la posición vertical para incluir el texto de la fecha
-
-    table.drawOn(p, x, y)
-
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
-
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
-    response.write(pdf)
-
-    return response
-
-
-
-@login_required
-def calcular_totales_semanales(pedidos, semana_inicio, semana_fin):
-    insumos_totales = {}
-
-    for pedido in pedidos:
-        insumo = pedido.insumo.nombre
-        cantidad = pedido.cantidad
-        fecha_pedido = pedido.fecha_pedido.date()
-
-        # Verificar si el pedido está dentro del rango de fechas de la semana
-        if semana_inicio <= fecha_pedido <= semana_fin:
-            if insumo not in insumos_totales:
-                insumos_totales[insumo] = {
-                    'total': 0,
-                    'totales_por_periodo': {
-                        'semana': 0,
-                    }
-                }
-
-            insumos_totales[insumo]['totales_por_periodo']['semana'] += cantidad
-            insumos_totales[insumo]['total'] += cantidad
-
-    return insumos_totales
-
-@login_required
-def pedidos_semanales(request):
-    search_term = request.GET.get('buscar')
-    pedidos = Pedido.objects.all()
-
-    if search_term:
-        try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            semana_inicio = search_date - timedelta(days=search_date.weekday())
-            semana_fin = semana_inicio + timedelta(days=6)
-            
-            pedidos = pedidos.filter(
-                Q(solicitante__nombre__icontains=search_term) |
-                Q(compañia__nombre__icontains=search_term) |
-                Q(insumo__nombre__icontains=search_term) |
-                Q(cantidad__icontains=search_term) |
-                Q(area__icontains=search_term) |
-                Q(fecha_pedido__date__range=[semana_inicio, semana_fin])
-            )
-        except ValueError:
-            pass
-    else:
-        # Si no hay término de búsqueda, usar la semana actual
-        hoy = datetime.now().date()
-        semana_inicio = hoy - timedelta(days=hoy.weekday())
-        semana_fin = semana_inicio + timedelta(days=6)
-        pedidos = pedidos.filter(
-            fecha_pedido__date__range=[semana_inicio, semana_fin]
-        )
-
-    # Calcular totales semanales
-    insumos_totales = calcular_totales_semanales(pedidos, semana_inicio, semana_fin)
-
-    # Crear el objeto PDF con ReportLab
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_SEMANAL_{semana_inicio.strftime("%d_%m_%Y")}_a_{semana_fin.strftime("%d_%m_%Y")}.pdf"'
-
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-
-    # Agregar título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS SEMANALES ({semana_inicio.strftime('%d/%m/%Y')} - {semana_fin.strftime('%d/%m/%Y')})")
-
-    # Configurar la tabla
-    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
-    
-    for insumo, totales in insumos_totales.items():
-        semana_total = totales['totales_por_periodo']['semana']
-
-        # Añadir insumo y totales semanales
-        data.append(['INSUMO', insumo, totales['total']])
-        data.append(['TOTAL POR SEMANA', '', semana_total])
-
-    # Estilo para la tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
-
-    # Aplicar el estilo de fondo amarillo para las celdas específicas
-    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
-    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
-    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
-    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
-    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
-    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
-
-    # Aplicar el estilo para las celdas con 'INSUMO'
-    for row in range(len(data)):
-        for col in range(len(data[row])):
-            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
-                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
-
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla en la página
-    width, height = letter
-    table_width, table_height = table.wrap(width, height)
-
-    # Calcular la posición para centrar la tabla horizontalmente
-    x = (width - table_width) / 2
-    y = height - table_height - 100  # Ajustar la posición vertical
-
-    table.drawOn(p, x, y)
-
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
-
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
-    response.write(pdf)
-
-    return response
-
-MESES_EN_ESPAÑOL = {
-    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
-    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
-}
-
-@login_required
-def calcular_totales_mensuales(pedidos, mes_inicio, mes_fin):
-    insumos_totales = {}
-    semana_inicio = mes_inicio - timedelta(days=mes_inicio.weekday())
-    
-    while semana_inicio <= mes_fin:
-        semana_fin = semana_inicio + timedelta(days=6)
-        semana_pedidos = pedidos.filter(fecha_pedido__date__range=[semana_inicio, semana_fin])
-        
-        for pedido in semana_pedidos:
-            insumo = pedido.insumo.nombre
-            cantidad = pedido.cantidad
-
-            if insumo not in insumos_totales:
-                insumos_totales[insumo] = {
-                    'total': 0,
-                    'totales_por_periodo': {
-                        'semana': 0,
-                        'mes': 0,
-                    },
-                    'totales_por_semana': {}
-                }
-
-            # Calcular totales semanales
-            semana_key = f'Semana del {semana_inicio.strftime("%d-%m")} al {semana_fin.strftime("%d-%m")}'
-            if semana_key not in insumos_totales[insumo]['totales_por_semana']:
-                insumos_totales[insumo]['totales_por_semana'][semana_key] = 0
-
-            insumos_totales[insumo]['totales_por_semana'][semana_key] += cantidad
-            insumos_totales[insumo]['totales_por_periodo']['mes'] += cantidad
-            insumos_totales[insumo]['total'] += cantidad
-
-        semana_inicio += timedelta(days=7)
-
-    return insumos_totales
-
-
-@login_required
-def pedidos_mensuales(request):
-    search_term = request.GET.get('buscar')
-    pedidos = Pedido.objects.all()
-
-    if search_term:
-        try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            mes_inicio = search_date.replace(day=1)
-            mes_fin = (mes_inicio + timedelta(days=31)).replace(day=1) - timedelta(days=1)
-            
-            pedidos = pedidos.filter(
-                Q(solicitante__nombre__icontains=search_term) |
-                Q(compañia__nombre__icontains=search_term) |
-                Q(insumo__nombre__icontains=search_term) |
-                Q(cantidad__icontains=search_term) |
-                Q(area__icontains=search_term) |
-                Q(fecha_pedido__date__range=[mes_inicio, mes_fin])
-            )
-        except ValueError:
-            pass
-    else:
-        hoy = datetime.now().date()
-        mes_inicio = hoy.replace(day=1)
-        mes_fin = (mes_inicio + timedelta(days=31)).replace(day=1) - timedelta(days=1)
-        pedidos = pedidos.filter(
-            fecha_pedido__date__range=[mes_inicio, mes_fin]
-        )
-
-    # Calcular totales mensuales
-    insumos_totales = calcular_totales_mensuales(pedidos, mes_inicio, mes_fin)
-
-    # Crear el objeto PDF con ReportLab
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_MENSUAL_{mes_inicio.strftime("%m_%Y")}.pdf"'
-
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-
-    # Obtener el nombre del mes en español
-    mes_nombre = MESES_EN_ESPAÑOL[mes_inicio.month]
-
-    # Agregar título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS MENSUALES ({mes_nombre} {mes_inicio.year})")
-
-    # Configurar la tabla
-    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
-    
-    for insumo, totales in insumos_totales.items():
-        mes_total = totales['totales_por_periodo']['mes']
-
-        # Añadir insumo y totales mensuales
-        data.append(['INSUMO', insumo, totales['total']])
-        data.append(['TOTAL POR MES', '', mes_total])
-        
-        # Añadir totales semanales con fechas
-        for semana, cantidad in totales['totales_por_semana'].items():
-            data.append([semana, '', cantidad])
-        
-    # Estilo para la tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
-
-    # Aplicar el estilo de fondo amarillo para las celdas específicas
-    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
-    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
-    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
-    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
-    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
-    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
-
-    # Aplicar el estilo para las celdas con 'INSUMO'
-    for row in range(len(data)):
-        for col in range(len(data[row])):
-            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
-                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
-
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla en la página
-    width, height = letter
-    table_width, table_height = table.wrap(width, height)
-
-    # Calcular la posición para centrar la tabla horizontalmente
-    x = (width - table_width) / 2
-    y = height - table_height - 100  # Ajustar la posición vertical
-
-    table.drawOn(p, x, y)
-
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
-
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
-    response.write(pdf)
-
-    return response
-
-
-
 @login_required
 def eliminar_pedido(request, pedido_id):
-    # Obtiene el pedido o muestra una página de error si no existe
-    pedido = get_object_or_404(Pedido, id=pedido_id)
+    pedido_insumo = get_object_or_404(PedidoInsumo, id=pedido_id)
+    trabajador_id = request.GET.get('trabajador_id', pedido_insumo.trabajador.id)
+    pedido_insumo.delete()
+    return redirect(f'/lista_pedido_trabajador/{trabajador_id}/?eliminado=1')
 
-    # Elimina el pedido
-    pedido.delete()
-
-    # Redirige a la lista de pedidos después de la eliminación
-    return redirect('lista_pedido')
-
-# views.py
 
 import logging
 
 logger = logging.getLogger(__name__)
 
+
 @login_required
 def editar_pedido(request, pedido_id):
-    logger.info("Iniciando la edición del pedido con id %s", pedido_id)
     pedido = get_object_or_404(Pedido, id=pedido_id)
-
     if request.method == 'POST':
-        form = PedidoForm(request.POST, instance=pedido)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'El pedido se ha modificado correctamente.')
+        pedido_form = PedidoForm(request.POST, instance=pedido)
+        insumo_formset = PedidoInsumoInlineFormset(request.POST, instance=pedido)
+        if pedido_form.is_valid() and insumo_formset.is_valid():
+            pedido = pedido_form.save()
+            insumos = insumo_formset.save(commit=False)
+            for insumo in insumos:
+                insumo.trabajador = pedido.solicitante
+                insumo.area = pedido.area
+                insumo.pedido = pedido
+                insumo.save()
+            for obj in insumo_formset.deleted_objects:
+                obj.delete()
             return redirect('lista_pedido')
         else:
-            logger.error("Error al modificar el pedido: %s", form.errors)
-            messages.error(request, 'Hubo un error al modificar el pedido. Por favor, verifica los datos.')
+            # Opcional: mostrar errores en el template
+            print(pedido_form.errors, insumo_formset.errors)
     else:
-        form = PedidoForm(instance=pedido)
+        pedido_form = PedidoForm(instance=pedido)
+        insumo_formset = PedidoInsumoInlineFormset(instance=pedido)
+    return render(request, 'app/editar_pedido.html', {
+        'pedido_form': pedido_form,
+        'insumo_formset': insumo_formset,
+        'pedido': pedido,
+    })
 
-    return render(request, 'app/editar_pedido.html', {'form': form, 'pedido': pedido})
-
-
-
+    
 @login_required
 def registro_material(request):
     if request.method == 'POST':
@@ -1253,8 +821,6 @@ def generar_pdf_prestamos(request):
         except ValueError:
             # Si no es una fecha válida, buscar en otros campos
             prestamos_list = prestamos_list.filter(
-                Q(nombre_solicitante__nombre__icontains=search_term) |
-                Q(empresa__nombre__icontains=search_term) |
                 Q(herramienta__nombre__icontains=search_term) |
                 Q(status__icontains=search_term)
             )
@@ -1499,39 +1065,91 @@ def editar_Repuesto(request, repuesto_id):
 
     return render(request, 'app/editar_Repuesto.html', {'form': form, 'repuesto': repuesto})
 
+
+
+
+
+from django.forms import modelformset_factory
+from .models import RetiroRepuesto
+from .forms import RetiroRepuestoForm
+
+RetiroRepuestoFormSet = modelformset_factory(
+    RetiroRepuesto,
+    form=RetiroRepuestoForm,
+    extra=1,
+    can_delete=True
+)    
+
+from django.forms import modelformset_factory
+from django.contrib import messages
+from django.db.models import F
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import RetiroRepuesto, Repuesto
+from .forms import RetiroRepuestoForm
+from django.forms import modelformset_factory
+from .models import RetiroRepuesto
+from .forms import RetiroRepuestoForm  # adjust the import path as needed
+from .forms import InfoGeneralRetiroForm
+
+RetiroRepuestoFormSet = modelformset_factory(
+    RetiroRepuesto,
+    form=RetiroRepuestoForm,  # custom form if you have one; otherwise omit
+    fields=('repuesto', 'cantidad'),  # or use 'form' only if it defines fields
+    extra=1,
+    can_delete=True  # allows users to delete items in formset
+)
+
+
 @login_required
 def registro_RetiroRepuesto(request):
+    RetiroFormSet = RetiroRepuestoFormSet
     if request.method == 'POST':
-        form = RetiroRepuestoForm(request.POST)
-        if form.is_valid():
-            repuesto = form.cleaned_data['repuesto']
-            cantidad_retirada = form.cleaned_data['cantidad']
-            
-            try:
-                repuesto_obj = Repuesto.objects.get(id=repuesto.id)
-                
-                if repuesto_obj.cantidad < cantidad_retirada:
-                    messages.error(request, 'No hay suficiente cantidad disponible para retirar.')
-                    return redirect('registro_RetiroRepuesto')
+        info_form = InfoGeneralRetiroForm(request.POST)
+        formset = RetiroFormSet(request.POST, queryset=RetiroRepuesto.objects.none())
 
-                Repuesto.objects.filter(id=repuesto.id, cantidad__gte=cantidad_retirada).update(cantidad=F('cantidad') - cantidad_retirada)
+        if info_form.is_valid() and formset.is_valid():
+            trabajador = info_form.cleaned_data['trabajador']
+            empresa = info_form.cleaned_data['empresa']
+            area = info_form.cleaned_data['area']
 
-                form.save()
+            valid = True
+            for form in formset:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    repuesto = form.cleaned_data['repuesto']
+                    cantidad = form.cleaned_data['cantidad']
+                    if repuesto.cantidad < cantidad:
+                        messages.error(request, f"No hay suficiente stock de '{repuesto.nombre}'. Disponible: {repuesto.cantidad}")
+                        valid = False
+                        break
 
-                # Mensaje de éxito antes de redirigir
-                messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
-                return redirect('registro_RetiroRepuesto_success')
-
-            except Repuesto.DoesNotExist:
-                messages.error(request, 'El repuesto no se encontró en la base de datos.')
+            if valid:
+                for form in formset:
+                    if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                        repuesto = form.cleaned_data['repuesto']
+                        cantidad = form.cleaned_data['cantidad']
+                        Repuesto.objects.filter(pk=repuesto.pk).update(cantidad=F('cantidad') - cantidad)
+                        RetiroRepuesto.objects.create(
+                            trabajador=trabajador,
+                            empresa=empresa,
+                            area=area,
+                            repuesto=repuesto,
+                            cantidad=cantidad
+                        )
+                messages.success(request, '¡Retiros registrados correctamente!')
                 return redirect('registro_RetiroRepuesto')
         else:
-            messages.error(request, f'Error en el formulario: {form.errors}')
+            messages.error(request, 'Corrige los errores del formulario.')
 
     else:
-        form = RetiroRepuestoForm()
+        info_form = InfoGeneralRetiroForm()
+        formset = RetiroFormSet(queryset=RetiroRepuesto.objects.none())
 
-    return render(request, 'app/registro_RetiroRepuesto.html', {'form': form})
+    return render(request, 'app/registro_RetiroRepuesto.html', {
+        'info_form': info_form,
+        'formset': formset,
+    })
+
 
 @login_required
 def registro_RetiroRepuesto_success(request):
@@ -2065,28 +1683,24 @@ def traducir_mes_en_espanol(fecha):
 
 
 def calcular_totales_dia(pedidos, fecha_seleccionada):
-    """
-    Calcula los totales por día para cada insumo en los pedidos.
-    """
     insumos_totales = {}
 
     for pedido in pedidos:
-        insumo = pedido.insumo.nombre
-        fecha_pedido = pedido.fecha_pedido.date()  # Convertir a datetime.date
-        cantidad = pedido.cantidad
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            insumo = pedido_insumo.insumos.nombre
+            fecha_pedido = pedido.fecha_pedido.date()
+            cantidad = pedido_insumo.cantidad
 
-        if fecha_pedido != fecha_seleccionada:
-            continue  # Solo procesar pedidos del día seleccionado
+            if fecha_pedido != fecha_seleccionada:
+                continue
 
-        if insumo not in insumos_totales:
-            insumos_totales[insumo] = {
-                'total': 0,
-            }
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {'total': 0}
 
-        # Total general
-        insumos_totales[insumo]['total'] += cantidad
+            insumos_totales[insumo]['total'] += cantidad
 
     return insumos_totales
+
 
 @login_required
 def pedidos_dia(request):
@@ -2158,26 +1772,27 @@ def pedidos_dia(request):
 
 
 def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
-    """
-    Calcula los totales por semana para cada insumo en los pedidos.
-    """
     insumos_totales = {}
 
     for pedido in pedidos:
-        insumo = pedido.insumo.nombre
-        fecha_pedido = pedido.fecha_pedido.date()  # Convertir a datetime.date
-        cantidad = pedido.cantidad
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            insumo = pedido_insumo.insumos.nombre
+            cantidad = pedido_insumo.cantidad
+            fecha_pedido = pedido.fecha_pedido.date()  # Convertir a datetime.date
 
-        if not (fecha_inicio <= fecha_pedido <= fecha_fin):
-            continue  # Solo procesar pedidos dentro del rango de fechas
+            if not (fecha_inicio <= fecha_pedido <= fecha_fin):
+                continue  # Solo procesar pedidos dentro del rango de fechas
 
-        if insumo not in insumos_totales:
-            insumos_totales[insumo] = {
-                'total': 0,
-            }
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                    'totales_por_periodo': {
+                        'semana': 0,
+                    }
+                }
 
-        # Total general
-        insumos_totales[insumo]['total'] += cantidad
+            insumos_totales[insumo]['totales_por_periodo']['semana'] += cantidad
+            insumos_totales[insumo]['total'] += cantidad
 
     return insumos_totales
 
@@ -2364,16 +1979,17 @@ def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
     insumos_totales = {}
 
     for pedido in pedidos:
-        insumo = pedido.insumo.nombre
-        cantidad = pedido.cantidad
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            insumo = pedido_insumo.insumos.nombre
+            cantidad = pedido_insumo.cantidad
 
-        if insumo not in insumos_totales:
-            insumos_totales[insumo] = {
-                'total': 0,
-            }
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                }
 
-        # Total general
-        insumos_totales[insumo]['total'] += cantidad
+            # Total general
+            insumos_totales[insumo]['total'] += cantidad
 
     return insumos_totales
 
@@ -2473,16 +2089,17 @@ def calcular_totales_anio(pedidos, anio):
     insumos_totales = {}
 
     for pedido in pedidos:
-        insumo = pedido.insumo.nombre
-        cantidad = pedido.cantidad
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            insumo = pedido_insumo.insumos.nombre
+            cantidad = pedido_insumo.cantidad
 
-        if insumo not in insumos_totales:
-            insumos_totales[insumo] = {
-                'total': 0,
-            }
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                }
 
-        # Total general
-        insumos_totales[insumo]['total'] += cantidad
+            # Total general
+            insumos_totales[insumo]['total'] += cantidad
 
     return insumos_totales
 
@@ -2730,3 +2347,442 @@ def pagina_con_botones(request):
 
 
 
+@login_required
+def calcular_totales(pedidos):
+    """
+    Calcula los totales por semana, mes y año para cada insumo en los pedidos.
+    """
+    insumos_totales = {}
+
+    # Obtener la fecha actual
+    fecha_actual = datetime.now().date()
+
+    for pedido in pedidos:
+        insumo = pedido.insumo.nombre
+        fecha_pedido = pedido.fecha_pedido.date()  # Convertir a datetime.date
+        cantidad = pedido.cantidad
+
+        if insumo not in insumos_totales:
+            insumos_totales[insumo] = {
+                'total': 0,
+                'totales_por_periodo': {
+                    'semana': 0,
+                    'mes': 0,
+                    'año': 0,
+                }
+            }
+
+        # Total general
+        insumos_totales[insumo]['total'] += cantidad
+
+        # Totales por semana, mes y año
+        semana_inicio = fecha_pedido - timedelta(days=fecha_pedido.weekday())
+        if semana_inicio <= fecha_actual <= semana_inicio + timedelta(days=6):
+            insumos_totales[insumo]['totales_por_periodo']['semana'] += cantidad
+
+        if fecha_pedido.month == fecha_actual.month and fecha_pedido.year == fecha_actual.year:
+            insumos_totales[insumo]['totales_por_periodo']['mes'] += cantidad
+
+        if fecha_pedido.year == fecha_actual.year:
+            insumos_totales[insumo]['totales_por_periodo']['año'] += cantidad
+
+    return insumos_totales
+
+
+MESES_EN_ESPAÑOL = {
+    "January": "Enero",
+    "February": "Febrero",
+    "March": "Marzo",
+    "April": "Abril",
+    "May": "Mayo",
+    "June": "Junio",
+    "July": "Julio",
+    "August": "Agosto",
+    "September": "Septiembre",
+    "October": "Octubre",
+    "November": "Noviembre",
+    "December": "Diciembre"
+}
+
+@login_required
+def pedidos_total(request):
+    search_term = request.GET.get('buscar')
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date=search_date)
+            )
+        except ValueError:
+            pass
+
+    # Calcular totales
+    insumos_totales = calcular_totales(pedidos)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="PEDIDOS_TOTAL.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, "INFORME DE INSUMOS")
+
+    # Obtener el mes y el año actual
+    fecha_actual = datetime.now()
+    mes_actual = fecha_actual.strftime("%B")
+    año_actual = fecha_actual.year
+
+    # Traducir el nombre del mes al español
+    mes_actual_es = MESES_EN_ESPAÑOL.get(mes_actual, mes_actual).capitalize()
+
+    # Agregar la fecha del mes y año
+    p.setFont("Helvetica", 12)
+    p.drawString(50, letter[1] - 80, f"Mes: {mes_actual_es} {año_actual}")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        total = totales['total']
+        mes_total = totales['totales_por_periodo']['mes']
+        año_total = totales['totales_por_periodo']['año']
+
+        # Añadir insumo y totales
+        data.append(['INSUMO', insumo, total])
+        data.append(['TOTAL POR MES', '', mes_total])
+        data.append(['TOTAL POR AÑO', '', año_total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 120  # Ajustar la posición vertical para incluir el texto de la fecha
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+
+@login_required
+def calcular_totales_semanales(pedidos, semana_inicio, semana_fin):
+    insumos_totales = {}
+
+    for pedido in pedidos:
+        insumo = pedido.insumo.nombre
+        cantidad = pedido.cantidad
+        fecha_pedido = pedido.fecha_pedido.date()
+
+        # Verificar si el pedido está dentro del rango de fechas de la semana
+        if semana_inicio <= fecha_pedido <= semana_fin:
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                    'totales_por_periodo': {
+                        'semana': 0,
+                    }
+                }
+
+            insumos_totales[insumo]['totales_por_periodo']['semana'] += cantidad
+            insumos_totales[insumo]['total'] += cantidad
+
+    return insumos_totales
+
+@login_required
+def pedidos_semanales(request):
+    search_term = request.GET.get('buscar')
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            semana_inicio = search_date - timedelta(days=search_date.weekday())
+            semana_fin = semana_inicio + timedelta(days=6)
+            
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date__range=[semana_inicio, semana_fin])
+            )
+        except ValueError:
+            pass
+    else:
+        # Si no hay término de búsqueda, usar la semana actual
+        hoy = datetime.now().date()
+        semana_inicio = hoy - timedelta(days=hoy.weekday())
+        semana_fin = semana_inicio + timedelta(days=6)
+        pedidos = pedidos.filter(
+            fecha_pedido__date__range=[semana_inicio, semana_fin]
+        )
+
+    # Calcular totales semanales
+    insumos_totales = calcular_totales_semanales(pedidos, semana_inicio, semana_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_SEMANAL_{semana_inicio.strftime("%d_%m_%Y")}_a_{semana_fin.strftime("%d_%m_%Y")}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS SEMANALES ({semana_inicio.strftime('%d/%m/%Y')} - {semana_fin.strftime('%d/%m/%Y')})")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        semana_total = totales['totales_por_periodo']['semana']
+
+        # Añadir insumo y totales semanales
+        data.append(['INSUMO', insumo, totales['total']])
+        data.append(['TOTAL POR SEMANA', '', semana_total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+@login_required
+def calcular_totales_mensuales(pedidos, mes_inicio, mes_fin):
+    insumos_totales = {}
+    semana_inicio = mes_inicio - timedelta(days=mes_inicio.weekday())
+    
+    while semana_inicio <= mes_fin:
+        semana_fin = semana_inicio + timedelta(days=6)
+        semana_pedidos = pedidos.filter(fecha_pedido__date__range=[semana_inicio, semana_fin])
+        
+        for pedido in semana_pedidos:
+            insumo = pedido.insumo.nombre
+            cantidad = pedido.cantidad
+
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                    'totales_por_periodo': {
+                        'semana': 0,
+                        'mes': 0,
+                    },
+                    'totales_por_semana': {}
+                }
+
+            # Calcular totales semanales
+            semana_key = f'Semana del {semana_inicio.strftime("%d-%m")} al {semana_fin.strftime("%d-%m")}'
+            if semana_key not in insumos_totales[insumo]['totales_por_semana']:
+                insumos_totales[insumo]['totales_por_semana'][semana_key] = 0
+
+            insumos_totales[insumo]['totales_por_semana'][semana_key] += cantidad
+            insumos_totales[insumo]['totales_por_periodo']['mes'] += cantidad
+            insumos_totales[insumo]['total'] += cantidad
+
+        semana_inicio += timedelta(days=7)
+
+    return insumos_totales
+
+@login_required
+def pedidos_mensuales(request):
+    search_term = request.GET.get('buscar')
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            mes_inicio = search_date.replace(day=1)
+            mes_fin = (mes_inicio + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+            
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date__range=[mes_inicio, mes_fin])
+            )
+        except ValueError:
+            pass
+    else:
+        hoy = datetime.now().date()
+        mes_inicio = hoy.replace(day=1)
+        mes_fin = (mes_inicio + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+        pedidos = pedidos.filter(
+            fecha_pedido__date__range=[mes_inicio, mes_fin]
+        )
+
+    # Calcular totales mensuales
+    insumos_totales = calcular_totales_mensuales(pedidos, mes_inicio, mes_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_MENSUAL_{mes_inicio.strftime("%m_%Y")}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Obtener el nombre del mes en español
+    mes_nombre = MESES_EN_ESPAÑOL[mes_inicio.month]
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS MENSUALES ({mes_nombre} {mes_inicio.year})")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        mes_total = totales['totales_por_periodo']['mes']
+
+        # Añadir insumo y totales mensuales
+        data.append(['INSUMO', insumo, totales['total']])
+        data.append(['TOTAL POR MES', '', mes_total])
+        
+        # Añadir totales semanales con fechas
+        for semana, cantidad in totales['totales_por_semana'].items():
+            data.append([semana, '', cantidad])
+        
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response

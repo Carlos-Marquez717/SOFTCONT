@@ -32,6 +32,7 @@
                 <th scope="col">EMPRESA</th>
                 <th scope="col">REPUESTO</th>
                 <th scope="col">CANTIDAD</th>
+                <th scope="col">AREA</th>
                 <th scope="col">FECHA</th>
                 <th scope="col">ACCION</th>
               </tr>
@@ -44,6 +45,7 @@
                 <td>{{ retirorepuesto.empresa }}</td>
                 <td>{{ retirorepuesto.repuesto }}</td>
                 <td>{{ retirorepuesto.cantidad }}</td>
+                <td>{{ retirorepuesto.area }}</td>
                 <td>
                   {% if retirorepuesto.fecha_retiro %}
                   {{ retirorepuesto.fecha_retiro|date:"d/m/Y H:i:s" }}

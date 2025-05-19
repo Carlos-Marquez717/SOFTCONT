@@ -1,88 +1,186 @@
-{% extends 'app/base.html' %}
-{% load crispy_forms_tags %}
-{% load static %}
-
+{% extends 'app/base.html' %} {% load crispy_forms_tags %} {% load static %}
 {% block content %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2Xof8k6k5toMJY9wJCAjFmecFJ3l66E4fcj" crossorigin="anonymous">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2Xof8k6k5toMJY9wJCAjFmecFJ3l66E4fcj"
+  crossorigin="anonymous"
+/>
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css"
+  rel="stylesheet"
+/>
 
 <style>
   .select2-container--bootstrap4 .select2-selection--single {
-      background-color: white; /* Fondo blanco */
-      border: 1px solid #ced4da; /* Borde similar a Bootstrap */
-      border-radius: 0.25rem; /* Bordes redondeados */
-      color: black; /* Texto negro */
-      height: calc(2.25rem + 2px); /* Altura similar a Bootstrap */
+    background-color: white; /* Fondo blanco */
+    border: 1px solid #ced4da; /* Borde similar a Bootstrap */
+    border-radius: 0.25rem; /* Bordes redondeados */
+    color: black; /* Texto negro */
+    height: calc(2.25rem + 2px); /* Altura similar a Bootstrap */
   }
 
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
-      color: black; /* Texto negro */
+  .select2-container--bootstrap4
+    .select2-selection--single
+    .select2-selection__rendered {
+    color: black; /* Texto negro */
   }
 
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
-      height: calc(2.25rem + 2px); /* Altura del botón de flecha */
+  .select2-container--bootstrap4
+    .select2-selection--single
+    .select2-selection__arrow {
+    height: calc(2.25rem + 2px); /* Altura del botón de flecha */
   }
 
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__placeholder {
-      color: #6c757d; /* Color del placeholder */
+  .select2-container--bootstrap4
+    .select2-selection--single
+    .select2-selection__placeholder {
+    color: #6c757d; /* Color del placeholder */
+  }
+
+  .form-small {
+    font-size: 0.9rem;
+  }
+
+  .form-small input,
+  .form-small select,
+  .form-small textarea {
+    font-size: 0.9rem !important;
+    padding: 0.3rem 0.5rem !important;
+  }
+
+  .form-small .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .form-small h2 {
+    font-size: 1.3rem;
+  }
+
+  .form-small .card-header {
+    padding: 0.5rem 1rem;
+  }
+
+  .form-small .card-body {
+    padding: 1rem;
+  }
+
+  .form-small .form-row {
+    padding: 0.5rem !important;
   }
 </style>
-<br><br><br><br><br>
+
+<br /><br /><br /><br /><br />
 <div class="container">
   <div class="row justify-content-center">
-    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center">
-      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4">
+    <div
+      class="card form-small bg-dark text-white col-md-4 mx-auto d-flex align-items-center"
+    >
+      <img
+        src="{% static 'app/imgenes/Logo.png' %}"
+        alt="Logo"
+        class="img-fluid mb-4"
+      />
       <h2 class="card-header text-center">REGISTRAR RETIRO REPUESTOS</h2>
       <div class="card-body">
-        <!-- Contenedor para los botones -->
-        <div class="d-flex">
-          <!-- Enlace para ir al formulario de registrar obrero -->
-          <a href="{% url 'registro_obrero' %}" class="btn btn-primary mx-2">
+        <!-- Botones de acceso rápido -->
+        <div class="d-flex flex-wrap justify-content-center mb-3">
+          <a
+            href="{% url 'registro_obrero' %}"
+            class="btn btn-primary mx-2 mb-2"
+          >
             <span class="material-icons">engineering</span> OBRERO
           </a>
-          <a href="{% url 'registro_empresa' %}" class="btn btn-primary mx-2">
+          <a
+            href="{% url 'registro_empresa' %}"
+            class="btn btn-primary mx-2 mb-2"
+          >
             <span class="material-icons">add_business</span> EMPRESA
           </a>
-          <a href="{% url 'registro_Repuesto' %}" class="btn btn-primary mx-2">
-            <span class="material-icons">
-              settings
-              </span> REPUESTO
+          <a
+            href="{% url 'registro_Repuesto' %}"
+            class="btn btn-primary mx-2 mb-2"
+          >
+            <span class="material-icons">settings</span> REPUESTO
           </a>
         </div>
-        <hr>
-        <!-- Formulario de registrar pedido -->
+
+        <hr />
+
+        <!-- Formulario de retiro -->
         <form method="post" action="{% url 'registro_RetiroRepuesto' %}">
           {% csrf_token %}
-          <div class="form-group">
-            {{ form.non_field_errors }}
-            {{ form.as_p }}
+
+          <!-- Campos generales: trabajador, empresa, área -->
+          <div class="mb-3">{{ info_form.as_p }}</div>
+
+          <!-- Formset para múltiples repuestos -->
+          {{ formset.management_form }}
+          <div id="formset-repuestos">
+            {% for form in formset %}
+            <div
+              class="form-row border rounded p-3 mb-3 bg-secondary text-white retiro-form"
+            >
+              {{ form.as_p }}
+              <button type="button" class="btn btn-danger remove-form">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+            {% endfor %}
           </div>
-          <br>
-          <br>
-          <button type="submit" class="btn btn-primary">Registrar</button>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-secondary" id="add-repuesto">
+              <i class="fas fa-plus"></i> Agg
+            </button>
+            <button type="reset" class="btn btn-warning" id="reset-form">
+              <i class="fas fa-broom"></i> Reset
+            </button>
+
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-save"></i> Guardar
+            </button>
+          </div>
         </form>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
+<script
+  src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"
+  integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc"
+  crossorigin="anonymous"
+></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
 <script>
-  $(document).ready(function() {
-    $('.select2').select2();
+  $(document).ready(function () {
+    $(".select2").select2();
   });
 </script>
 
 <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    {% for message in messages %}
+      Swal.fire({
+        icon: 'success',
+        title: '¡Éxito!',
+        text: '{{ message }}',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK'
+      });
+    {% endfor %}
+  });
+</script>
 
-
-  var successMessage = "{% if success_message %}{{ success_message }}{% endif %}";
+<script>
+  var successMessage =
+    "{% if success_message %}{{ success_message }}{% endif %}";
   var errorMessage = "{% if error_message %}{{ error_message }}{% endif %}";
 
   if (successMessage) {
@@ -95,19 +193,52 @@
 
   function showAlertSuccess(message) {
     Swal.fire({
-      icon: 'success',
-      title: 'Éxito',
+      icon: "success",
+      title: "Éxito",
       text: message,
     });
   }
 
   function showAlertError(message) {
     Swal.fire({
-      icon: 'error',
-      title: 'Error',
+      icon: "error",
+      title: "Error",
       text: message,
     });
   }
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    let formIdx = {{ formset.total_form_count }};
+    const formsetDiv = document.getElementById('formset-repuestos');
+    const emptyForm = formsetDiv.children[0].cloneNode(true);
+
+    document.getElementById('add-repuesto').addEventListener('click', function () {
+      let newForm = emptyForm.cloneNode(true);
+
+      // Limpiar los valores de los campos
+      newForm.querySelectorAll('input, select').forEach(el => el.value = '');
+
+      // Actualizar los índices de los campos
+      newForm.innerHTML = newForm.innerHTML.replace(/form-(\d+)-/g, 'form-' + formIdx + '-');
+
+      // Reiniciar Select2 para el nuevo campo 'repuesto'
+      $(newForm).find(".select2").select2();
+
+      formsetDiv.appendChild(newForm);
+      document.getElementById('id_form-TOTAL_FORMS').value = ++formIdx;
+    });
+
+    formsetDiv.addEventListener('click', function (e) {
+      if (e.target.classList.contains('remove-form')) {
+        if (document.querySelectorAll('.retiro-form').length > 1) {
+          e.target.closest('.retiro-form').remove();
+          document.getElementById('id_form-TOTAL_FORMS').value = --formIdx;
+        }
+      }
+    });
+  });
 </script>
 
 {% endblock %}

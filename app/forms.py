@@ -1,12 +1,16 @@
-# en trabajadores/forms.py
-from django_select2.forms import Select2Widget
-from django_select2.forms import ModelSelect2Widget
 from django import forms
-from .models import Trabajador,Empresa, Obrero, Pedido, Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto,Utilesaseo,Producto
-
-from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.forms import UserCreationForm
+from django_select2.forms import Select2Widget, ModelSelect2Widget
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.forms import inlineformset_factory, modelformset_factory
+
+from .models import (
+    Trabajador, Empresa, Obrero, Pedido, PedidoInsumo, 
+    Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto, 
+    Utilesaseo, Producto
+)
+
+# ===================== FORMULARIOS PERSONALIZADOS =====================
 
 class TrabajadorForm(forms.ModelForm):
     class Meta:
@@ -14,12 +18,11 @@ class TrabajadorForm(forms.ModelForm):
         fields = ['nombre', 'empresa']
 
     def __init__(self, *args, **kwargs):
-        super(TrabajadorForm, self).__init__(*args, **kwargs)
-        
-        # Cambiar a mayúsculas los títulos de los campos
-        self.fields['nombre'].label = 'NOMBRE'.upper()
-        self.fields['empresa'].label = 'EMPRESA'.upper()
-        self.fields['empresa'].widget.attrs['class'] = 'select2'
+        super().__init__(*args, **kwargs)
+        self.fields['nombre'].label = 'NOMBRE'
+        self.fields['empresa'].label = 'EMPRESA'
+        self.fields['empresa'].widget.attrs.update({'class': 'select2'})
+
 
 class EmpresaForm(forms.ModelForm):
     class Meta:
@@ -27,10 +30,9 @@ class EmpresaForm(forms.ModelForm):
         fields = ['nombre']
 
     def __init__(self, *args, **kwargs):
-        super(EmpresaForm, self).__init__(*args, **kwargs)
-        
-        # Cambiar a mayúsculas los títulos de los campos
-        self.fields['nombre'].label = 'NOMBRE'.upper()
+        super().__init__(*args, **kwargs)
+        self.fields['nombre'].label = 'NOMBRE'
+
 
 class MaterialForm(forms.ModelForm):
     class Meta:
@@ -38,10 +40,9 @@ class MaterialForm(forms.ModelForm):
         fields = ['nombre']
 
     def __init__(self, *args, **kwargs):
-        super(MaterialForm, self).__init__(*args, **kwargs)
-        
-        # Cambiar a mayúsculas los títulos de los campos
-        self.fields['nombre'].label = 'NOMBRE'.upper()        
+        super().__init__(*args, **kwargs)
+        self.fields['nombre'].label = 'NOMBRE'
+
 
 class ObreroForm(forms.ModelForm):
     class Meta:
@@ -49,35 +50,44 @@ class ObreroForm(forms.ModelForm):
         fields = ['nombre']
 
     def __init__(self, *args, **kwargs):
-        super(ObreroForm, self).__init__(*args, **kwargs)
-        
-        # Cambiar a mayúsculas los títulos de los campos
-        self.fields['nombre'].label = 'NOMBRE'.upper()        
-      
+        super().__init__(*args, **kwargs)
+        self.fields['nombre'].label = 'NOMBRE'
+
 
 class PedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
-        fields = ['solicitante', 'compañia', 'insumo', 'cantidad', 'area']
+        fields = ['solicitante', 'compañia', 'area']
+        widgets = {
+            'solicitante': Select2Widget,
+            'compañia': Select2Widget,
+        }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Aplica Select2 a los campos solicitante, compañia e insumo
-        self.fields['solicitante'].widget.attrs.update({'class': 'select2'})
-        self.fields['compañia'].widget.attrs.update({'class': 'select2'})
-        self.fields['insumo'].widget.attrs.update({'class': 'select2'})
+class PedidoInsumoForm(forms.ModelForm):
+    class Meta:
+        model = PedidoInsumo
+        fields = ['insumos', 'cantidad']
+        widgets = {
+            'insumos': Select2Widget,
+        }
 
-
+# Formset para los insumos asociados a un pedido (sin trabajador ni área)
+PedidoInsumoInlineFormset = inlineformset_factory(
+    Pedido, PedidoInsumo,
+    form=PedidoInsumoForm,
+    fields=['insumos', 'cantidad'],
+    extra=1,
+    can_delete=False
+)
 
 class LoginForm(AuthenticationForm):
-    # Agrega campos personalizados si es necesario
     email = forms.CharField(max_length=100, required=True, help_text='Ingresa tu email.')
 
     def __init__(self, *args, **kwargs):
-        super(LoginForm, self).__init__(*args, **kwargs)
-        # Puedes personalizar el aspecto de los campos aquí si es necesario
+        super().__init__(*args, **kwargs)
         self.fields['username'].widget.attrs['class'] = 'form-control'
         self.fields['password'].widget.attrs['class'] = 'form-control'
+
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -97,16 +107,15 @@ class UserRegistrationForm(forms.ModelForm):
         
         return cleaned_data
 
+
 class HerramientaForm(forms.ModelForm):
     class Meta:
         model = Herramienta
         fields = ['nombre']
 
     def __init__(self, *args, **kwargs):
-        super(HerramientaForm, self).__init__(*args, **kwargs)
-        
-        # Cambiar a mayúsculas los títulos de los campos
-        self.fields['nombre'].label = 'NOMBRE'.upper()           
+        super().__init__(*args, **kwargs)
+        self.fields['nombre'].label = 'NOMBRE'
 
 
 class PrestamoForm(forms.ModelForm):
@@ -116,44 +125,55 @@ class PrestamoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Aplica Select2 a los campos nombre_solicitante, empresa y herramienta
         self.fields['nombre_solicitante'].widget.attrs.update({'class': 'select2'})
         self.fields['empresa'].widget.attrs.update({'class': 'select2'})
         self.fields['herramienta'].widget.attrs.update({'class': 'select2'})
 
 
-
 class PrestamoEditForm(forms.ModelForm):
     class Meta:
         model = Prestamo
-        fields = ['status']        
+        fields = ['status']
 
 
 class RepuestoForm(forms.ModelForm):
     class Meta:
         model = Repuesto
-        fields = ['nombre', 'cantidad']
+        fields = ['nombre', 'cantidad', 'ubicacion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
+            'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
-        super(RepuestoForm, self).__init__(*args, **kwargs)
-        
-        # Cambiar a mayúsculas los títulos de los campos
-        self.fields['nombre'].label = 'NOMBRE'.upper()       
-        self.fields['cantidad'].label = 'CANTIDAD'.upper()            
+        super().__init__(*args, **kwargs)
+        self.fields['nombre'].label = 'NOMBRE'
+        self.fields['cantidad'].label = 'CANTIDAD'
+        self.fields['ubicacion'].label = 'UBICACIÓN'
+
+
+class InfoGeneralRetiroForm(forms.Form):
+    trabajador = forms.ModelChoiceField(queryset=Obrero.objects.all(),  widget=Select2Widget(attrs={'class': 'select2'}))
+    empresa = forms.ModelChoiceField(queryset=Empresa.objects.all(), widget=Select2Widget(attrs={'class': 'select2'}))
+
+    area = forms.CharField(max_length=100)
 
 
 class RetiroRepuestoForm(forms.ModelForm):
     class Meta:
         model = RetiroRepuesto
-        fields = ['trabajador', 'empresa', 'repuesto', 'cantidad']
+        fields = ['repuesto', 'cantidad']
+        widgets = {
+            'repuesto': Select2Widget(attrs={'class': 'select2'}),
+        }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Aplica Select2 a los campos trabajador, empresa y repuesto
-        self.fields['trabajador'].widget.attrs.update({'class': 'select2'})
-        self.fields['empresa'].widget.attrs.update({'class': 'select2'})
-        self.fields['repuesto'].widget.attrs.update({'class': 'select2'})   
-
+RetiroRepuestoFormSet = modelformset_factory(
+    RetiroRepuesto,
+    form=RetiroRepuestoForm,
+    extra=1,
+    can_delete=True
+)
 
 
 class UtilesaseoForm(forms.ModelForm):
@@ -161,7 +181,7 @@ class UtilesaseoForm(forms.ModelForm):
         model = Utilesaseo
         fields = '__all__'
         widgets = {
-            'Producto': forms.CheckboxSelectMultiple,  # Utiliza CheckboxSelectMultiple para múltiples selecciones
+            'Producto': forms.CheckboxSelectMultiple,
         }
 
     def __init__(self, *args, **kwargs):
@@ -176,16 +196,15 @@ class CSVUploadForm(forms.Form):
     csv_file = forms.FileField()
 
 
-
 class CustomUserCreationForm(UserCreationForm):
-	email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True)
 
-	class Meta:
-		model = User
-		fields = ['username', 'email', 'password1', 'password2']
-	def clean_email(self):
-		email = self.cleaned_data['email']
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password1', 'password2']
 
-		if User.objects.filter(email=email).exists():
-			raise forms.ValidationError('Este correo electrónico ya está registrado')
-		return email
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Este correo electrónico ya está registrado')
+        return email

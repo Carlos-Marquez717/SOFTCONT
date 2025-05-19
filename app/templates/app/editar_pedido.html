@@ -1,132 +1,279 @@
-{% extends 'app/base.html' %}
-
-{% load static %}
+{% extends 'app/base.html' %} 
+{% load crispy_forms_tags %} 
+{% load static %} 
 {% block content %}
-<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.5/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-  integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2Xof8k6k5toMJY9wJCAjFmecFJ3l66E4fcj" crossorigin="anonymous">
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2Xof8k6k5toMJY9wJCAjFmecFJ3l66E4fcj"
+  crossorigin="anonymous"
+/>
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css"
+  rel="stylesheet"
+/>
 
-<br><br><br><br><br>
+<br /><br /><br /><br />
+
 <div class="container">
   <div class="row justify-content-center">
-    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center">
-      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4">
-      <h2 class="card-header text-center">MODIFICAR PEDIDO</h2>
+    <div class="card bg-dark text-white col-md-8 col-lg-4 mx-auto">
+      <!-- Ajustar la imagen para que ocupe todo el ancho del card -->
+      <img
+        src="{% static 'app/imgenes/Logo.png' %}"
+        alt="Logo"
+        class="img-fluid mb-4 mx-auto d-block"
+        style="width: 80%; height: auto"
+      />
+
+      <!-- Encabezado del card -->
+      <h3 class="card-header text-center">EDITAR PEDIDOS</h3>
+
       <div class="card-body">
-        {% if messages %}
-        <ul class="messages">
-          {% for message in messages %}
-          <li>{{ message }}</li>
-          {% endfor %}
-        </ul>
-        {% endif %}
+        <!-- Contenedor flex para los botones -->
+        <div class="d-flex justify-content-center mb-2">
+          <!-- Botón OBRERO -->
+          <a
+            href="{% url 'registro_obrero' %}"
+            class="btn btn-primary mx-2 text-center"
+            style="flex: 1 1 auto"
+          >
+            <span class="material-icons d-block" style="font-size: 2rem"
+              >engineering</span
+            >
+            OBRERO
+          </a>
+          <!-- Botón EMPRESA -->
+          <a
+            href="{% url 'registro_empresa' %}"
+            class="btn btn-primary mx-2 text-center"
+            style="flex: 1 1 auto"
+          >
+            <span class="material-icons d-block" style="font-size: 2rem"
+              >add_business</span
+            >
+            EMPRESA
+          </a>
+          <!-- Botón INSUMO -->
+          <a
+            href="{% url 'registro_material' %}"
+            class="btn btn-primary mx-2 text-center"
+            style="flex: 1 1 auto"
+          >
+            <span
+              class="material-icons d-block text-center"
+              style="font-size: 2rem"
+              >clean_hands</span
+            >
+            INSUMO
+          </a>
+        </div>
+        <hr />
 
+        <!-- Formulario -->
         <form method="post" action="{% url 'editar_pedido' pedido.id %}">
+
           {% csrf_token %}
-          <div class="form-group">
-            <label id="solicitante">
-              SOLICITANTE
-            </label>
-            {{ form.solicitante }}
-            <!-- Enlace al otro formulario -->
-            <a href="{% url 'registro_obrero' %}">
-              Agregar <i class="fas fa-plus"></i>
-            </a>
-          </div>
-          <br>
-          <!-- Campo empresa -->
-          <div class="form-group">
-            <label for="{{ form.compañia.id_for_label }}">EMPRESA</label>
-            {{ form.compañia }}
-            <a href="{% url 'registro_empresa' %}">
-              Agregar <i class="fas fa-plus"></i>
-            </a>
 
+          <!-- Formulario principal del Pedido -->
+          <div class="form-group">
+            <label for="{{ pedido_form.solicitante.id_for_label }}"
+              >OBRERO:</label
+            >
+            {{ pedido_form.solicitante }}
+          </div>
+          <div class="form-group">
+            <label for="{{ pedido_form.compañia.id_for_label }}"
+              >EMPRESA:</label
+            >
+            {{ pedido_form.compañia }}
+          </div>
+          <br />
+          <div class="form-group">
+            <label for="{{ pedido_form.area.id_for_label }}">Área:</label>
+            {{ pedido_form.area }}
           </div>
 
-          <br>
-          <div class="form-group">
-            <label for="{{ form.insumo.id_for_label }}">
-              INSUMO
-            </label>
-            {{ form.insumo }}
-            <!-- Enlace al otro formulario -->
-            <a href="{% url 'registro_obrero' %}">
-              Agregar <i class="fas fa-plus"></i>
-            </a>
+          <hr />
+          <h5>Insumos</h5>
+          {{ insumo_formset.management_form }}
+          <div id="formset-insumos">
+            {% for form in insumo_formset %}
+            <div class="form-row border rounded p-2 mb-2 insumo-form">
+              {{ form.id }}  <!-- Esto renderiza el campo oculto id -->
+              <div class="form-group col-md-4">
+                {{ form.insumos.label_tag }} {{ form.insumos }}
+              </div>
+              <div class="form-group col-md-2">
+                {{ form.cantidad.label_tag }} {{ form.cantidad }}
+              </div>
+            </div>
+            {% endfor %}
           </div>
-          <br>
-          <div class="form-group">
-            <label for="{{ form.nombre.id_for_label }}">
-              CANTIDAD
-            </label>
-            {{ form.cantidad }}
-            <!-- Enlace al otro formulario -->
-            <a href="{% url 'registro_obrero' %}">
-              Agregar <i class="fas fa-plus"></i>
-            </a>
+          <div class="d-flex justify-content-between mt-3">
+            <button type="submit" class="btn btn-primary">Registrar</button>
+            <button type="reset" class="btn btn-warning">Limpiar</button>
+            <button type="button" class="btn btn-secondary" id="add-insumo">
+              Agregar
+            </button>
           </div>
-          <br>
-          <div class="form-group">
-            <label for="{{ form.area.id_for_label }}">
-              AREA
-            </label>
-            {{ form.area }}
-            <!-- Enlace al otro formulario -->
-            <a href="{% url 'registro_obrero' %}">
-              Agregar <i class="fas fa-plus"></i>
-            </a>
-          </div>
-          <br>
-          <button type="submit" class="btn btn-primary">Registrar</button>
         </form>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-<script defer src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"
-  integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.5/css/select2.min.js" rel="stylesheet"></script>
+<script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+
+<script
+  src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"
+  integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc"
+  crossorigin="anonymous"
+></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<!-- Incluir JS de Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Inicializar Select2 para los campos específicos -->
+
 <script>
-  // Inicializa Select2 en los campos
   $(document).ready(function () {
-    $('#solicitante').select2();
-    $('#id_compania').select2();
-    $('#id_insumo').select2();
-    $('#id_area').select2();
-  });
-
-  // Inicializa el tooltip de Bootstrap
-  $(function () {
-    $('[data-toggle="tooltip"]').tooltip();
+    // Aplica select2 a todos los selects que tengan la clase select2
+    $("select").each(function () {
+      if (!$(this).hasClass("select2-hidden-accessible")) {
+        $(this).select2({
+          width: "100%",
+          theme: "bootstrap4",
+        });
+      }
+    });
   });
 </script>
+
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-      var successMessage = "{% if messages %}{% for message in messages %}{% if message.tags == 'success' %}{{ message }}{% endif %}{% endfor %}{% endif %}";
-      var errorMessage = "{% if messages %}{% for message in messages %}{% if message.tags == 'error' %}{{ message }}{% endif %}{% endfor %}{% endif %}";
+  document.addEventListener("DOMContentLoaded", function () {
+    let totalForms = document.getElementById("id_pedidoinsumo_set-TOTAL_FORMS");
+    let formsetDiv = document.getElementById("formset-insumos");
+    let addBtn = document.getElementById("add-insumo");
 
-      if (successMessage) {
-          showAlert('success', 'Éxito', successMessage);
-      }
+    // Inicializa Select2 en todos los selects de insumos al cargar la página
+    function initSelect2Insumos() {
+      $(formsetDiv).find("select").select2({
+        width: "100%",
+        theme: "bootstrap4",
+      });
+    }
+    initSelect2Insumos();
 
-      if (errorMessage) {
-          showAlert('error', 'Error', errorMessage);
-      }
+    addBtn.addEventListener("click", function () {
+      let currentFormCount = parseInt(totalForms.value);
+      let emptyFormHtml = `{{ insumo_formset.empty_form.as_p|escapejs }}`;
+      let newFormHtml = emptyFormHtml.replace(/__prefix__/g, currentFormCount);
+      let newDiv = document.createElement("div");
+      newDiv.classList.add(
+        "form-row",
+        "border",
+        "rounded",
+        "p-2",
+        "mb-2",
+        "insumo-form"
+      );
+      newDiv.innerHTML = newFormHtml;
+      formsetDiv.appendChild(newDiv);
+      totalForms.value = currentFormCount + 1;
 
-      function showAlert(icon, title, message) {
-          Swal.fire({
-              icon: icon,
-              title: title,
-              text: message,
-          });
-      }
+      // Inicializa Select2 en el nuevo select de insumo
+      $(newDiv).find("select").select2({
+        width: "100%",
+        theme: "bootstrap4",
+      });
+    });
+  });
+
+  var successMessage =
+    "{% if success_message %}{{ success_message }}{% endif %}";
+  if (successMessage) {
+    showAlertSuccess(successMessage);
+  }
+
+  var errorMessage = "{% if error_message %}{{ error_message }}{% endif %}";
+
+  if (successMessage) {
+    showAlertSuccess(successMessage);
+  }
+
+  if (errorMessage) {
+    showAlertError(errorMessage);
+  }
+
+  function showAlertSuccess(message) {
+    Swal.fire({
+      icon: "success",
+      title: "Éxito",
+      text: message,
+    });
+  }
+
+  function showAlertError(message) {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: message,
+    });
+  }
+</script>
+
+<script>
+  document
+    .querySelector('button[type="reset"]')
+    .addEventListener("click", function () {
+      // Deja solo el primer formulario de insumo
+      let formsetDiv = document.getElementById("formset-insumos");
+      let forms = formsetDiv.querySelectorAll(".insumo-form");
+      forms.forEach(function (form, idx) {
+        if (idx > 0) form.remove();
+      });
+      // Reinicia el contador de formularios
+      document.getElementById("id_pedidoinsumo_set-TOTAL_FORMS").value = 1;
+      // Reinicializa select2
+      $(formsetDiv).find("select").val(null).trigger("change");
+    });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    {% for message in messages %}
+      Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: '{{ message }}',
+        confirmButtonText: 'Aceptar'
+      });
+    {% endfor %}
   });
 </script>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.querySelector('form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: "¿Deseas guardar los cambios del pedido?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, guardar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.submit();
+      }
+    });
+  });
+});
+</script>
 
 {% endblock %}
