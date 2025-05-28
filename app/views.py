@@ -1,8 +1,8 @@
 # en trabajadores/views.py
 from datetime import datetime
 from django.shortcuts import render, redirect
-from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset
-from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo
+from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset,InformeForm
+from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo,Informe
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -2786,3 +2786,38 @@ def pedidos_mensuales(request):
     response.write(pdf)
 
     return response
+
+
+
+def crear_informe(request):
+    if request.method == 'POST':
+        form = InformeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('listar_informes')
+    else:
+        form = InformeForm()
+    return render(request, 'informes/crear.html', {'form': form})
+
+
+def listar_informes(request):
+    informes = Informe.objects.all().order_by('-creado_en')
+    return render(request, 'informes/listar.html', {'informes': informes})
+
+
+
+from django.template.loader import get_template
+from weasyprint import HTML
+from django.http import HttpResponse
+from .models import Informe
+
+def generar_pdf(request, informe_id):
+    informe = Informe.objects.get(id=informe_id)
+    template = get_template(f'informes/pdf/caso_{informe.caso}.html')
+    html_string = template.render({'informe': informe}, request)
+    pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="informe_{informe.id}.pdf"'
+    return response
+

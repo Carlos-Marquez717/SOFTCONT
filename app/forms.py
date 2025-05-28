@@ -7,7 +7,7 @@ from django.forms import inlineformset_factory, modelformset_factory
 from .models import (
     Trabajador, Empresa, Obrero, Pedido, PedidoInsumo, 
     Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto, 
-    Utilesaseo, Producto
+    Utilesaseo, Producto, Informe
 )
 
 # ===================== FORMULARIOS PERSONALIZADOS =====================
@@ -208,3 +208,15 @@ class CustomUserCreationForm(UserCreationForm):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError('Este correo electrónico ya está registrado')
         return email
+
+
+
+class InformeForm(forms.ModelForm):
+    class Meta:
+        model = Informe
+        fields = ['caso', 'hora', 'tarea', 'descripcion', 'desde', 'hasta', 'imagen_antes', 'imagen_despues']
+        widgets = {
+            'hora': forms.TimeInput(attrs={'type': 'time'}),
+            'desde': forms.DateInput(attrs={'type': 'date'}),
+            'hasta': forms.DateInput(attrs={'type': 'date'}),
+        }

@@ -212,3 +212,35 @@ class congelado(models.Model):
 
     def __str__(self):
         return f"{self.orden} - {self.caso} - {self.tag} - {self.personal} - {self.fecha_de_inicio} - {self.turno}"
+
+
+
+
+
+class Informe(models.Model):
+    CASOS = [
+        ('1', 'Orden y Limpieza'),
+        ('2', 'Retiro de OTs - Repuestos'),
+        ('3', 'Creación de OTs'),
+        ('4', 'Abastecimiento Pañol'),
+        ('5', 'Carga de Repuestos'),
+        ('6', 'Recepción e Izaje de Piezas Mecánicas'),
+    ]
+
+    caso = models.CharField(max_length=1, choices=CASOS)
+    hora = models.TimeField()
+    tarea = models.CharField(max_length=255)
+    descripcion = models.TextField()
+    desde = models.DateField(blank=True, null=True)
+    hasta = models.DateField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    # Campos específicos para CASO 1
+    imagen_antes = models.ImageField(upload_to='anexos/', blank=True, null=True)
+    imagen_despues = models.ImageField(upload_to='anexos/', blank=True, null=True)
+
+    # (En el futuro: otros campos específicos de casos aquí)
+
+    def __str__(self):
+        return f"Informe Caso {self.get_caso_display()} - {self.creado_en.date()}"
+
