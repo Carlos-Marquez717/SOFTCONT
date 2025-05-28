@@ -444,14 +444,15 @@ def generar_pdf_pedidos(request):
     if search_term:
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            pedidos = pedidos.filter(
+           pedidos = pedidos.filter(
                 Q(solicitante__nombre__icontains=search_term) |
                 Q(compañia__nombre__icontains=search_term) |
-                Q(insumo__nombre__icontains=search_term) |
-                Q(cantidad__icontains=search_term) |
+                Q(pedidoinsumo__insumos__nombre__icontains=search_term) |
+                Q(pedidoinsumo__cantidad__icontains=search_term) |
                 Q(area__icontains=search_term) |
                 Q(fecha_pedido__date=search_date)
-            )
+           ).distinct()
+
         except ValueError:
             pass
 
