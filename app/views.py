@@ -1,8 +1,8 @@
 # en trabajadores/views.py
 from datetime import datetime
 from django.shortcuts import render, redirect
-from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset,InformeForm
-from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo,Informe
+from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm,InformeCaso6Form,ImagenInformeFormSet,ImagenSoloImagenFormSet,InformeCaso5Form,InformeCaso2Form,InformeCaso3Form,InformeCaso4Form, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset,InformeForm
+from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo,Informe,ImagenInforme
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -436,6 +436,18 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import ParagraphStyle
 
 
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from io import BytesIO
+from datetime import datetime
+from .models import Pedido  # Asegúrate de importar correctamente tu modelo
+
 @login_required
 def generar_pdf_pedidos(request):
     search_term = request.GET.get('buscar')
@@ -444,23 +456,21 @@ def generar_pdf_pedidos(request):
     if search_term:
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-           pedidos = pedidos.filter(
+            pedidos = pedidos.filter(
                 Q(solicitante__nombre__icontains=search_term) |
                 Q(compañia__nombre__icontains=search_term) |
                 Q(pedidoinsumo__insumos__nombre__icontains=search_term) |
                 Q(pedidoinsumo__cantidad__icontains=search_term) |
                 Q(area__icontains=search_term) |
                 Q(fecha_pedido__date=search_date)
-           ).distinct()
-
+            ).distinct()
         except ValueError:
             pass
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
-    buffer = BytesIO()
 
-    # Configuración del documento
+    buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=landscape(letter),
@@ -470,7 +480,6 @@ def generar_pdf_pedidos(request):
         bottomMargin=40,
     )
 
-    # Encabezado
     def add_header(canvas, doc):
         width, height = landscape(letter)
         canvas.setFont("Helvetica-Bold", 12)
@@ -483,64 +492,51 @@ def generar_pdf_pedidos(request):
     elements = []
     elements.append(Spacer(1, 60))
     styles = getSampleStyleSheet()
-    styleN = styles['Normal']
-    style_centered = ParagraphStyle(name='centered', alignment=1, fontSize=9)  # 1 = TA_CENTER
+    style_centered = ParagraphStyle(name='centered', alignment=1, fontSize=9)
 
-    # Encabezado de la tabla
     data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
 
-    # Agrega los datos
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
         for pedido_insumo in pedido.pedidoinsumo_set.all():
             data.append([
                 fecha_y_hora,
-            Paragraph(str(pedido.solicitante.nombre), style_centered),
-            Paragraph(str(pedido_insumo.insumos.nombre), style_centered),
-            Paragraph(str(pedido_insumo.cantidad), style_centered),
-            Paragraph(str(pedido.area), style_centered),
-            Paragraph(str(pedido.compañia.nombre), style_centered),
+                Paragraph(str(pedido.solicitante.nombre), style_centered),
+                Paragraph(str(pedido_insumo.insumos.nombre), style_centered),
+                Paragraph(str(pedido_insumo.cantidad), style_centered),
+                Paragraph(str(pedido.area), style_centered),
+                Paragraph(str(pedido.compañia.nombre), style_centered),
             ])
 
-    # Espaciado antes de la tabla
     elements.append(Spacer(1, 20))
 
-    # Crear la tabla con anchos ajustados
-    table = Table(
-        data,
-        colWidths=[
-            1.5 * inch,   # FECHA
-            2 * inch,     # NOMBRE DEL SOLICITANTE
-            2 * inch,     # INSUMO SOLICITADO
-            1 * inch,     # CANTIDAD
-            1.5 * inch,   # AREA TRABAJO
-            2 * inch,     # EMPRESA
-        ]
-    )
+    table = Table(data, colWidths=[
+        1.5 * inch,  # FECHA
+        2 * inch,    # NOMBRE DEL SOLICITANTE
+        2 * inch,    # INSUMO SOLICITADO
+        1 * inch,    # CANTIDAD
+        1.5 * inch,  # ÁREA DE TRABAJO
+        2 * inch     # EMPRESA
+    ])
 
-    # Estilos de la tabla (igual que generar_pdf_pedido)
-    style = TableStyle([
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-        
-    ])
-
-    table.setStyle(style)
+    ]))
 
     elements.append(table)
 
-    # Generar el PDF con paginación y encabezado
     doc.build(elements, onFirstPage=add_header, onLaterPages=add_header)
 
     pdf = buffer.getvalue()
     buffer.close()
+
     response.write(pdf)
     return response
 
@@ -833,7 +829,14 @@ def generar_pdf_prestamos(request):
         response['Content-Disposition'] = f'attachment; filename="prestamos_{search_term}.pdf"'
 
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=(letter[1], letter[0]),  # Intercambiar ancho y alto
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40,
+        )
 
         elements = []
 
@@ -889,7 +892,6 @@ def generar_pdf_prestamos(request):
         buffer.close()
 
         response.write(pdf)
-
         return response
     else:
         return HttpResponse("No se encontraron resultados para la búsqueda.")
@@ -923,7 +925,7 @@ def generar_pdf_prestamo(request, obrero_id):
             prestamo.nombre_solicitante.nombre,
             prestamo.empresa.nombre,
             prestamo.herramienta.nombre,
-            prestamo.fecha_creacion.strftime("%d/%m/%Y"),
+            prestamo.fecha_creacion.strftime("%d/%m/%Y") if prestamo.fecha_creacion else '-',
             prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-',
             prestamo.status,
         ])
@@ -941,9 +943,8 @@ def generar_pdf_prestamo(request, obrero_id):
     table = Table(data)
     table.setStyle(style)
 
-    # Posicionar la tabla en la página
-    width, height = letter[1], letter[0]  # Intercambiar ancho y alto
-    table.wrapOn(p, width, height)
+    # Posicionar la tabla
+    table_width, table_height = table.wrap(0, 0)
     table.drawOn(p, 90, height - 170)  # Bajar la tabla
 
     # Agregar título
@@ -1305,6 +1306,7 @@ def lista_utilesaseo(request):
                           Q(cantidad__icontains=search_term) | \
                           Q(nombre_solicitante__nombre__icontains=search_term) | \
                           Q(empresa__nombre__icontains=search_term) | \
+                          Q(fecha_creacion__icontains=search_term) | \
                           Q(run__icontains=search_term)
             utilesaseos_list = utilesaseos_list.filter(text_search)
 
@@ -1462,11 +1464,11 @@ def generar_pdf_utiles_aseo(request):
         ])
 
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), 'yellow'),
-        ('TEXTCOLOR', (0, 0), (-1, 0), 'black'),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, 'black'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ])
 
     table = Table(data)
@@ -1521,74 +1523,62 @@ def generar_pdf_retiro(request, obrero_id):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="retiros_{obrero.nombre}.pdf"'
 
+    # Crear el objeto PDF con ReportLab, con orientación horizontal
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
 
-    # Encabezado de la tabla
+    # Crear una tabla para los datos
     data = [
-        ['Fecha', 'Obrero', 'Repuesto', 'Cantidad', 'Empresa'],
+        ['NOMBRE SOLICITANTE', 'EMPRESA', 'REPUESTO', 'CANTIDAD', 'FECHA RETIRO'],
     ]
 
-    # Agregar los datos de los retiros a la tabla
     for retiro in retiros:
-        fecha_y_hora = retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M")
         data.append([
-            fecha_y_hora,
             retiro.trabajador.nombre,
+            retiro.empresa.nombre,
             retiro.repuesto.nombre,
             retiro.cantidad,
-            retiro.empresa.nombre,
+            retiro.fecha_retiro.strftime("%d/%m/%Y") if retiro.fecha_retiro else '-',
         ])
 
-    # Si no hay registros, agregar un mensaje a la tabla
-    if len(data) == 1:
-        data.append(['No hay registros', '', '', '', ''])
-
-    # Estilos de la tabla
+    # Configurar el estilo de la tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ])
 
-    # Crear la tabla en el PDF
+    # Crear la tabla
     table = Table(data)
     table.setStyle(style)
 
-    width, height = letter
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 60, height - 200)
+    # Posicionar la tabla
+    table_width, table_height = table.wrap(0, 0)
+    table.drawOn(p, 90, height - 170)  # Bajar la tabla
 
-    # Título y usuario
+    # Agregar título
     p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, f"RETIRO DE REPUESTOS")
-    
-    usuario = request.user
-    p.setFont("Helvetica-Bold", 12)
-    text = f"PAÑOLERO: {usuario.username}"
-    text_width = p.stringWidth(text, "Helvetica", 12)
-    p.setFillColor(colors.black)
-    p.drawString(100, height - 90, text)
-    p.line(100, height - 92, 100 + text_width, height - 92)
+    p.drawCentredString(width / 2, height - 70, "RETIRO DE REPUESTOS")
 
-    # Finalizar el documento PDF
+    # Guardar el PDF en el buffer
     p.showPage()
     p.save()
 
-    # Obtener el contenido del PDF y enviarlo al navegador
+    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
 
+    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
-    return response
 
+    return response
 
 @login_required
 def generar_pdf_retiros_general(request):
     # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar', '')
+    search_term = request.GET.get('buscar')
 
     # Obtener todos los retiros de repuestos
     retiros = RetiroRepuesto.objects.all()
@@ -1627,7 +1617,7 @@ def generar_pdf_retiros_general(request):
 
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -1741,33 +1731,38 @@ def pedidos_dia(request):
     data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
     for insumo, totales in insumos_totales.items():
         total = totales['total']
+        # Añadir insumo y total
         data.append([insumo, total])
 
     # Estilo de la tabla
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ])
+
     table = Table(data)
     table.setStyle(style)
 
     # Posicionar la tabla
-    width, height = letter
-    table_width, table_height = table.wrap(width, height)
-    x = (width - table_width) / 2
-    y = height - table_height - 100
-    table.drawOn(p, x, y)
+    table_width, table_height = table.wrap(0, 0)
+    table.drawOn(p, 60, height - 250)
 
-    # Finalizar el PDF
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "INFORME DE INSUMOS POR DÍA")
+
+    # Guardar el PDF en el buffer
     p.showPage()
     p.save()
 
-    # Enviar el PDF como respuesta
+    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
     return response
 
@@ -1789,6 +1784,8 @@ def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
                     'total': 0,
                     'totales_por_periodo': {
                         'semana': 0,
+                        'mes': 0,
+                        'año': 0,
                     }
                 }
 
@@ -1839,6 +1836,99 @@ def pedidos_semana(request):
         # Añadir insumo y total
         data.append([insumo, total])
 
+    # Estilo de la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla
+    table_width, table_height = table.wrap(0, 0)
+    table.drawOn(p, 60, height - 250)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 12)
+    p.drawCentredString(width / 2, height - 70, "INFORME DE INSUMOS POR SEMANA")
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+    return response
+
+@login_required
+def generar_pdf_informes_por_dia(request):
+    from .models import Informe
+    from django.template.loader import get_template
+    from weasyprint import HTML
+    from datetime import datetime
+
+    fecha_str = request.GET.get('fecha')
+    if not fecha_str:
+        return HttpResponse('Debe proporcionar una fecha.', status=400)
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except ValueError:
+        return HttpResponse('Formato de fecha inválido.', status=400)
+
+    informes = Informe.objects.filter(fecha=fecha).order_by('hora_inicio')
+    if not informes.exists():
+        return HttpResponse('No hay informes para la fecha seleccionada.', status=404)
+
+    # Renderizar cada informe con su plantilla correspondiente y concatenar el HTML
+    html_parts = []
+    for informe in informes:
+        template = get_template(f'informes/pdf/caso_{informe.caso}.html')
+        html = template.render({'informe': informe})
+        html_parts.append(html)
+        # Salto de página eliminado para que los informes se impriman uno debajo del otro
+
+    # Unir todo el HTML
+    full_html = '<html><head><meta charset="utf-8"></head><body>' + '\n'.join(html_parts) + '</body></html>'
+    pdf = HTML(string=full_html, base_url=request.build_absolute_uri()).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="informes_{fecha}.pdf"'
+    return response
+
+
+def listar_informes(request):
+    informes = Informe
+   
+    insumos_totales = calcular_totales_semanales(pedidos, semana_inicio, semana_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_SEMANAL_{semana_inicio.strftime("%d_%m_%Y")}_a_{semana_fin.strftime("%d_%m_%Y")}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS SEMANALES ({semana_inicio.strftime('%d/%m/%Y')} - {semana_fin.strftime('%d/%m/%Y')})")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        semana_total = totales['totales_por_periodo']['semana']
+
+        # Añadir insumo y totales semanales
+        data.append(['INSUMO', insumo, totales['total']])
+        data.append(['TOTAL POR SEMANA', '', semana_total])
+
     # Estilo para la tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
@@ -1849,10 +1939,18 @@ def pedidos_semana(request):
     ])
 
     # Aplicar el estilo de fondo amarillo para las celdas específicas
-    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
-    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'CANTIDAD TOTAL'
-    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
-    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'CANTIDAD TOTAL'
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
 
     # Crear la tabla
     table = Table(data)
@@ -1880,6 +1978,445 @@ def pedidos_semana(request):
     response.write(pdf)
 
     return response
+
+@login_required
+def calcular_totales_mensuales(pedidos, mes_inicio, mes_fin):
+    insumos_totales = {}
+    semana_inicio = mes_inicio - timedelta(days=mes_inicio.weekday())
+    
+    while semana_inicio <= mes_fin:
+        semana_fin = semana_inicio + timedelta(days=6)
+        semana_pedidos = pedidos.filter(fecha_pedido__date__range=[semana_inicio, semana_fin])
+        
+        for pedido in semana_pedidos:
+            insumo = pedido.insumo.nombre
+            cantidad = pedido.cantidad
+
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                    'totales_por_periodo': {
+                        'semana': 0,
+                        'mes': 0,
+                    },
+                    'totales_por_semana': {}
+                }
+
+            # Calcular totales semanales
+            semana_key = f'Semana del {semana_inicio.strftime("%d-%m")} al {semana_fin.strftime("%d-%m")}'
+            if semana_key not in insumos_totales[insumo]['totales_por_semana']:
+                insumos_totales[insumo]['totales_por_semana'][semana_key] = 0
+
+            insumos_totales[insumo]['totales_por_semana'][semana_key] += cantidad
+            insumos_totales[insumo]['totales_por_periodo']['mes'] += cantidad
+            insumos_totales[insumo]['total'] += cantidad
+
+        semana_inicio += timedelta(days=7)
+
+    return insumos_totales
+
+
+@login_required
+def calcular_totales_semanales(pedidos, semana_inicio, semana_fin):
+    insumos_totales = {}
+
+    for pedido in pedidos:
+        insumo = pedido.insumo.nombre
+        cantidad = pedido.cantidad
+        fecha_pedido = pedido.fecha_pedido.date()
+
+        # Verificar si el pedido está dentro del rango de fechas de la semana
+        if semana_inicio <= fecha_pedido <= semana_fin:
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                    'totales_por_periodo': {
+                        'semana': 0,
+                    }
+                }
+
+            insumos_totales[insumo]['totales_por_periodo']['semana'] += cantidad
+            insumos_totales[insumo]['total'] += cantidad
+
+    return insumos_totales
+
+
+@login_required
+def pedidos_semanales(request):
+    search_term = request.GET.get('buscar')
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            semana_inicio = search_date - timedelta(days=search_date.weekday())
+            semana_fin = semana_inicio + timedelta(days=6)
+            
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date__range=[semana_inicio, semana_fin])
+            )
+        except ValueError:
+            pass
+    else:
+        # Si no hay término de búsqueda, usar la semana actual
+        hoy = datetime.now().date()
+        semana_inicio = hoy - timedelta(days=hoy.weekday())
+        semana_fin = semana_inicio + timedelta(days=6)
+        pedidos = pedidos.filter(
+            fecha_pedido__date__range=[semana_inicio, semana_fin]
+        )
+
+    # Calcular totales semanales
+    insumos_totales = calcular_totales_semanales(pedidos, semana_inicio, semana_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_SEMANAL_{semana_inicio.strftime("%d_%m_%Y")}_a_{semana_fin.strftime("%d_%m_%Y")}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS SEMANALES ({semana_inicio.strftime('%d/%m/%Y')} - {semana_fin.strftime('%d/%m/%Y')})")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        semana_total = totales['totales_por_periodo']['semana']
+
+        # Añadir insumo y totales semanales
+        data.append(['INSUMO', insumo, totales['total']])
+        data.append(['TOTAL POR SEMANA', '', semana_total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+
+
+
+MESES_EN_ESPAÑOL = {
+    "January": "Enero",
+    "February": "Febrero",
+    "March": "Marzo",
+    "April": "Abril",
+    "May": "Mayo",
+    "June": "Junio",
+    "July": "Julio",
+    "August": "Agosto",
+    "September": "Septiembre",
+    "October": "Octubre",
+    "November": "Noviembre",
+    "December": "Diciembre"
+}
+
+@login_required
+def pedidos_total(request):
+    search_term = request.GET.get('buscar')
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date=search_date)
+            )
+        except ValueError:
+            pass
+
+    # Calcular totales
+    insumos_totales = calcular_totales(pedidos)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="PEDIDOS_TOTAL.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, "INFORME DE INSUMOS")
+
+    # Obtener el mes y el año actual
+    fecha_actual = datetime.now()
+    mes_actual = fecha_actual.strftime("%B")
+    año_actual = fecha_actual.year
+
+    # Traducir el nombre del mes al español
+    mes_actual_es = MESES_EN_ESPAÑOL.get(mes_actual, mes_actual).capitalize()
+
+    # Agregar la fecha del mes y año
+    p.setFont("Helvetica", 12)
+    p.drawString(50, letter[1] - 80, f"Mes: {mes_actual_es} {año_actual}")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        total = totales['total']
+        mes_total = totales['totales_por_periodo']['mes']
+        año_total = totales['totales_por_periodo']['año']
+
+        # Añadir insumo y totales
+        data.append(['INSUMO', insumo, total])
+        data.append(['TOTAL POR MES', '', mes_total])
+        data.append(['TOTAL POR AÑO', '', año_total])
+
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 120  # Ajustar la posición vertical para incluir el texto de la fecha
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response
+
+
+
+@login_required
+def pedidos_mensuales(request):
+    search_term = request.GET.get('buscar')
+    pedidos = Pedido.objects.all()
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            mes_inicio = search_date.replace(day=1)
+            mes_fin = (mes_inicio + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+            
+            pedidos = pedidos.filter(
+                Q(solicitante__nombre__icontains=search_term) |
+                Q(compañia__nombre__icontains=search_term) |
+                Q(insumo__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(area__icontains=search_term) |
+                Q(fecha_pedido__date__range=[mes_inicio, mes_fin])
+            )
+        except ValueError:
+            pass
+    else:
+        hoy = datetime.now().date()
+        mes_inicio = hoy.replace(day=1)
+        mes_fin = (mes_inicio + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+        pedidos = pedidos.filter(
+            fecha_pedido__date__range=[mes_inicio, mes_fin]
+        )
+
+    # Calcular totales mensuales
+    insumos_totales = calcular_totales_mensuales(pedidos, mes_inicio, mes_fin)
+
+    # Crear el objeto PDF con ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_MENSUAL_{mes_inicio.strftime("%m_%Y")}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Obtener el nombre del mes en español
+    mes_nombre = MESES_EN_ESPAÑOL[mes_inicio.month]
+
+    # Agregar título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS MENSUALES ({mes_nombre} {mes_inicio.year})")
+
+    # Configurar la tabla
+    data = [['PERÍODO', 'NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
+    
+    for insumo, totales in insumos_totales.items():
+        mes_total = totales['totales_por_periodo']['mes']
+
+        # Añadir insumo y totales mensuales
+        data.append(['INSUMO', insumo, totales['total']])
+        data.append(['TOTAL POR MES', '', mes_total])
+        
+        # Añadir totales semanales con fechas
+        for semana, cantidad in totales['totales_por_semana'].items():
+            data.append([semana, '', cantidad])
+        
+    # Estilo para la tabla
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+
+    # Aplicar el estilo de fondo amarillo para las celdas específicas
+    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'PERÍODO'
+    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
+    style.add('BACKGROUND', (2, 0), (2, 0), colors.yellow)  # 'CANTIDAD TOTAL'
+    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'PERÍODO'
+    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
+    style.add('TEXTCOLOR', (2, 0), (2, 0), colors.black)  # 'CANTIDAD TOTAL'
+
+    # Aplicar el estilo para las celdas con 'INSUMO'
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            if isinstance(data[row][col], str) and 'INSUMO' in data[row][col]:
+                style.add('BACKGROUND', (col, row), (col, row), colors.yellow)
+
+    # Crear la tabla
+    table = Table(data)
+    table.setStyle(style)
+
+    # Posicionar la tabla en la página
+    width, height = letter
+    table_width, table_height = table.wrap(width, height)
+
+    # Calcular la posición para centrar la tabla horizontalmente
+    x = (width - table_width) / 2
+    y = height - table_height - 100  # Ajustar la posición vertical
+
+    table.drawOn(p, x, y)
+
+    # Guardar el PDF en el buffer
+    p.showPage()
+    p.save()
+
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Establecer el contenido del response con el PDF generado
+    response.write(pdf)
+
+    return response  
+
+
+def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
+    """
+    Calcula los totales por mes para cada insumo en los pedidos.
+    """
+    insumos_totales = {}
+
+    for pedido in pedidos:
+        for pedido_insumo in pedido.pedidoinsumo_set.all():
+            insumo = pedido_insumo.insumos.nombre
+            cantidad = pedido_insumo.cantidad
+
+            if insumo not in insumos_totales:
+                insumos_totales[insumo] = {
+                    'total': 0,
+                }
+
+            # Total general
+            insumos_totales[insumo]['total'] += cantidad
+
+    return insumos_totales
+
+
+
+def traducir_mes_en_espanol(fecha):
+    """ 
+    Traduce el mes al español.
+    """
+    meses = [
+        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+    ]
+    return meses[fecha.month - 1]
+
 
 @login_required
 def pedidos_mes(request):
@@ -1971,141 +2508,6 @@ def pedidos_mes(request):
 
     return response
 
-
-
-def calcular_totales_mes(pedidos, fecha_inicio, fecha_fin):
-    """
-    Calcula los totales por mes para cada insumo en los pedidos.
-    """
-    insumos_totales = {}
-
-    for pedido in pedidos:
-        for pedido_insumo in pedido.pedidoinsumo_set.all():
-            insumo = pedido_insumo.insumos.nombre
-            cantidad = pedido_insumo.cantidad
-
-            if insumo not in insumos_totales:
-                insumos_totales[insumo] = {
-                    'total': 0,
-                }
-
-            # Total general
-            insumos_totales[insumo]['total'] += cantidad
-
-    return insumos_totales
-
-
-
-def traducir_mes_en_espanol(fecha):
-    """ 
-    Traduce el mes al español.
-    """
-    meses = [
-        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-    ]
-    return meses[fecha.month - 1]
-
-@login_required
-def pedidos_anio(request):
-    anio_str = request.GET.get('anio')
-    if not anio_str:
-        return HttpResponse("Por favor, seleccione un año.")
-
-    try:
-        anio = int(anio_str)
-    except ValueError:
-        return HttpResponse("Año inválido. Asegúrese de ingresar un número válido.")
-
-    # Filtrar pedidos por el año seleccionado
-    pedidos = Pedido.objects.filter(fecha_pedido__year=anio)
-
-    # Calcular totales
-    insumos_totales = calcular_totales_anio(pedidos, anio)
-
-    # Crear el objeto PDF con ReportLab
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{anio}.pdf"'
-
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-
-    # Agregar título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS AÑO - {anio}")
-
-    # Configurar la tabla
-    data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
-    
-    for insumo, totales in insumos_totales.items():
-        total = totales['total']
-        data.append([insumo, total])
-
-    # Estilo para la tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Encabezado de la tabla
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
-
-    style.add('BACKGROUND', (0, 0), (0, 0), colors.yellow)  # 'NOMBRE DEL PRODUCTO'
-    style.add('BACKGROUND', (1, 0), (1, 0), colors.yellow)  # 'CANTIDAD TOTAL'
-    style.add('TEXTCOLOR', (0, 0), (0, 0), colors.black)  # 'NOMBRE DEL PRODUCTO'
-    style.add('TEXTCOLOR', (1, 0), (1, 0), colors.black)  # 'CANTIDAD TOTAL'
-
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla en la página
-    width, height = letter
-    table_width, table_height = table.wrap(width, height)
-
-    # Calcular la posición para centrar la tabla horizontalmente
-    x = (width - table_width) / 2
-    y = height - table_height - 100  # Ajustar la posición vertical
-
-    table.drawOn(p, x, y)
-
-    # Guardar el PDF en el buffer
-    p.showPage()
-    p.save()
-
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
-    response.write(pdf)
-
-    return response
-
-
-def calcular_totales_anio(pedidos, anio):
-    """
-    Calcula los totales por insumo en los pedidos de un año.
-    """
-    insumos_totales = {}
-
-    for pedido in pedidos:
-        for pedido_insumo in pedido.pedidoinsumo_set.all():
-            insumo = pedido_insumo.insumos.nombre
-            cantidad = pedido_insumo.cantidad
-
-            if insumo not in insumos_totales:
-                insumos_totales[insumo] = {
-                    'total': 0,
-                }
-
-            # Total general
-            insumos_totales[insumo]['total'] += cantidad
-
-    return insumos_totales
-
-
-
 from django.shortcuts import render
 from django.contrib import messages
 from tablib import Dataset
@@ -2153,7 +2555,6 @@ def upload_csv(request):
     return render(request, 'app/upload_csv.html')
 
 
-# views.py
 from django.core.paginator import Paginator
 
 @login_required
@@ -2324,8 +2725,6 @@ def generate_pdf(request, personal=None, empresa=None):
     result.seek(0)
 
     return HttpResponse(result, content_type='application/pdf')
-
-
 
 
 @login_required
@@ -2790,35 +3189,195 @@ def pedidos_mensuales(request):
 
 
 
+@login_required
 def crear_informe(request):
     if request.method == 'POST':
-        form = InformeForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('listar_informes')
+        caso = request.POST.get('caso')
+        if caso in ['2', '3', '4', '5']:
+            form_map = {
+                '2': InformeCaso2Form,
+                '3': InformeCaso3Form,
+                '4': InformeCaso4Form,
+                '5': InformeCaso5Form,
+            }
+            form_class = form_map[caso]
+            form_caso = form_class(request.POST, request.FILES)
+            form = InformeForm()
+            form_caso2 = InformeCaso2Form() if caso != '2' else form_caso
+            form_caso3 = InformeCaso3Form() if caso != '3' else form_caso
+            form_caso4 = InformeCaso4Form() if caso != '4' else form_caso
+            form_caso5 = InformeCaso5Form() if caso != '5' else form_caso
+            imagen_formset = ImagenInformeFormSet(request.POST, request.FILES)
+            imagen_solo_formset = ImagenSoloImagenFormSet()
+            if form_caso.is_valid() and imagen_formset.is_valid():
+                informe = form_caso.save()
+                imagen_formset.instance = informe
+                imagen_formset.save()
+                return redirect('listar_informes')
+        elif caso == '6':
+            form = InformeForm()
+            form_caso2 = InformeCaso2Form()
+            form_caso3 = InformeCaso3Form()
+            form_caso4 = InformeCaso4Form()
+            form_caso5 = InformeCaso5Form()
+            form_caso6 = InformeCaso6Form(request.POST, request.FILES)
+            imagen_formset = ImagenInformeFormSet()
+            imagen_solo_formset = ImagenSoloImagenFormSet(request.POST, request.FILES)
+            if form_caso6.is_valid() and imagen_solo_formset.is_valid():
+                informe = form_caso6.save()
+                imagen_solo_formset.instance = informe
+                imagen_solo_formset.save()
+                return redirect('listar_informes')
+        else:
+            form = InformeForm(request.POST, request.FILES)
+            form_caso2 = InformeCaso2Form()
+            form_caso3 = InformeCaso3Form()
+            form_caso4 = InformeCaso4Form()
+            form_caso5 = InformeCaso5Form()
+            form_caso6 = InformeCaso6Form()
+            imagen_formset = ImagenInformeFormSet()
+            imagen_solo_formset = ImagenSoloImagenFormSet()
+            if form.is_valid():
+                form.save()
+                return redirect('listar_informes')
     else:
         form = InformeForm()
-    return render(request, 'informes/crear.html', {'form': form})
+        form_caso2 = InformeCaso2Form()
+        form_caso3 = InformeCaso3Form()
+        form_caso4 = InformeCaso4Form()
+        form_caso5 = InformeCaso5Form()
+        form_caso6 = InformeCaso6Form()
+        imagen_formset = ImagenInformeFormSet()
+        imagen_solo_formset = ImagenSoloImagenFormSet()
+    return render(request, 'app/registrar_informe.html', {
+        'form': form,
+        'form_caso2': form_caso2,
+        'form_caso3': form_caso3,
+        'form_caso4': form_caso4,
+        'form_caso5': form_caso5,
+        'form_caso6': form_caso6,
+        'imagen_formset': imagen_formset,
+        'imagen_solo_formset': imagen_solo_formset,
+    })
 
+def extraer_tabla_html(html):
+    """Extrae solo el bloque <table>...</table> del HTML renderizado."""
+    start = html.find('<table')
+    end = html.find('</table>')
+    if start != -1 and end != -1:
+        return html[start:end+8]
+    return ''
+
+from weasyprint import HTML
+from django.template.loader import get_template
+
+import base64
+import os
+# ...existing imports...
+
+@login_required
+def generar_pdf_informes_tablas_unidas(request):
+    from .models import Informe
+    from datetime import datetime
+
+    fecha_str = request.GET.get('fecha')
+    if not fecha_str:
+        return HttpResponse('Debe proporcionar una fecha.', status=400)
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except ValueError:
+        return HttpResponse('Formato de fecha inválido.', status=400)
+
+    informes = Informe.objects.filter(fecha=fecha).order_by('hora_inicio')
+    if not informes.exists():
+        return HttpResponse('No hay informes para la fecha seleccionada.', status=404)
+
+    tablas_html = []
+    for informe in informes:
+        template = get_template(f'informes/pdf/caso_{informe.caso}.html')
+        html_render = template.render({'informe': informe})
+        tabla = extraer_tabla_html(html_render)
+        tablas_html.append(tabla)
+
+    # Convertir logos a base64
+    def img_to_base64(path):
+        try:
+            with open(path, 'rb') as img_file:
+                ext = os.path.splitext(path)[1].lower()
+                mime = 'image/png' if ext == '.png' else 'image/svg+xml' if ext == '.svg' else 'image/jpeg'
+                return f"data:{mime};base64," + base64.b64encode(img_file.read()).decode()
+        except Exception as e:
+            return ''
+
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logo_izq_path = os.path.join(base_dir, 'app', 'img', 'logo.png')
+    logo_der_path = os.path.join(base_dir, 'app', 'img', 'Logo.svg')
+    logo_izq_b64 = img_to_base64(logo_izq_path)
+    logo_der_b64 = img_to_base64(logo_der_path)
+
+    context = {
+        'tablas_html': tablas_html,
+        'fecha': fecha,
+        'logo_izq_b64': logo_izq_b64,
+        'logo_der_b64': logo_der_b64,
+    }
+    html_string = get_template('informes/pdf/informes_tablas_unidas.html').render(context)
+
+    # Guardar el HTML generado para depuración
+    with open(os.path.join(base_dir, 'html_generado_para_pdf.html'), 'w', encoding='utf-8') as f:
+        f.write(html_string)
+
+    pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename=\"informes_tablas_unidas_{fecha}.pdf\"'
+    return response
 
 def listar_informes(request):
-    informes = Informe.objects.all().order_by('-creado_en')
+    informes = Informe.objects.all().order_by('-fecha')
     return render(request, 'informes/listar.html', {'informes': informes})
-
-
 
 from django.template.loader import get_template
 from weasyprint import HTML
-from django.http import HttpResponse
 from .models import Informe
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
-def generar_pdf(request, informe_id):
+@login_required
+def generar_pdf_informe(request, informe_id):
     informe = Informe.objects.get(id=informe_id)
     template = get_template(f'informes/pdf/caso_{informe.caso}.html')
     html_string = template.render({'informe': informe}, request)
     pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
-
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="informe_{informe.id}.pdf"'
     return response
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import Informe, ImagenInforme
+import os
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def eliminar_informe(request, informe_id):
+    informe = get_object_or_404(Informe, id=informe_id)
+    if request.method == 'POST':
+        # Eliminar imágenes asociadas (ImagenInforme)
+        for imagen in informe.imagenes.all():
+            if imagen.imagen and os.path.isfile(imagen.imagen.path):
+                os.remove(imagen.imagen.path)
+        # Eliminar imagen_antes y imagen_despues si existen
+        if informe.imagen_antes and os.path.isfile(informe.imagen_antes.path):
+            os.remove(informe.imagen_antes.path)
+        if informe.imagen_despues and os.path.isfile(informe.imagen_despues.path):
+            os.remove(informe.imagen_despues.path)
+        informe.delete()
+        messages.success(request, 'Informe y sus imágenes eliminados correctamente.')
+        return redirect('listar_informes')
+    return render(request, 'informes/confirmar_eliminar.html', {'informe': informe})    
+
+
+
+
+
+    

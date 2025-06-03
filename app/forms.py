@@ -3,6 +3,7 @@ from django_select2.forms import Select2Widget, ModelSelect2Widget
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory, modelformset_factory
+from .models import ImagenInforme
 
 from .models import (
     Trabajador, Empresa, Obrero, Pedido, PedidoInsumo, 
@@ -214,9 +215,138 @@ class CustomUserCreationForm(UserCreationForm):
 class InformeForm(forms.ModelForm):
     class Meta:
         model = Informe
-        fields = ['caso', 'hora', 'tarea', 'descripcion', 'desde', 'hasta', 'imagen_antes', 'imagen_despues']
+        fields = [
+            'caso',
+            'area',
+            'hora_inicio',
+            'hora_culm',
+            'descripcion',
+            'fecha',
+            'imagen_antes',
+            'imagen_despues',
+        ]
         widgets = {
-            'hora': forms.TimeInput(attrs={'type': 'time'}),
-            'desde': forms.DateInput(attrs={'type': 'date'}),
-            'hasta': forms.DateInput(attrs={'type': 'date'}),
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_culm': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
+
+
+class InformeCaso2Form(forms.ModelForm):
+    class Meta:
+        model = Informe
+        fields = [
+            'caso',
+            'area',
+            'hora_inicio',
+            'hora_culm',
+            'descripcion',
+            'fecha',
+           
+        ]
+        widgets = {
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_culm': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class InformeCaso3Form(forms.ModelForm):
+    class Meta:
+        model = Informe
+        fields = [
+            'caso',
+            'area',
+            'hora_inicio',
+            'hora_culm',
+            'descripcion',
+            'fecha',
+            
+        ]
+        widgets = {
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_culm': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            
+            
+        }
+
+
+class InformeCaso4Form(forms.ModelForm):
+    class Meta:
+        model = Informe
+        fields = [
+            'caso',
+            'area',
+            'hora_inicio',
+            'hora_culm',
+            'descripcion',
+            'fecha',
+            
+        ]
+        widgets = {
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_culm': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class InformeCaso5Form(forms.ModelForm):
+    class Meta:
+        model = Informe
+        fields = [
+            'caso',
+            'area',
+            'hora_inicio',
+            'hora_culm',
+            'descripcion',
+            'fecha',
+            
+        ]
+        widgets = {
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_culm': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class InformeCaso6Form(forms.ModelForm):
+    class Meta:
+        model = Informe
+        fields = [
+            'caso',
+            'area',
+            'hora_inicio',
+            'hora_culm',
+            'descripcion',
+            'piezas',
+            'fecha',
+            'imagen_antes',
+            'imagen_despues',
+        ]
+        widgets = {
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_culm': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'piezas': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+ImagenInformeFormSet = inlineformset_factory(
+    Informe, ImagenInforme,
+    fields=("ot", "imagen"),  # Solo ot e imagen
+    extra=1,
+    can_delete=True
+)
+
+# Formset para imágenes sin OT (caso 6)
+ImagenSoloImagenFormSet = inlineformset_factory(
+    Informe, ImagenInforme,
+    fields=("imagen",),  # Solo imagen
+    extra=1,
+    can_delete=True
+)

@@ -1,8 +1,12 @@
 from django.contrib import admin
 from .models import (
     Empresa, Obrero, Material, Trabajador, Pedido, Herramienta, 
-    Prestamo, Repuesto, RetiroRepuesto, Utilesaseo, Producto, congelado, PedidoInsumo
+    Prestamo, Repuesto, RetiroRepuesto, Utilesaseo, Producto, congelado, PedidoInsumo, Informe
 )
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from .models import ImagenInforme
+import os
 
 # Admin de Repuesto
 @admin.register(Repuesto)
@@ -59,6 +63,39 @@ class PedidoAdmin(admin.ModelAdmin):
 class PedidoInsumoAdmin(admin.ModelAdmin):
     list_display = ['pedido', 'insumos', 'cantidad']
     list_filter = ['pedido']
+
+# Admin de Informe
+@admin.register(Informe)
+class InformeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'caso', 'area', 'hora_inicio', 'hora_culm', 'fecha', 'imagen_antes', 'imagen_despues')
+    search_fields = ('descripcion',)
+    list_filter = ('caso', 'fecha')
+
+    def delete_model(self, request, obj):
+        # Elimina imágenes asociadas en disco
+        for imagen in obj.imagenes.all():
+            if imagen.imagen and os.path.isfile(imagen.imagen.path):
+                os.remove(imagen.imagen.path)
+        # Elimina imágenes antes/después si existen
+        if obj.imagen_antes and os.path.isfile(obj.imagen_antes.path):
+            os.remove(obj.imagen_antes.path)
+        if obj.imagen_despues and os.path.isfile(obj.imagen_despues.path):
+            os.remove(obj.imagen_despues.path)
+        super().delete_model(request, obj)
+
+# Eliminar archivos de ImagenInforme al borrar desde cualquier lugar
+@receiver(post_delete, sender=ImagenInforme)
+def eliminar_archivo_imagen(sender, instance, **kwargs):
+    if instance.imagen and os.path.isfile(instance.imagen.path):
+        os.remove(instance.imagen.path)
+
+# Eliminar archivos de imagen_antes y imagen_despues al borrar Informe desde cualquier lugar
+@receiver(post_delete, sender=Informe)
+def eliminar_imagenes_informe(sender, instance, **kwargs):
+    if instance.imagen_antes and os.path.isfile(instance.imagen_antes.path):
+        os.remove(instance.imagen_antes.path)
+    if instance.imagen_despues and os.path.isfile(instance.imagen_despues.path):
+        os.remove(instance.imagen_despues.path)
 
 # Registro de modelos
 admin.site.register(PedidoInsumo, PedidoInsumoAdmin)

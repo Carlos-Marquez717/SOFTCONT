@@ -1,0 +1,70 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informes del día {{ fecha }}</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 4px 6px;
+            text-align: center;
+        }
+        th {
+            background: #222;
+            color: #fff;
+        }
+        .img-cell img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>CASO</th>
+                <th>ÁREA</th>
+                <th>HORA INICIO</th>
+                <th>HORA CULMINACIÓN</th>
+                <th>DESCRIPCIÓN</th>
+                <th>IMAGEN ANTES</th>
+                <th>IMAGEN DESPUÉS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for informe in informes %}
+            <tr>
+                <td>{{ informe.id }}</td>
+                <td>{{ informe.get_caso_display }}</td>
+                <td>{{ informe.area }}</td>
+                <td>{{ informe.hora_inicio }}</td>
+                <td>{{ informe.hora_culm }}</td>
+                <td>{{ informe.descripcion|truncatewords:15 }}</td>
+                <td class="img-cell">
+                    {% if informe.imagen_antes %}
+                        <img src="{{ informe.imagen_antes.url }}" alt="Imagen Antes">
+                    {% else %}Sin imagen{% endif %}
+                </td>
+                <td class="img-cell">
+                    {% if informe.imagen_despues %}
+                        <img src="{{ informe.imagen_despues.url }}" alt="Imagen Después">
+                    {% else %}Sin imagen{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,5 +1,3 @@
-
-
 import dj_database_url
 from dotenv import load_dotenv
 import os
@@ -22,13 +20,8 @@ SECRET_KEY = 'django-insecure-=c*xc^a^%l2l%0*m=66o*bxeo*(m2w_n+mb2d@tn8#^awgtpwa
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# settings.py
-
-
 ALLOWED_HOSTS = ["*"]
 
-
-# Edit the following line and place your railway URL, and your custom URL in the array.
 CSRF_TRUSTED_ORIGINS = [
     "https://*.up.railway.app", 
     # NOTE: Place your custom url here if any
@@ -181,14 +174,13 @@ WSGI_APPLICATION = 'bodega.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.environ["PGDATABASE"],
-        "USER": os.environ["PGUSER"],
-        "PASSWORD": os.environ["PGPASSWORD"],
-        "HOST": os.environ["PGHOST"],
-        "PORT": os.environ["PGPORT"],
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -243,6 +235,9 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 RUTINAS_DIR = os.path.join(BASE_DIR, 'rutinas')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+MEDIA_URL = '/anexos/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'anexos')
 
 
 

@@ -1,0 +1,294 @@
+{% extends 'app/base.html' %}
+{% load static %}
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+<style>
+  .select2-container--bootstrap4 .select2-selection--single {
+      background-color: white;
+      border: 1px solid #ced4da;
+      border-radius: 0.25rem;
+      color: black;
+      height: calc(2.25rem + 2px);
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+      color: black;
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+      height: calc(2.25rem + 2px);
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__placeholder {
+      color: #6c757d;
+  }
+</style>
+<br><br><br>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center"> <!-- Cambiado de col-md-6 a col-md-4 -->
+      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4">
+      <h2 class="card-header text-center">REGISTRAR INFORME</h2>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+            <select name="caso" id="id_caso" class="form-control select2">
+              <option value="">---------</option>
+              {% for value, label in form.fields.caso.choices %}
+                <option value="{{ value }}" {% if form.caso.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          <div id="form-caso1" class="form-caso" style="display:none;">
+            <label for="id_area" class="w-100 text-center">Área</label>
+            <div class="d-flex justify-content-center">{{ form.area }}</div>
+            <label for="id_hora_inicio" class="w-100 text-center">Hora de inicio</label>
+            <div class="d-flex justify-content-center">{{ form.hora_inicio }}</div>
+            <label for="id_hora_culm" class="w-100 text-center">Hora de culminación</label>
+            <div class="d-flex justify-content-center">{{ form.hora_culm }}</div>
+            <label for="id_descripcion" class="w-100 text-center">Descripción</label>
+            <div class="d-flex justify-content-center">{{ form.descripcion }}</div>
+            <label for="id_fecha" class="w-100 text-center">Fecha</label>
+            <div class="d-flex justify-content-center">{{ form.fecha }}</div>
+            <label for="id_imagen_antes" class="w-100 text-center">Imagen antes</label>
+            <div class="d-flex justify-content-center">{{ form.imagen_antes }}</div>
+            <label for="id_imagen_despues" class="w-100 text-center">Imagen después</label>
+            <div class="d-flex justify-content-center">{{ form.imagen_despues }}</div>
+          </div>
+          <div id="form-caso2" class="form-caso" style="display:none;">
+            <label for="id_area" class="w-100 text-center">Área</label>
+            <div class="d-flex justify-content-center">{{ form_caso2.area }}</div>
+            <label for="id_hora_inicio" class="w-100 text-center">Hora de inicio</label>
+            <div class="d-flex justify-content-center">{{ form_caso2.hora_inicio }}</div>
+            <label for="id_hora_culm" class="w-100 text-center">Hora de culminación</label>
+            <div class="d-flex justify-content-center">{{ form_caso2.hora_culm }}</div>
+            <label for="id_descripcion" class="w-100 text-center">Descripción</label>
+            <div class="d-flex justify-content-center">{{ form_caso2.descripcion }}</div>
+            
+       
+            <label for="id_fecha" class="w-100 text-center">Fecha</label>
+            <div class="d-flex justify-content-center">{{ form_caso2.fecha }}</div>
+            <label class="w-100 text-center">OTs retiradas</label>
+            <div id="imagenes-formset-caso2">
+              {{ imagen_formset.management_form }}
+              {% for form in imagen_formset %}
+                <div class="card mb-2 p-2 bg-secondary">
+                  <div class="row">
+                    <div class="col-md-6">{{ form.ot.label_tag }}{{ form.ot }}</div>
+                    <div class="col-md-6">{{ form.imagen.label_tag }}{{ form.imagen }}</div>
+                  </div>
+                  {% if form.DELETE %}
+                    <div>{{ form.DELETE }} <span>Eliminar</span></div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              <button type="button" class="btn btn-sm btn-info" id="add-image-caso2">Agregar imagen</button>
+            </div>
+          </div>
+          <div id="form-caso3" class="form-caso" style="display:none;">
+            <label for="id_area" class="w-100 text-center">Área</label>
+            <div class="d-flex justify-content-center">{{ form.area }}</div>
+            <label for="id_hora_inicio" class="w-100 text-center">Hora de inicio</label>
+            <div class="d-flex justify-content-center">{{ form_caso3.hora_inicio }}</div>
+            <label for="id_hora_culm" class="w-100 text-center">Hora de culminación</label>
+            <div class="d-flex justify-content-center">{{ form_caso3.hora_culm }}</div>
+            <label for="id_descripcion" class="w-100 text-center">Descripción</label>
+            <div class="d-flex justify-content-center">{{ form_caso3.descripcion }}</div>
+            <label for="id_fecha" class="w-100 text-center">Fecha</label>
+            <div class="d-flex justify-content-center">{{ form_caso3.fecha }}</div>
+            <label class="w-100 text-center">OTs generadas</label>
+            <div id="imagenes-formset-caso3">
+              {{ imagen_formset.management_form }}
+              {% for form in imagen_formset %}
+                <div class="card mb-2 p-2 bg-secondary">
+                  <div class="row">
+                    <div class="col-md-6">{{ form.ot.label_tag }}{{ form.ot }}</div>
+                    <div class="col-md-6">{{ form.imagen.label_tag }}{{ form.imagen }}</div>
+                  </div>
+                  {% if form.DELETE %}
+                    <div>{{ form.DELETE }} <span>Eliminar</span></div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              <button type="button" class="btn btn-sm btn-info" id="add-image-caso3">Agregar imagen</button>
+            </div>
+          </div>
+          <div id="form-caso4" class="form-caso" style="display:none;">
+            <label for="id_area" class="w-100 text-center">Área</label>
+            <div class="d-flex justify-content-center">{{ form.area }}</div>
+            <label for="id_hora_inicio" class="w-100 text-center">Hora de inicio</label>
+            <div class="d-flex justify-content-center">{{ form_caso4.hora_inicio }}</div>
+            <label for="id_hora_culm" class="w-100 text-center">Hora de culminación</label>
+            <div class="d-flex justify-content-center">{{ form_caso4.hora_culm }}</div>
+            <label for="id_descripcion" class="w-100 text-center">Descripción</label>
+            <div class="d-flex justify-content-center">{{ form_caso4.descripcion }}</div>
+            <label for="id_fecha" class="w-100 text-center">Fecha</label>
+            <div class="d-flex justify-content-center">{{ form_caso4.fecha }}</div>
+            <label class="w-100 text-center">OT PAÑOL</label>
+            <div id="imagenes-formset-caso4">
+              {{ imagen_formset.management_form }}
+              {% for form in imagen_formset %}
+                <div class="card mb-2 p-2 bg-secondary">
+                  <div class="row">
+                    <div class="col-md-6">{{ form.ot.label_tag }}{{ form.ot }}</div>
+                    <div class="col-md-6">{{ form.imagen.label_tag }}{{ form.imagen }}</div>
+                  </div>
+                  {% if form.DELETE %}
+                    <div>{{ form.DELETE }} <span>Eliminar</span></div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              <button type="button" class="btn btn-sm btn-info" id="add-image-caso4">Agregar imagen</button>
+            </div>
+          </div>
+          <div id="form-caso5" class="form-caso" style="display:none;">
+            <label for="id_area" class="w-100 text-center">Área</label>
+            <div class="d-flex justify-content-center">{{ form.area }}</div>
+            <label for="id_hora_inicio" class="w-100 text-center">Hora de inicio</label>
+            <div class="d-flex justify-content-center">{{ form_caso5.hora_inicio }}</div>
+            <label for="id_hora_culm" class="w-100 text-center">Hora de culminación</label>
+            <div class="d-flex justify-content-center">{{ form_caso5.hora_culm }}</div>
+            <label for="id_descripcion" class="w-100 text-center">Descripción</label>
+            <div class="d-flex justify-content-center">{{ form_caso5.descripcion }}</div>
+            <label for="id_ots_cargadas" class="w-100 text-center">OTs cargadas</label>
+            <div class="d-flex justify-content-center">{{ form_caso5.ots_cargadas }}</div>
+            <label for="id_fecha" class="w-100 text-center">Fecha</label>
+            <div class="d-flex justify-content-center">{{ form_caso5.fecha }}</div>
+            <label class="w-100 text-center">Imágenes asociadas a OTs</label>
+            <div id="imagenes-formset-caso5">
+              {{ imagen_formset.management_form }}
+              {% for form in imagen_formset %}
+                <div class="card mb-2 p-2 bg-secondary">
+                  <div class="row">
+                    <div class="col-md-6">{{ form.ot.label_tag }}{{ form.ot }}</div>
+                    <div class="col-md-6">{{ form.imagen.label_tag }}{{ form.imagen }}</div>
+                  </div>
+                  {% if form.DELETE %}
+                    <div>{{ form.DELETE }} <span>Eliminar</span></div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              <button type="button" class="btn btn-sm btn-info" id="add-image-caso5">Agregar imagen</button>
+            </div>
+          </div>
+            <div id="form-caso6" class="form-caso" style="display:none;"> <br>
+                <label for="id_area" class="w-100 text-center">Área</label>
+                <div class="d-flex justify-content-center">{{ form_caso6.area }}</div>
+                <label for="id_hora_inicio" class="w-100 text-center">Hora de inicio</label>
+                <div class="d-flex justify-content-center">{{ form_caso6.hora_inicio }}</div>
+                <label for="id_hora_culm" class="w-100 text-center">Hora de culminación</label>
+                <div class="d-flex justify-content-center">{{ form_caso6.hora_culm }}</div>
+                <label for="id_descripcion" class="w-100 text-center">Descripción</label>
+                <div class="d-flex justify-content-center">{{ form_caso6.descripcion }}</div>
+                <label for="id_fecha" class="w-100 text-center">Fecha</label>
+                <div class="d-flex justify-content-center">{{ form_caso6.fecha }}</div>
+                <label for="id_piezas" class="w-100 text-center">Piezas</label>
+                <div class="d-flex justify-content-center">{{ form_caso6.piezas }}</div>
+                <label class="w-100 text-center">Imágenes (anexos)</label>
+                <div id="imagenes-formset-caso6">
+                  {{ imagen_solo_formset.management_form }}
+                  {% for form in imagen_solo_formset %}
+                    <div class="card mb-2 p-2 bg-secondary">
+                      <div class="row">
+                        <div class="col-md-12">{{ form.imagen.label_tag }}{{ form.imagen }}</div>
+                      </div>
+                      {% if form.DELETE %}
+                        <div>{{ form.DELETE }} <span>Eliminar</span></div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                  <button type="button" class="btn btn-sm btn-info" id="add-image-caso6">Agregar imagen</button>
+                </div>
+            </div>
+          <button type="submit" class="btn btn-primary mt-3">Registrar</button>
+        </form>
+        {% if form_caso2.errors %}
+          <div class="alert alert-danger">
+            {{ form_caso2.errors }}
+          </div>
+        {% endif %}
+        {% if imagen_formset.non_form_errors %}
+          <div class="alert alert-danger">
+            {{ imagen_formset.non_form_errors }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function() {
+    $('.select2').select2();
+    function mostrarFormularioPorCaso() {
+      var caso = $('#id_caso').val();
+      $('.form-caso').hide();
+      // Deshabilitar todos los campos de todos los formularios de caso
+      $('#form-caso1 :input').prop('disabled', true);
+      $('#form-caso2 :input').prop('disabled', true);
+      $('#form-caso3 :input').prop('disabled', true);
+      $('#form-caso4 :input').prop('disabled', true);
+      $('#form-caso5 :input').prop('disabled', true);
+      $('#form-caso6 :input').prop('disabled', true);
+      // Habilitar solo el formulario del caso seleccionado
+      if (caso === '1') {
+        $('#form-caso1').show();
+        $('#form-caso1 :input').prop('disabled', false);
+      } else if (caso === '2') {
+        $('#form-caso2').show();
+        $('#form-caso2 :input').prop('disabled', false);
+      } else if (caso === '3') {
+        $('#form-caso3').show();
+        $('#form-caso3 :input').prop('disabled', false);
+      } else if (caso === '4') {
+        $('#form-caso4').show();
+        $('#form-caso4 :input').prop('disabled', false);
+      } else if (caso === '5') {
+        $('#form-caso5').show();
+        $('#form-caso5 :input').prop('disabled', false);
+        $('#form-caso5 select, #form-caso5 input').prop('disabled', false); // Habilita todos los campos, incluidos los de imágenes y OT
+      } else if (caso === '6') {
+        $('#form-caso6').show();
+        $('#form-caso6 :input').prop('disabled', false);
+        $('#imagenes-formset-caso6 :input').prop('disabled', false); // Habilita los campos del formset de imágenes
+      }
+    }
+    $('#id_caso').on('change', mostrarFormularioPorCaso);
+    mostrarFormularioPorCaso(); // Ejecutar al cargar la página
+
+    // --- AGREGAR IMAGENES DINAMICAMENTE EN FORMSET ---
+    function setupAddImageBtn(formsetDivId, btnId) {
+      var $formsetDiv = $(formsetDivId);
+      var $addBtn = $(btnId);
+      var totalFormsInput = $formsetDiv.find('input[name$="-TOTAL_FORMS"]');
+      $addBtn.off('click').on('click', function() {
+        var totalForms = parseInt(totalFormsInput.val());
+        var $emptyForm = $formsetDiv.find('.card').last().clone();
+        // Limpiar los valores
+        $emptyForm.find('input, select').each(function() {
+          var name = $(this).attr('name');
+          if (name) {
+            var newName = name.replace(/-(\d+)-/, '-' + totalForms + '-');
+            $(this).attr('name', newName);
+            $(this).attr('id', 'id_' + newName);
+            if ($(this).is(':checkbox') || $(this).is(':radio')) {
+              $(this).prop('checked', false);
+            } else {
+              $(this).val('');
+            }
+          }
+        });
+        // Eliminar el campo DELETE si existe
+        $emptyForm.find('input[type="checkbox"][name$="-DELETE"]').prop('checked', false);
+        // Agregar el nuevo form
+        $formsetDiv.append($emptyForm);
+        totalFormsInput.val(totalForms + 1);
+      });
+    }
+    // Solo para caso 2 (puedes replicar para otros casos si lo deseas)
+    setupAddImageBtn('#imagenes-formset-caso2', '#add-image-caso2');
+    setupAddImageBtn('#imagenes-formset-caso3', '#add-image-caso3');
+    setupAddImageBtn('#imagenes-formset-caso4', '#add-image-caso4');
+    setupAddImageBtn('#imagenes-formset-caso5', '#add-image-caso5');
+    setupAddImageBtn('#imagenes-formset-caso6', '#add-image-caso6');
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>ABASTECIMIENTO PAÑOL</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding: 0; }
+        h2 { text-align: center; margin: 0 0 4px 0; font-size: 15px; letter-spacing: 1px; }
+        table { width: 100%; border-collapse: collapse; margin: 0; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: center; word-break: break-word; font-size: 11px; }
+        .bg-yellow { background-color: #FFC000; font-weight: bold; }
+        .anexo-img { height: 100px; width: 100%; object-fit: cover; border: 1px solid #000; }
+        .no-img { height: 100px; border: 1px dashed #aaa; display: flex; align-items: center; justify-content: center; }
+        .anexo-label { font-weight: bold; }
+        .italic { font-style: italic; }
+        .imagenes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            width: 100%;
+            margin-top: 4px;
+            page-break-inside: avoid;
+        }
+        .imagenes-grid img,
+        .imagenes-grid .no-img {
+            width: 100%;
+            height: 100px;
+            object-fit: contain;
+            border: 1px solid #000;
+        }
+        .anexo-titulo {
+            font-weight: bold;
+            text-align: center;
+            padding: 2px;
+            background-color: #ddd;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            background: #f5f5f5;
+            padding: 2px 0;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+        @media print {
+            .imagenes-grid { page-break-inside: avoid; }
+            tr, td, th { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <tr>
+            <th class="bg-yellow" style="width:5%"><span class="italic">N°</span></th>
+            <th class="bg-yellow" style="width:10%">HORA<br>INICIO</th>
+            <th class="bg-yellow" style="width:10%">HORA<br>FINAL</th>
+            <th class="bg-yellow" style="width:15%"><span class="italic">TAREA</span></th>
+            <th class="bg-yellow" style="width:15%"><span class="italic">ÁREA</span></th>
+            <th class="bg-yellow" style="width:30%"><span class="italic">DESCRIPCIÓN</span></th>
+        </tr>
+        <tr>
+            <td>{{ informe.id }}</td>
+            <td>{{ informe.hora_inicio }}</td>
+            <td>{{ informe.hora_culm }}</td>
+            <td> ABASTECIMIENTO PAÑOL</td>
+            <td> {{ informe.area }}</td>
+            <td>{{ informe.descripcion }}</td>
+        </tr>
+        <tr>
+            <td class="bg-yellow" colspan="6" style="font-size:13px; text-align:center;">OT SUMINISTRADA</td>
+        </tr>
+        <tr>
+            <td colspan="6" style="text-align:center; font-weight:bold;">
+                {% for imagen in informe.imagenes.all %}{{ imagen.ot }}{% if not forloop.last %} | {% endif %}{% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td colspan="6" class="bg-yellow section-title"><span class="italic">ANEXO ABASTECIMIENTO</span></td>
+        </tr>
+        <tr>
+            <td colspan="6">
+                <div class="imagenes-grid">
+                    {% for imagen in informe.imagenes.all %}
+                        <div>
+                            <div class="anexo-titulo">{{ imagen.ot }}</div>
+                            {% if imagen.imagen %}
+                                <img src="{{ imagen.imagen.url }}" alt="{{ imagen.ot }}">
+                            {% else %}
+                                <div class="no-img">Sin imagen</div>
+                            {% endif %}
+                        </div>
+                        {% if forloop.counter|divisibleby:4 and not forloop.last %}
+                            </div><div class="imagenes-grid" style="page-break-before: always;">
+                        {% endif %}
+                    {% empty %}
+                        <div class="no-img">Sin imágenes</div>
+                    {% endfor %}
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

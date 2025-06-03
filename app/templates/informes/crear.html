@@ -11,69 +11,136 @@
   rel="stylesheet"
 />
 
-<br /><br /><br />
+<style>
+  .custom-form-card {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    border-radius: 18px;
+    padding: 2.5rem 2rem 2rem 2rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    max-width: 550px;
+  }
+  .custom-form-card label {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: #fff;
+  }
+  .custom-form-card .form-group {
+    margin-bottom: 1.3rem;
+  }
+  .custom-form-card textarea {
+    min-height: 90px;
+    resize: vertical;
+  }
+  .custom-form-card .select2-container--bootstrap4 .select2-selection {
+    background: #343a40;
+    color: #fff;
+    border: 1px solid #6c757d;
+    border-radius: 0.25rem;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    /* Fix vertical alignment */
+  }
+  .custom-form-card .select2-container--bootstrap4 .select2-selection__rendered {
+    color: #fff !important;
+    line-height: 38px !important;
+    padding-left: 8px !important;
+    padding-right: 30px !important;
+    /* Ensure text stays inside the field */
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .custom-form-card .select2-container--bootstrap4 .select2-selection__arrow {
+    color: #fff;
+    height: 38px !important;
+    right: 8px;
+  }
+  .custom-form-card .select2-container--bootstrap4 .select2-results__option--highlighted {
+    background: #007bff !important;
+    color: #fff !important;
+  }
+  .custom-form-card .select2-container--bootstrap4 .select2-results__option[aria-selected=true] {
+    background: #343a40 !important;
+    color: #fff !important;
+  }
+  .custom-form-card .select2-dropdown {
+    background: #343a40 !important;
+    color: #fff !important;
+  }
+</style>
+
+<br /><br />
 
 <div class="container">
   <div class="row justify-content-center">
-    <div class="card bg-dark text-white col-md-8 col-lg-5 mx-auto">
+    <div class="card bg-dark text-white custom-form-card mx-auto">
       <img
         src="{% static 'app/imgenes/Logo.png' %}"
         alt="Logo"
         class="img-fluid mb-4 mx-auto d-block"
-        style="width: 80%; height: auto"
+        style="width: 70%; height: auto"
       />
 
-      <h3 class="card-header text-center">CREAR INFORME</h3>
+      <h3 class="card-header text-center bg-transparent border-0 mb-4">
+        CREAR INFORME
+      </h3>
 
       <div class="card-body">
         <form method="POST" enctype="multipart/form-data">
           {% csrf_token %}
 
           <div class="form-group">
-            <label for="id_caso">Tipo de Caso</label>
-            {{ form.caso }}
+            <label for="id_caso">TIPO DE CASO</label>
+            <select name="caso" id="id_caso" class="form-control select2">
+              <option value="">---------</option>
+              {% for value, label in form.fields.caso.choices %}
+                <option value="{{ value }}" {% if form.caso.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
           </div>
 
           <div class="form-group">
-            <label for="id_hora">Hora</label>
-            {{ form.hora }}
+            <label for="id_hora_inicio">HORA DE INICIO</label>
+            {{ form.hora_inicio }}
           </div>
 
           <div class="form-group">
-            <label for="id_tarea">Tarea</label>
-            {{ form.tarea }}
+            <label for="id_hora_culm">HORA DE CULMINACION</label>
+            {{ form.hora_culm }}
           </div>
 
           <div class="form-group">
-            <label for="id_descripcion">Descripción</label>
-            {{ form.descripcion }}
+            <label for="id_fecha">FECHA</label>
+            {{ form.fecha }}
+          </div>
+
+          <div class="form-group text-center">
+            <label for="id_descripcion" style="display:block; text-align:center; font-weight:600; color:#fff;">DESCRIPCION</label>
+            <div style="display:flex; justify-content:center;">
+              <div style="width:100%; max-width:600px;">
+                {{ form.descripcion }}
+              </div>
+            </div>
           </div>
 
           <div class="form-group">
-            <label for="id_desde">Desde</label>
-            {{ form.desde }}
-          </div>
-
-          <div class="form-group">
-            <label for="id_hasta">Hasta</label>
-            {{ form.hasta }}
-          </div>
-
-          <div class="form-group">
-            <label for="id_imagen_antes">Imagen Antes</label>
+            <label for="id_imagen_antes">IMAGEN ANTES</label>
             {{ form.imagen_antes }}
           </div>
 
           <div class="form-group">
-            <label for="id_imagen_despues">Imagen Después</label>
+            <label for="id_imagen_despues">IMAGEN DESPUES</label>
             {{ form.imagen_despues }}
           </div>
 
-          <div class="d-flex justify-content-between mt-3">
-            <button type="submit" class="btn btn-primary">
+          <div class="d-flex justify-content-between mt-4">
+            <button type="submit" class="btn btn-primary px-4">
               <i class="fas fa-save"></i> Guardar
             </button>
-            <button type="reset" class="btn btn-warning">
+            <button type="reset" class="btn btn-warning px-4">
               <i class="fas fa-eraser"></i> Limpiar
             </button>
           </div>
@@ -94,9 +161,12 @@
 
 <script>
   $(document).ready(function () {
-    $("select").select2({
+    $(".select2").select2({
       width: "100%",
       theme: "bootstrap4",
+      dropdownParent: $('.custom-form-card'),
+      placeholder: 'Selecciona un caso',
+      allowClear: true
     });
   });
 </script>

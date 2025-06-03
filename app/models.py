@@ -228,19 +228,26 @@ class Informe(models.Model):
     ]
 
     caso = models.CharField(max_length=1, choices=CASOS)
-    hora = models.TimeField()
-    tarea = models.CharField(max_length=255)
+    area = models.CharField(max_length=100)
+    hora_inicio = models.TimeField()
+    hora_culm = models.TimeField()
     descripcion = models.TextField()
-    desde = models.DateField(blank=True, null=True)
-    hasta = models.DateField(blank=True, null=True)
-    creado_en = models.DateTimeField(auto_now_add=True)
-
-    # Campos específicos para CASO 1
+    fecha = models.DateField()
     imagen_antes = models.ImageField(upload_to='anexos/', blank=True, null=True)
     imagen_despues = models.ImageField(upload_to='anexos/', blank=True, null=True)
-
-    # (En el futuro: otros campos específicos de casos aquí)
+    
+    ots_generadas = models.TextField(blank=True, null=True)
+    ot_panol = models.TextField(blank=True, null=True)
+    ots_cargadas = models.TextField(blank=True, null=True)
+    piezas = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Informe Caso {self.get_caso_display()} - {self.creado_en.date()}"
+        return f"Informe Caso {self.get_caso_display()} - {self.fecha}"
 
+class ImagenInforme(models.Model):
+    informe = models.ForeignKey('Informe', on_delete=models.CASCADE, related_name='imagenes')
+    ot = models.CharField(max_length=100, verbose_name="N° OT o Dato")
+    imagen = models.ImageField(upload_to='anexos/')
+
+    def __str__(self):
+        return f"{self.ot}"

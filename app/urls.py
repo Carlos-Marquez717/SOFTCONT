@@ -14,8 +14,8 @@ from .views import (
     registro_utilesaseo, generar_pdf_utiles_aseo, registro_pedido_success, 
     registro_prestamo_success, registro_RetiroRepuesto_success, generar_pdf_retiro, 
     generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia,pedidos_semana,
-    pedidos_mes,pedidos_anio,upload_csv,lista_congelado,generate_pdf,pagina_con_botones,register,crear_informe,listar_informes
-
+    pedidos_mes,upload_csv,lista_congelado,generate_pdf,pagina_con_botones,register,crear_informe,listar_informes,
+    generar_pdf_informe, generar_pdf_informes_por_dia, eliminar_informe
 )
 
 urlpatterns = [
@@ -70,7 +70,7 @@ urlpatterns = [
     path('pedidos_semanales/', pedidos_semanales, name='pedidos_semanales'),
     path('pedidos_semana/', pedidos_semana, name='pedidos_semana'),
     path('pedidos_mes/', pedidos_mes, name='pedidos_mes'),
-    path('pedidos-anio/', pedidos_anio, name='pedidos_anio'),
+    
     path('pedidos_mensuales/', pedidos_mensuales, name='pedidos_mensuales'),
     path('generar_pdf_prestamos/', generar_pdf_prestamos, name='generar_pdf_prestamos'),
     path('generar_pdf_prestamo/<int:obrero_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),
@@ -86,6 +86,9 @@ urlpatterns = [
     path('generate_pdf/empresa/<str:empresa>/', generate_pdf, name='generate_pdf_by_empresa'),
     path('informes/crear/', crear_informe, name='crear_informe'),
     path('informes/', listar_informes, name='listar_informes'),
+    path('informes/pdf/<int:informe_id>/', generar_pdf_informe, name='informe_pdf'),
+    path('informes/pdf-dia/', generar_pdf_informes_por_dia, name='informes_pdf_dia'),
+    path('informes/eliminar/<int:informe_id>/', eliminar_informe, name='eliminar_informe'),
 
 
 

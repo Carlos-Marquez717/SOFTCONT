@@ -1,24 +1,101 @@
 {% extends 'app/base.html' %}
 {% block content %}
-<h2>Lista de Informes</h2>
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>Caso</th>
-        <th>Hora</th>
-        <th>Tarea</th>
-        <th>Descripción</th>
-        <th>Fecha</th>
-    </tr>
-    {% for informe in informes %}
-    <tr>
-        <td>{{ informe.id }}</td>
-        <td>{{ informe.get_caso_display }}</td>
-        <td>{{ informe.hora }}</td>
-        <td>{{ informe.tarea }}</td>
-        <td>{{ informe.descripcion|truncatewords:10 }}</td>
-        <td>{{ informe.creado_en.date }}</td>
-    </tr>
-    {% endfor %}
-</table>
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<br><br><br><br>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="card bg-dark text-white">
+      <h2 class="card-header text-center">LISTA DE INFORMES</h2>
+      <div class="card-body">
+        <div class="mb-3 d-flex flex-wrap align-items-end justify-content-between gap-3">
+          <div class="d-flex flex-wrap align-items-end gap-2">
+            <form class="form-inline d-flex flex-wrap gap-2" method="get" action="{% url 'informes_pdf_dia' %}" target="_blank">
+              <label for="fecha_pdf" class="mr-2 mb-0">Filtrar por fecha:</label>
+              <input type="date" id="fecha_pdf" name="fecha" class="form-control mr-2" required>
+              <button type="submit" class="btn btn-primary">PDF</button>
+            </form>
+          </div>
+          <a href="{% url 'crear_informe' %}" class="btn btn-success ms-2">
+            <i class="bi bi-plus-circle"></i> AGG INFORME
+          </a>
+        </div>
+        <div class="table-responsive">
+          <table class="table mx-auto table-dark table-striped" id="example">
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">CASO</th>
+                <th scope="col">AREA</th>
+                <th scope="col">HORA INICIO</th>
+                <th scope="col">HORA CULMINACIÓN</th>
+                <th scope="col">DESCRIPCIÓN</th>
+                <th scope="col">FECHA</th>
+                <th scope="col">IMÁGENES</th>
+                <th scope="col">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for informe in informes %}
+              <tr>
+                <th scope="row">{{ informe.id }}</th>
+                <td>{{ informe.get_caso_display }}</td>
+                <td>{{ informe.area }}</td>
+                <td>{{ informe.hora_inicio }}</td>
+                <td>{{ informe.hora_culm }}</td>
+                <td>{{ informe.descripcion|truncatewords:10 }}</td>
+                <td>{{ informe.fecha }}</td>
+                <td>
+                  {% if informe.imagenes.all %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                      {% for img in informe.imagenes.all %}
+                        <div style="text-align: center;">
+                          {% if informe.caso == 6 %}
+                            <a href="{{ img.imagen.url }}" target="_blank">
+                              <img src="{{ img.imagen.url }}" alt="Imagen informe {{ informe.id }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.2s;" onmouseover="this.style.transform='scale(2)'" onmouseout="this.style.transform='scale(1)'">
+                            </a>
+                          {% else %}
+                            <div style="font-size: 11px; color: #ccc;">OT: {{ img.ot }}</div>
+                            <a href="{{ img.imagen.url }}" target="_blank">
+                              <img src="{{ img.imagen.url }}" alt="Imagen OT {{ img.ot }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.2s;" onmouseover="this.style.transform='scale(2)'" onmouseout="this.style.transform='scale(1)'">
+                            </a>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <span class="text-muted">Sin imágenes</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div style="display: flex; gap: 8px; justify-content: center;">
+                    <a href="{% url 'informe_pdf' informe.id %}" class="btn btn-danger btn-sm" target="_blank">
+                      <i class="bi bi-filetype-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'eliminar_informe' informe.id %}" class="btn btn-warning btn-sm">
+                      <i class="bi bi-trash"></i> ELIM
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+    $('#example').DataTable({
+      responsive: true
+    });
+  });
+</script>
+
 {% endblock %}
