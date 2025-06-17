@@ -264,18 +264,44 @@ def registro_pedido_success(request):
 
 
 
+from django.db.models import Q
+
 @login_required
 def lista_pedido_trabajador(request, trabajador_id):
     obrero = get_object_or_404(Obrero, id=trabajador_id)
-    pedidos_insumos = PedidoInsumo.objects.filter(trabajador=obrero).select_related('pedido', 'insumos', 'pedido__compañia')
-    # Si quieres paginar:
+
+    search_term = request.GET.get('buscar', '')
+    
+    # Base queryset: solo pedidos del trabajador
+    pedidos_insumos = PedidoInsumo.objects.filter(trabajador=obrero).select_related(
+        'pedido', 'insumos', 'pedido__compañia', 'pedido__solicitante'
+    )
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            pedidos_insumos = pedidos_insumos.filter(pedido__fecha_pedido__date=search_date)
+        except ValueError:
+            pedidos_insumos = pedidos_insumos.filter(
+                Q(insumos__nombre__icontains=search_term) |
+                Q(pedido__compañia__nombre__icontains=search_term) |
+                Q(pedido__area__icontains=search_term) |
+                Q(pedido__solicitante__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term)
+            )
+
+    # Ordenar si lo necesitas
+    pedidos_insumos = pedidos_insumos.order_by('-pedido__fecha_pedido')
+
+    # Paginación
     paginator = Paginator(pedidos_insumos, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
     return render(request, 'app/lista_pedido_trabajador.html', {
         'obrero': obrero,
         'pedidos': page_obj,
-        'search_term': request.GET.get('buscar', ''),
+        'search_term': search_term,
     })
 
 
@@ -297,7 +323,8 @@ def lista_pedido(request):
                 Q(insumos__nombre__icontains=search_term) |
                 Q(pedido__solicitante__nombre__icontains=search_term) |
                 Q(pedido__compañia__nombre__icontains=search_term) |
-                Q(pedido__area__icontains=search_term)
+                Q(pedido__area__icontains=search_term) |
+                Q(cantidad__icontains=search_term)
             )
             pedidos_list = pedidos_list.filter(text_search)
 
@@ -314,107 +341,260 @@ def lista_pedido(request):
 
     return render(request, 'app/lista_pedido.html', context)
 
+
   
 
 
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from io import BytesIO
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
-from reportlab.platypus import Table, TableStyle
-from reportlab.lib import colors
 from django.db.models import Q
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from io import BytesIO
 from datetime import datetime
+import os
+from django.conf import settings
+from .models import Pedido
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.utils import ImageReader
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from django.conf import settings
+from django.db.models import Q
+from io import BytesIO
+from datetime import datetime
+import os
+import qrcode
+
+from io import BytesIO
+from datetime import datetime
+import os
+from django.http import HttpResponse
+from django.conf import settings
+from django.db.models import Q
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph, Table, TableStyle
+from reportlab.lib import colors
+import qrcode
+from .models import Pedido
+
+
+
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
+from django.urls import reverse
+from django.conf import settings
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from io import BytesIO
+from datetime import datetime
+import qrcode
+import os
+
+from .models import Pedido, PedidoInsumo  # asegúrate que ambos modelos estén importados
+
+
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.http import HttpResponse
+from django.urls import reverse
+from datetime import datetime
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+import os, qrcode
+from io import BytesIO
+from .models import PedidoInsumo, Pedido, Obrero
+from django.conf import settings
+
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.db.models import Q
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Paragraph, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from io import BytesIO
+from datetime import datetime
+import os
+import qrcode
+
+from django.urls import reverse
+from django.conf import settings
+from .models import PedidoInsumo, Pedido, Obrero
 
 @login_required
 def generar_pdf_pedido(request, obrero_id):
     search_term = request.GET.get('buscar')
-    pedidos = Pedido.objects.filter(solicitante_id=obrero_id)
+    pedido_insumos = PedidoInsumo.objects.filter(pedido__solicitante_id=obrero_id)
 
     if search_term:
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            pedidos = pedidos.filter(
-                Q(solicitante__nombre__icontains=search_term) |
-                Q(compañia__nombre__icontains=search_term) |
-                Q(insumo__nombre__icontains=search_term) |
+            pedido_insumos = pedido_insumos.filter(
+                Q(pedido__fecha_pedido__date=search_date) |
+                Q(pedido__solicitante__nombre__icontains=search_term) |
+                Q(pedido__compañia__nombre__icontains=search_term) |
+                Q(insumos__nombre__icontains=search_term) |
                 Q(cantidad__icontains=search_term) |
-                Q(area__icontains=search_term) |
-                Q(fecha_pedido__date=search_date)
+                Q(pedido__area__icontains=search_term)
             )
         except ValueError:
-            pass
+            pedido_insumos = pedido_insumos.filter(
+                Q(pedido__solicitante__nombre__icontains=search_term) |
+                Q(pedido__compañia__nombre__icontains=search_term) |
+                Q(insumos__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(pedido__area__icontains=search_term)
+            )
+
+    ultimo_insumo = pedido_insumos.order_by('-pedido__fecha_pedido').first()
+    if ultimo_insumo:
+        nombre_trabajador = ultimo_insumo.trabajador.nombre
+        nombre_empresa = ultimo_insumo.pedido.compañia.nombre
+        codigo_unico = ultimo_insumo.pedido.codigo_unico
+    else:
+        nombre_trabajador = "N/A"
+        nombre_empresa = "N/A"
+        codigo_unico = None
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
-
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=landscape(letter))
     width, height = landscape(letter)
+    margin = 50
 
-    # Configuración de márgenes y tamaño de tabla
-    margin = 40
-    table_width = width - 2 * margin
-    column_widths = [1.5 * inch, 2 * inch, 2 * inch, 1 * inch, 1.5 * inch, 2 * inch]
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
+    minera_logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Minera.png')
 
-    # Crear encabezado
-    def draw_header(canvas_obj, title, user_name, page_num):
-        canvas_obj.setFont("Helvetica-Bold", 12)
-        canvas_obj.drawCentredString(width / 2, height - margin, title)
-        canvas_obj.setFont("Helvetica", 10)
-        canvas_obj.drawString(margin, height - margin - 20, f"PAÑOLERO: {user_name}")
-        canvas_obj.drawRightString(width - margin, height - margin - 20, f"PÁGINA: {page_num}")
-        canvas_obj.line(margin, height - margin - 30, width - margin, height - margin - 30)
+    if codigo_unico:
+        url_verificacion = request.build_absolute_uri(
+            reverse('verificar_reporte_personal', args=[str(codigo_unico), obrero_id])
+        )
+    else:
+        url_verificacion = "No disponible"
 
-    # Crear datos para la tabla
-    data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
-    for pedido in pedidos:
-        fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
-        for pedido_insumo in pedido.pedidoinsumo_set.all():
-            data.append([
-                fecha_y_hora,
-                pedido.solicitante.nombre,
-                pedido_insumo.insumos.nombre,  # <-- CORRECTO
-                str(pedido_insumo.cantidad),
-                pedido.area,
-                pedido.compañia.nombre
-            ])
+    qr = qrcode.make(url_verificacion)
+    qr_io = BytesIO()
+    qr.save(qr_io, format='PNG')
+    qr_io.seek(0)
+    qr_img = ImageReader(qr_io)
 
-    # Estilo de la tabla
-    style = TableStyle([
+    styles = getSampleStyleSheet()
+    styleN = ParagraphStyle(
+        'NormalCustom',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=10,
+        alignment=0,
+        wordWrap='CJK',
+    )
+    style_centered = ParagraphStyle(
+        name='centered',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=10,
+        alignment=1,  # 1 = CENTER
+        wordWrap='CJK',
+    )
+
+    minera_width, minera_height = 80, 60
+    qr_width, qr_height = 60, 60
+    p.drawImage(minera_logo_path, width - margin - minera_width, height - margin - minera_height,
+                width=minera_width, height=minera_height, mask='auto')
+
+    qr_x = 150
+    qr_y = height - 110
+    p.drawImage(qr_img, qr_x, qr_y, width=qr_width, height=qr_height)
+    if codigo_unico:
+        p.setFont("Helvetica-Bold", 10)
+        p.drawCentredString(qr_x + qr_width / 2, qr_y - 20, f"N° REPORTE: {codigo_unico}")
+
+    p.setFont("Helvetica-Bold", 14)
+    titulo_y = height - 80
+    p.drawCentredString(width / 2, titulo_y, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+
+    p.setFont("Helvetica", 10)
+    info_y = titulo_y - 15
+    p.drawCentredString(width / 2, info_y,
+                        f"PAÑOLERO: {request.user.username}    |    FECHA REPORTE: {datetime.now().strftime('%d/%m/%Y')}")
+    p.drawCentredString(width / 2, info_y - 15,
+                        f"HISTORIAL DE PEDIDOS: {nombre_trabajador} ({nombre_empresa})")
+
+    data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'INSUMO', 'CANTIDAD', 'AREA']]
+    for insumo in pedido_insumos.order_by('-pedido__fecha_pedido'):
+        data.append([
+            insumo.pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M"),
+            Paragraph(str(insumo.trabajador.nombre), style_centered),  # Centrado
+            Paragraph(str(insumo.pedido.compañia.nombre), style_centered),  # Centrado
+            Paragraph(str(insumo.insumos.nombre), style_centered),  # Centrado
+            str(insumo.cantidad),
+            Paragraph(str(insumo.pedido.area), style_centered),  # Centrado
+        ])
+
+    if len(data) == 1:
+        data.append(['No hay registros', '', '', '', '', ''])
+
+    column_widths = [90, 110, 140, 160, 60, 140]
+    table = Table(data, colWidths=column_widths)
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+
+        # Centrar columnas TRABAJADOR (1), EMPRESA (2), INSUMO (3), AREA (5)
+        ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+        ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+        ('ALIGN', (4, 1), (4, -1), 'CENTER'),  # CANTIDAD
+        ('ALIGN', (5, 1), (5, -1), 'CENTER'),
+
+        # Centrar encabezado completo
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-    ])
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+    ]))
 
-    page_num = 1
-    current_data = data[1:]  # Excluye el encabezado
-    while current_data:
-        draw_header(p, "ENTREGA DE INSUMOS DIARIOS | PAÑOL", request.user.username, page_num)
+    table_width, table_height = table.wrap(0, 0)
+    x_centered = (width - table_width) / 2
+    y_position = info_y - 40
 
-        # Dividir los datos para la página actual
-        max_rows_per_page = int((height - margin - 100) / 15)  # Ajustar filas según el espacio
-        page_data = [data[0]] + current_data[:max_rows_per_page]
-        current_data = current_data[max_rows_per_page:]
+    table.drawOn(p, x_centered, y_position - table_height)
 
-        # Dibujar tabla
-        table = Table(page_data, colWidths=column_widths)
-        table.setStyle(style)
-        table_width, table_height = table.wrap(0, 0)
-        table.drawOn(p, margin, height - margin - 50 - table_height)
-
-        # Salto de página si quedan más registros
-        if current_data:
-            p.showPage()
-            page_num += 1
-
-    # Guardar PDF
+    p.showPage()
     p.save()
     pdf = buffer.getvalue()
     buffer.close()
@@ -423,100 +603,154 @@ def generar_pdf_pedido(request, obrero_id):
 
 
 
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, PageBreak
-from reportlab.platypus import Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
+
 from django.http import HttpResponse
-from datetime import datetime
-from io import BytesIO
+from django.shortcuts import render
 from django.db.models import Q
-from reportlab.lib.units import inch
-from reportlab.lib.styles import ParagraphStyle
-
-
-from django.http import HttpResponse
+from django.utils.timezone import now
+from django.urls import reverse
+from reportlab.lib.pagesizes import landscape, letter
+from uuid import uuid4
 from django.contrib.auth.decorators import login_required
+from datetime import datetime, timedelta
+from django.utils.timezone import now
 from django.db.models import Q
+from django.http import HttpResponse
+from django.shortcuts import reverse
+from django.conf import settings
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.pdfgen.canvas import Canvas
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
 from io import BytesIO
-from datetime import datetime
-from .models import Pedido  # Asegúrate de importar correctamente tu modelo
+import os
+import qrcode
+from .models import Pedido, ReportePedido, ReporteInsumo
+
+
 
 @login_required
 def generar_pdf_pedidos(request):
-    search_term = request.GET.get('buscar')
+    search_term = request.GET.get('buscar', '')
     pedidos = Pedido.objects.all()
+    search_date = None
+    filtro_insumo_cantidad = False
 
     if search_term:
         try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            if "/" in search_term:
+                search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            else:
+                search_date = datetime.strptime(search_term, "%Y-%m-%d").date()
+        except ValueError:
+            search_date = None
+
+        if search_date:
+            pedidos = pedidos.filter(fecha_pedido__date=search_date)
+        else:
+            # Detecta si está filtrando por insumo o cantidad
+            filtro_insumo_cantidad = Material.objects.filter(nombre__icontains=search_term).exists() or search_term.isdigit()
+
             pedidos = pedidos.filter(
                 Q(solicitante__nombre__icontains=search_term) |
                 Q(compañia__nombre__icontains=search_term) |
                 Q(pedidoinsumo__insumos__nombre__icontains=search_term) |
                 Q(pedidoinsumo__cantidad__icontains=search_term) |
-                Q(area__icontains=search_term) |
-                Q(fecha_pedido__date=search_date)
+                Q(area__icontains=search_term)
             ).distinct()
-        except ValueError:
-            pass
+
+    if not pedidos.exists():
+        return HttpResponse("No se encontraron pedidos con ese criterio.")
+
+    reporte = ReportePedido.objects.create(generado_por=request.user.username)
+    reporte.pedidos.set(pedidos)
 
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="PEDIDOS.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{reporte.codigo_reporte}.pdf"'
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=landscape(letter),
-        rightMargin=40,
-        leftMargin=40,
-        topMargin=40,
+        rightMargin=80,
+        leftMargin=80,
+        topMargin=100,
         bottomMargin=40,
     )
 
-    def add_header(canvas, doc):
-        width, height = landscape(letter)
-        canvas.setFont("Helvetica-Bold", 12)
-        canvas.drawCentredString(width / 2, height - 30, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
-        canvas.setFont("Helvetica", 10)
-        usuario = request.user.username
-        canvas.drawString(40, height - 50, f"PAÑOLERO: {usuario}")
-        canvas.line(40, height - 55, width - 40, height - 55)
-
-    elements = []
-    elements.append(Spacer(1, 60))
     styles = getSampleStyleSheet()
     style_centered = ParagraphStyle(name='centered', alignment=1, fontSize=9)
 
-    data = [['FECHA', 'NOMBRE DEL SOLICITANTE', 'INSUMO SOLICITADO', 'CANTIDAD', 'AREA TRABAJO', 'EMPRESA']]
+    url_verificacion = request.build_absolute_uri(
+        reverse('verificar_reporte', args=[str(reporte.codigo_reporte)])
+    )
+    qr = qrcode.make(url_verificacion)
+    qr_io = BytesIO()
+    qr.save(qr_io, format='PNG')
+    qr_io.seek(0)
+    qr_img = ImageReader(qr_io)
+
+    def add_header(canvas, doc):
+        width, height = landscape(letter)
+        usuario = request.user.username
+
+        logo_izquierdo = os.path.join(settings.BASE_DIR, 'app/static/app/imgenes/Logo.png')
+        logo_derecho = os.path.join(settings.BASE_DIR, 'app/static/app/imgenes/minera.png')
+
+        if os.path.exists(logo_izquierdo):
+            canvas.drawImage(logo_izquierdo, 40, height - 80, width=100, height=80, preserveAspectRatio=True)
+        if os.path.exists(logo_derecho):
+            canvas.drawImage(logo_derecho, width - 100, height - 80, width=100, height=60, preserveAspectRatio=True)
+
+        canvas.drawImage(qr_img, 150, height - 100, width=60, height=60)
+        canvas.setFont("Helvetica-Bold", 10)
+        canvas.drawCentredString(180, height - 140, f"N° REPORTE: {reporte.codigo_reporte}")
+        canvas.setFont("Helvetica-Bold", 13)
+        canvas.drawCentredString(width / 2, height - 100, "ENTREGA DE INSUMOS DIARIOS | PAÑOL")
+        canvas.setFont("Helvetica-Bold", 10)
+        canvas.drawString(40, height - 120, f"PAÑOLERO: {usuario}")
+        canvas.drawRightString(width - 40, height - 120, f"FECHA: {now().strftime('%d/%m/%Y')}")
+
+    elements = [Spacer(1, 30)]
+    data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'INSUMO', 'CANT', 'AREA']]
 
     for pedido in pedidos:
         fecha_y_hora = pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M")
-        for pedido_insumo in pedido.pedidoinsumo_set.all():
+        pedido_insumos = pedido.pedidoinsumo_set.all()
+
+        if filtro_insumo_cantidad:
+            pedido_insumos = pedido_insumos.filter(
+                Q(insumos__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term)
+            )
+
+        for pedido_insumo in pedido_insumos:
+            ReporteInsumo.objects.create(
+                reporte=reporte,
+                pedido=pedido,
+                trabajador=pedido.solicitante,
+                insumo=pedido_insumo.insumos,
+                cantidad=pedido_insumo.cantidad,
+                area=pedido.area
+            )
+
             data.append([
                 fecha_y_hora,
                 Paragraph(str(pedido.solicitante.nombre), style_centered),
+                Paragraph(str(pedido.compañia.nombre), style_centered),
                 Paragraph(str(pedido_insumo.insumos.nombre), style_centered),
                 Paragraph(str(pedido_insumo.cantidad), style_centered),
                 Paragraph(str(pedido.area), style_centered),
-                Paragraph(str(pedido.compañia.nombre), style_centered),
             ])
 
-    elements.append(Spacer(1, 20))
+    if len(data) == 1:
+        data.append(['No hay registros', '', '', '', '', ''])
 
     table = Table(data, colWidths=[
-        1.5 * inch,  # FECHA
-        2 * inch,    # NOMBRE DEL SOLICITANTE
-        2 * inch,    # INSUMO SOLICITADO
-        1 * inch,    # CANTIDAD
-        1.5 * inch,  # ÁREA DE TRABAJO
-        2 * inch     # EMPRESA
+        1.2 * inch, 1.8 * inch, 2 * inch, 2.5 * inch, 0.8 * inch, 1.7 * inch
     ])
 
     table.setStyle(TableStyle([
@@ -524,21 +758,27 @@ def generar_pdf_pedidos(request):
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
+    elements.append(Spacer(1, 20))
     elements.append(table)
 
     doc.build(elements, onFirstPage=add_header, onLaterPages=add_header)
 
     pdf = buffer.getvalue()
     buffer.close()
-
     response.write(pdf)
     return response
+
+
+
+
+
 
 @login_required
 def eliminar_pedido(request, pedido_id):
@@ -795,19 +1035,47 @@ def lista_prestamo(request):
     return render(request, 'app/lista_Prestamo.html', {'prestamos': prestamos, 'search_term': search_term})
 
 
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from io import BytesIO
+from datetime import datetime
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from .models import Prestamo  # Asegúrate de importar el modelo correcto
+
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image, Spacer
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from django.http import HttpResponse
+from io import BytesIO
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from datetime import datetime
+from .models import Prestamo
+
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
+from django.conf import settings
+from django.urls import reverse
+from io import BytesIO
+import qrcode
+from datetime import datetime
+
 @login_required
 def generar_pdf_prestamos(request):
-    # Obtener el término de búsqueda de la URL
     search_term = request.GET.get('buscar')
-
-    # Obtener todos los préstamos y aplicar filtro de búsqueda si es necesario
     prestamos_list = Prestamo.objects.all()
 
     if search_term:
-        # Formatear la fecha si se proporciona
         try:
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            # Filtrar por nombre, empresa, herramienta, fecha_creacion y estado
             prestamos_list = prestamos_list.filter(
                 Q(nombre_solicitante__nombre__icontains=search_term) |
                 Q(empresa__nombre__icontains=search_term) |
@@ -816,153 +1084,262 @@ def generar_pdf_prestamos(request):
                 Q(status__icontains=search_term)
             )
         except ValueError:
-            # Si no es una fecha válida, buscar en otros campos
             prestamos_list = prestamos_list.filter(
                 Q(herramienta__nombre__icontains=search_term) |
                 Q(status__icontains=search_term)
             )
 
-    # Verificar si hay resultados para la búsqueda
-    if prestamos_list.exists():
-        # Crear el objeto PDF con ReportLab
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="prestamos_{search_term}.pdf"'
+    if not prestamos_list.exists():
+        return HttpResponse("No se encontraron resultados para la búsqueda.")
 
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=(letter[1], letter[0]),  # Intercambiar ancho y alto
-            rightMargin=40,
-            leftMargin=40,
-            topMargin=40,
-            bottomMargin=40,
-        )
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="prestamos_{search_term}.pdf"'
 
-        elements = []
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
+    margin = 50
 
-        # Agregar título
-        title_style = ParagraphStyle(
-            'Title',
-            parent=getSampleStyleSheet()['Title'],
-            alignment=1,  # 0=Left, 1=Center, 2=Right
-            textColor=colors.black,
-            fontName='Helvetica-Bold',
-            fontSize=14
-        )
-        elements.append(Paragraph("PRESTAMO DE HERRAMIENTAS | PAÑOL", title_style))
-        elements.append(Spacer(1, 12))
+    # Logos
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
+    minera_logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Minera.png')
 
-        # Crear una tabla para los datos
-        data = [
-            ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA PRESTAMO', 'FECHA RECEPCION', 'ESTADO'],
-        ]
+    try:
+        p.drawImage(minera_logo_path, width - margin - 80, height - margin - 60, width=80, height=60, mask='auto')
+    except:
+        pass
 
-        for prestamo in prestamos_list:
-            # Determinar el color del texto según el estado
-            if prestamo.status == 'NO_ENTREGADO':
-                text_color = colors.red
-            else:
-                text_color = colors.black
+    # QR Code con URL ficticia (puedes personalizarla)
+    url_verificacion = request.build_absolute_uri(reverse('verificar_reporte_prestamos'))
 
-            data.append([
-                prestamo.nombre_solicitante.nombre,
-                prestamo.empresa.nombre,
-                prestamo.herramienta.nombre,
-                prestamo.fecha_creacion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_creacion else 'Sin fecha de creación',
-                prestamo.fecha_recepcion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_recepcion else 'Sin fecha de recepción',
-                Paragraph(prestamo.status, ParagraphStyle('', textColor=text_color)),  # Aplicar color al estado
-            ])
+    qr = qrcode.make(url_verificacion)
+    qr_io = BytesIO()
+    qr.save(qr_io, format='PNG')
+    qr_io.seek(0)
+    qr_img = ImageReader(qr_io)
+    p.drawImage(qr_img, 150, height - 110, width=60, height=60)
+    p.setFont("Helvetica-Bold", 10)
+    p.drawCentredString(180, height - 120, "VERIFICACIÓN")
 
-        # Configurar el estilo de la tabla
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    # Título
+    p.setFont("Helvetica-Bold", 14)
+    p.drawCentredString(width / 2, height - 80, "LISTADO DE PRÉSTAMOS DE HERRAMIENTAS")
+    p.setFont("Helvetica", 10)
+    p.drawCentredString(width / 2, height - 95,
+        f"USUARIO: {request.user.username}  |  FECHA REPORTE: {datetime.now().strftime('%d/%m/%Y')}")
+
+    # Datos
+    from reportlab.platypus import Table, TableStyle, Paragraph
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    styles = getSampleStyleSheet()
+    style_center = ParagraphStyle('center', parent=styles['Normal'], alignment=1, fontSize=9)
+
+    data = [[
+        'NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA',
+        'FECHA PRÉSTAMO', 'FECHA RECEPCIÓN', 'ESTADO'
+    ]]
+
+    for prestamo in prestamos_list:
+        estado_color = colors.red if prestamo.status == 'NO_ENTREGADO' else colors.black
+        data.append([
+            Paragraph(prestamo.nombre_solicitante.nombre, style_center),
+            Paragraph(prestamo.empresa.nombre, style_center),
+            Paragraph(prestamo.herramienta.nombre, style_center),
+            prestamo.fecha_creacion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_creacion else 'Sin fecha',
+            prestamo.fecha_recepcion.strftime("%d/%m/%Y %H:%M") if prestamo.fecha_recepcion else 'Sin fecha',
+            Paragraph(f'<font color="{estado_color}">{prestamo.status}</font>', style_center)
         ])
 
-        table = Table(data)
-        table.setStyle(style)
-        elements.append(table)
+    col_widths = [120, 100, 120, 100, 110, 100]
+    table = Table(data, colWidths=col_widths)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+    ]))
 
-        doc.build(elements)
+    table_width, table_height = table.wrap(0, 0)
+    x_centered = (width - table_width) / 2
+    y_position = height - 150
 
-        pdf = buffer.getvalue()
-        buffer.close()
+    table.drawOn(p, x_centered, y_position - table_height)
 
-        response.write(pdf)
-        return response
-    else:
-        return HttpResponse("No se encontraron resultados para la búsqueda.")
+    p.showPage()
+    p.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    return response
+
+
+from django.shortcuts import render
+from .models import Prestamo
+
+@login_required
+def verificar_reporte_prestamos(request):
+    prestamos = Prestamo.objects.all().order_by('-fecha_creacion')
+    return render(request, 'verificacionqr/verificar_reporte_prestamos.html', {'prestamos': prestamos})
 
 
 
 
 @login_required
-def generar_pdf_prestamo(request, obrero_id):
-    # Obtener el trabajador específico
-    trabajador = get_object_or_404(Obrero, id=obrero_id)
+def verificar_prestamos(request, prestamo_id):
+    prestamo = get_object_or_404(Prestamo, id=prestamo_id)
+    return render(request, 'verificacionqr/verificar_prestamoid.html', {'prestamo': prestamo})
 
-    # Obtener los préstamos asociados al trabajador
-    prestamos = Prestamo.objects.filter(nombre_solicitante=trabajador)
+from io import BytesIO
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
+from django.contrib.auth.decorators import login_required
+import qrcode
+from django.templatetags.static import static
+from reportlab.lib.utils import ImageReader
+from io import BytesIO
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+import os
+import qrcode
+from .models import Prestamo, DetallePrestamo
 
-    # Crear el objeto PDF con ReportLab
+
+from io import BytesIO
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+from PIL import Image
+import os
+import qrcode
+from .models import Prestamo, DetallePrestamo
+import qrcode
+from reportlab.lib.utils import Image 
+from PIL import Image as PILImage  # ✅ Renombramos para evitar conflictos
+from io import BytesIO
+
+
+
+
+
+@login_required
+def generar_pdf_prestamo(request, prestamo_id):
+    prestamo = get_object_or_404(Prestamo, id=prestamo_id)
+
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="prestamos_{trabajador.nombre}.pdf"'
-
-    # Crear el objeto PDF con ReportLab, con orientación horizontal
+    response['Content-Disposition'] = f'attachment; filename="PRESTAMO_{prestamo.id}.pdf"'
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
+    margin = 50
 
-    # Crear una tabla para los datos
-    data = [
-        ['NOMBRE SOLICITANTE', 'EMPRESA', 'HERRAMIENTA', 'FECHA PRESTAMO', 'FECHA RECEPCION', 'ESTADO'],
-    ]
+    # Rutas de imágenes
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
+    minera_logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Minera.png')
 
-    for prestamo in prestamos:
-        data.append([
-            prestamo.nombre_solicitante.nombre,
-            prestamo.empresa.nombre,
-            prestamo.herramienta.nombre,
-            prestamo.fecha_creacion.strftime("%d/%m/%Y") if prestamo.fecha_creacion else '-',
-            prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else '-',
-            prestamo.status,
-        ])
+    # Logo Minera
+    minera_width, minera_height = 80, 60
+    p.drawImage(minera_logo_path, width - margin - minera_width, height - margin - minera_height, width=minera_width, height=minera_height, mask='auto')
 
-    # Configurar el estilo de la tabla
-    style = TableStyle([
+    # QR Code
+    qr_data = f"http://127.0.0.1:8000/verificar_prestamos/{prestamo.id}/"
+
+    qr_img = qrcode.make(qr_data)
+    qr_buffer = BytesIO()
+    qr_img.save(qr_buffer, format='PNG')
+    qr_buffer.seek(0)
+    qr_pil = PILImage.open(qr_buffer)
+    p.drawInlineImage(qr_pil, margin, height - margin - 80, width=60, height=60)
+
+    # Título
+    p.setFont("Helvetica-Bold", 14)
+    titulo_y = height - 80
+    p.drawCentredString(width / 2, titulo_y, "REPORTE DE PRÉSTAMO DE HERRAMIENTA")
+
+    # Información del préstamo
+    p.setFont("Helvetica", 10)
+    info_y = titulo_y - 15
+    p.drawCentredString(
+        width / 2,
+        info_y,
+        f"RESPONSABLE: {request.user.username}    |    FECHA PRÉSTAMO: {prestamo.fecha_creacion.strftime('%d/%m/%Y')}"
+    )
+    p.drawCentredString(
+        width / 2,
+        info_y - 15,
+        f"TRABAJADOR: {prestamo.nombre_solicitante.nombre} ({prestamo.empresa.nombre})"
+    )
+
+    # Estilo tabla
+    styles = getSampleStyleSheet()
+    style_centered = ParagraphStyle(
+        name='centered',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        alignment=1,
+        wordWrap='CJK',
+    )
+
+    # Tabla única (sin DetallePrestamo)
+    data = [['FECHA PRÉSTAMO', 'HERRAMIENTA', 'ESTADO', 'FECHA RECEPCIÓN']]
+    data.append([
+        prestamo.fecha_creacion.strftime("%d/%m/%Y"),
+        Paragraph(prestamo.herramienta.nombre, style_centered),
+        Paragraph(prestamo.status, style_centered),
+        Paragraph(prestamo.fecha_recepcion.strftime("%d/%m/%Y") if prestamo.fecha_recepcion else "Pendiente", style_centered),
+    ])
+
+    table = Table(data, colWidths=[120, 250, 120, 120])
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+    ]))
 
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla
     table_width, table_height = table.wrap(0, 0)
-    table.drawOn(p, 90, height - 170)  # Bajar la tabla
+    x_centered = (width - table_width) / 2
+    y_position = info_y - 60
+    table.drawOn(p, x_centered, y_position - table_height)
 
-    # Agregar título
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "PRESTAMO DE HERRAMIENTAS | PAÑOL")
-
-    # Guardar el PDF en el buffer
     p.showPage()
     p.save()
-
-    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
-
     return response
+
+
+
 
 @login_required
 def editar_prestamo(request, prestamo_id):
@@ -1499,88 +1876,161 @@ def generar_pdf_utiles_aseo(request):
 
     return response
 
-@login_required
-def generar_pdf_retiro(request, obrero_id):
-    # Obtener el obrero específico
-    obrero = get_object_or_404(Obrero, id=obrero_id)
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from io import BytesIO
+from .models import RetiroRepuesto
+from datetime import datetime
+from reportlab.lib.units import inch
+import os
+from django.conf import settings
 
-    # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar', '')
+def generar_pdf_retiro(request, obrero_id=None):
+    # Filtrar datos
+    if obrero_id:
+        data = RetiroRepuesto.objects.filter(trabajador_id=obrero_id).order_by('fecha_retiro')
+    else:
+        data = RetiroRepuesto.objects.all().order_by('fecha_retiro')
 
-    # Obtener los retiros asociados al obrero
-    retiros = RetiroRepuesto.objects.filter(trabajador=obrero)
-
-    if search_term:
-        # Intentar parsear la búsqueda como una fecha
-        try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            retiros = retiros.filter(fecha_retiro__date=search_date)
-        except ValueError:
-            # Si no es una fecha, buscar por nombre del trabajador
-            retiros = retiros.filter(trabajador__nombre__icontains=search_term)
-
-    # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="retiros_{obrero.nombre}.pdf"'
+    response['Content-Disposition'] = 'attachment; filename="reporte_retiros.pdf"'
 
-    # Crear el objeto PDF con ReportLab, con orientación horizontal
+
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=(letter[1], letter[0]))  # Intercambiar ancho y alto
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
+    margin = 50
+    page_num = 1
 
-    # Crear una tabla para los datos
-    data = [
-        ['NOMBRE SOLICITANTE', 'EMPRESA', 'REPUESTO', 'CANTIDAD', 'FECHA RETIRO'],
-    ]
+    # Rutas imágenes
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
+    minera_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'minera.png')
 
-    for retiro in retiros:
-        data.append([
-            retiro.trabajador.nombre,
-            retiro.empresa.nombre,
-            retiro.repuesto.nombre,
-            retiro.cantidad,
-            retiro.fecha_retiro.strftime("%d/%m/%Y") if retiro.fecha_retiro else '-',
-        ])
-
-    # Configurar el estilo de la tabla
+    # Estilo de tabla
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ])
 
-    # Crear la tabla
-    table = Table(data)
-    table.setStyle(style)
+    styles = getSampleStyleSheet()
+    styleN = ParagraphStyle(
+        'Custom',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=10,
+        alignment=0,
+        wordWrap='CJK',
+    )
 
-    # Posicionar la tabla
-    table_width, table_height = table.wrap(0, 0)
-    table.drawOn(p, 90, height - 170)  # Bajar la tabla
+    def draw_header(canvas_obj, title, user_name, page_num):
+        logo_width = 100
+        logo_height = 40
+        minera_width = 100
+        minera_height = 80
 
-    # Agregar título
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "RETIRO DE REPUESTOS")
+        # Posiciones para logos
+        logo_x = margin
+        logo_y = height - margin - logo_height
 
-    # Guardar el PDF en el buffer
-    p.showPage()
+        minera_x = width - margin - minera_width
+        minera_y = logo_y
+
+        # Dibujar logo izquierda
+        if os.path.exists(logo_path):
+            try:
+                canvas_obj.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+            except Exception as e:
+                print(f"Error al cargar logo: {e}")
+
+        # Dibujar minera derecha
+        if os.path.exists(minera_path):
+            try:
+                canvas_obj.drawImage(minera_path, minera_x, minera_y, width=minera_width, height=minera_height, mask='auto')
+            except Exception as e:
+                print(f"Error al cargar minera: {e}")
+
+        # Título centrado
+        title_x = width / 2
+        title_y = height - margin - (logo_height / 4)
+
+        canvas_obj.setFont("Helvetica-Bold", 14)
+        canvas_obj.drawCentredString(title_x, title_y, title)
+
+        # Datos usuario y página debajo del título
+        canvas_obj.setFont("Helvetica", 10)
+        canvas_obj.drawString(margin + logo_width + 10, height - margin - logo_height - 10, f"PAÑOLERO: {user_name}")
+        canvas_obj.drawRightString(width - margin - minera_width - 10, height - margin - minera_height - 10, f"PÁGINA: {page_num}")
+
+        # Línea separadora debajo del header
+        line_y = height - margin - logo_height - 20
+        canvas_obj.line(margin, line_y, width - margin, line_y)
+
+    table_data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'REPUESTO', 'CANT']]
+    for retiro in data:
+        table_data.append([
+            retiro.fecha_retiro.strftime('%d/%m/%Y %H:%M'),
+            Paragraph(str(retiro.trabajador), styleN),
+            Paragraph(str(retiro.empresa), styleN),
+            Paragraph(str(retiro.repuesto), styleN),
+            str(retiro.cantidad),
+            
+        ])
+
+    column_widths = [90, 110, 180, 180, 50]
+    current_data = table_data[1:]
+
+    while current_data:
+        draw_header(p, "RETIRO DE REPUESTOS", request.user.username, page_num)
+        y_position = height - margin - 100
+        max_rows_per_page = int((y_position - margin) / 15)
+        page_data = [table_data[0]] + current_data[:max_rows_per_page]
+        current_data = current_data[max_rows_per_page:]
+
+        table = Table(page_data, colWidths=column_widths)
+        table.setStyle(style)
+        table_width, table_height = table.wrap(0, 0)
+        x_centered = (width - table_width) / 2
+        table.drawOn(p, x_centered, y_position - table_height)
+
+        if current_data:
+            p.showPage()
+            page_num += 1
+
     p.save()
-
-    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
-
     return response
+
+
+
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from io import BytesIO
+from .models import RetiroRepuesto
+from datetime import datetime
+import os
+from django.conf import settings
 
 @login_required
 def generar_pdf_retiros_general(request):
-    # Obtener el término de búsqueda de la URL
-    search_term = request.GET.get('buscar')
-
-    # Obtener todos los retiros de repuestos
+    search_term = request.GET.get('buscar', '')
     retiros = RetiroRepuesto.objects.all()
 
     if search_term:
@@ -1590,67 +2040,118 @@ def generar_pdf_retiros_general(request):
         except ValueError:
             pass
 
-    # Crear el objeto PDF con ReportLab
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="retiros_general.pdf"'
 
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
 
-    data = [
-        ['FECHA', 'TRABAJADOR', 'REPUESTO', 'CANTIDAD', 'EMPRESA'],
-    ]
+    # Rutas de los logos
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
+    minera_logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Minera.png')
+
+    # Estilos
+    styles = getSampleStyleSheet()
+    styleN = ParagraphStyle(
+        'Custom',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=10,
+        alignment=0,
+        wordWrap='CJK',
+    )
+
+    # Margen general
+    margin = 50
+
+    # === Logo principal (izquierda) ===
+    logo_width = 70
+    logo_height = 40
+    logo_x = margin
+    logo_y = height - margin - logo_height
+
+    # === Logo minera (derecha) ===
+    minera_width = 80
+    minera_height = 60
+    minera_x = width - margin - minera_width
+    minera_y = height - margin - minera_height
+
+    # Dibujar logos con sus dimensiones individuales
+    if os.path.exists(logo_path):
+        try:
+            p.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+        except Exception as e:
+            print(f"Error al cargar logo: {e}")
+
+    if os.path.exists(minera_logo_path):
+        try:
+            p.drawImage(minera_logo_path, minera_x, minera_y, width=minera_width, height=minera_height, mask='auto')
+        except Exception as e:
+            print(f"Error al cargar logo minera: {e}")
+
+    # Título centrado (más arriba si hace falta espacio)
+    p.setFont("Helvetica-Bold", 14)
+    titulo_y = max(logo_y + logo_height, minera_y + minera_height) + 10
+    p.drawCentredString(width / 2, titulo_y, "RETIRO DE REPUESTOS")
+
+    # Información de usuario y fecha, debajo del título
+    p.setFont("Helvetica", 10)
+    info_y = titulo_y - 15
+    p.drawCentredString(width / 2, info_y, f"PAÑOLERO: {request.user.username}    |    FECHA REPORTE: {datetime.now().strftime('%d/%m/%Y')}")
+
+    # Línea separadora
+    line_y = info_y - 50
+    p.line(margin, line_y, width - margin, line_y)
+
+    # TABLA
+    data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'REPUESTO', 'CANTIDAD']]
 
     for retiro in retiros:
         fecha_y_hora = retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M")
         data.append([
             fecha_y_hora,
-            retiro.trabajador.nombre,
-            retiro.repuesto.nombre,
-            retiro.cantidad,
-            retiro.empresa.nombre,
+            Paragraph(str(retiro.trabajador), styleN),
+            Paragraph(str(retiro.empresa), styleN),
+            Paragraph(str(retiro.repuesto), styleN),
+            str(retiro.cantidad),
         ])
 
+
     if len(data) == 1:
-        # Si no hay datos, agregar un mensaje a la tabla
         data.append(['No hay registros', '', '', '', ''])
 
-    style = TableStyle([
+    column_widths = [90, 110, 180, 180, 50]
+    table = Table(data, colWidths=column_widths)
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
+    ]))
 
-    table = Table(data)
-    table.setStyle(style)
-
-    width, height = letter
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 60, height - 250)
-
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 40, f"RETIRO DE REPUESTOS")
-
-    usuario = request.user
-    p.setFont("Helvetica-Bold", 12)
-    text = f"PAÑOLERO: {usuario.username}"
-    text_width = p.stringWidth(text, "Helvetica", 12)
-    p.setFillColor(colors.black)
-    p.drawString(100, height - 60, text)
-  
-
- 
+    # Posicionar tabla centrada
+    table_width, table_height = table.wrap(0, 0)
+    x_centered = (width - table_width) / 2
+    y_position = line_y - 30
+    table.drawOn(p, x_centered, y_position - table_height)
 
     p.showPage()
     p.save()
 
     pdf = buffer.getvalue()
     buffer.close()
-
     response.write(pdf)
     return response
+
+
+
+
 
 MESES_EN_ESPAÑOL = {
     "January": "Enero",
@@ -1693,9 +2194,18 @@ def calcular_totales_dia(pedidos, fecha_seleccionada):
     return insumos_totales
 
 
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from datetime import datetime
+
 @login_required
 def pedidos_dia(request):
-    # Obtener y validar la fecha seleccionada
+    # Obtener y validar la fecha
     fecha_seleccionada_str = request.GET.get('fecha')
     if not fecha_seleccionada_str:
         return HttpResponse("Por favor, seleccione una fecha válida.", status=400)
@@ -1705,7 +2215,7 @@ def pedidos_dia(request):
     except ValueError:
         return HttpResponse("Fecha inválida. Asegúrese de usar el formato YYYY-MM-DD.", status=400)
 
-    # Filtrar pedidos por la fecha seleccionada
+    # Filtrar pedidos
     pedidos = Pedido.objects.filter(fecha_pedido__date=fecha_seleccionada)
     if not pedidos.exists():
         return HttpResponse(f"No se encontraron pedidos para la fecha {fecha_seleccionada}.", status=404)
@@ -1713,56 +2223,51 @@ def pedidos_dia(request):
     # Calcular totales
     insumos_totales = calcular_totales_dia(pedidos, fecha_seleccionada)
 
-    # Crear el objeto PDF
+    # Crear respuesta PDF
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{fecha_seleccionada}.pdf"'
 
-    # Configurar ReportLab
+    # PDF y dimensiones
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
 
-    # Agregar título
+    # Título principal
     mes_espanol = traducir_mes_en_espanol(fecha_seleccionada)
     fecha_formateada = fecha_seleccionada.strftime(f'%d {mes_espanol} %Y')
     p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS - {fecha_formateada}")
+    p.drawCentredString(width / 2, height - 40, f"INFORME DE INSUMOS - {fecha_formateada}")
 
-    # Configurar la tabla de datos
+    # Tabla de datos
     data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
     for insumo, totales in insumos_totales.items():
-        total = totales['total']
-        # Añadir insumo y total
-        data.append([insumo, total])
+        data.append([insumo, str(totales['total'])])
 
-    # Estilo de la tabla
-    style = TableStyle([
+    # Estilo tabla
+    table = Table(data, colWidths=[300, 100])
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
+    ]))
 
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla
+    # Calcular posición centrada
     table_width, table_height = table.wrap(0, 0)
-    table.drawOn(p, 60, height - 250)
+    x_pos = (width - table_width) / 2
+    y_pos = height - 100 - table_height  # Debajo del título
 
-    # Agregar título
-    p.setFont("Helvetica-Bold", 12)
-    p.drawCentredString(width / 2, height - 70, "INFORME DE INSUMOS POR DÍA")
+    table.drawOn(p, x_pos, y_pos)
 
-    # Guardar el PDF en el buffer
+    # Guardar el PDF
     p.showPage()
     p.save()
 
-    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
     return response
 
@@ -1795,89 +2300,109 @@ def calcular_totales_semana(pedidos, fecha_inicio, fecha_fin):
     return insumos_totales
 
 
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from datetime import datetime, timedelta
+
 @login_required
 def pedidos_semana(request):
+    # Validar fecha de inicio
     fecha_inicio_str = request.GET.get('fecha_inicio')
     if not fecha_inicio_str:
-        return HttpResponse("Por favor, seleccione una fecha de inicio.")
+        return HttpResponse("Por favor, seleccione una fecha de inicio.", status=400)
 
     try:
         fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
-        # Calcula el fin de semana (sábado) de la semana correspondiente
         fecha_fin = fecha_inicio + timedelta(days=6 - fecha_inicio.weekday())
     except ValueError:
-        return HttpResponse("Fecha inválida. Asegúrese de usar el formato YYYY-MM-DD.")
+        return HttpResponse("Fecha inválida. Asegúrese de usar el formato YYYY-MM-DD.", status=400)
 
-    # Filtrar pedidos por la semana seleccionada
+    # Filtrar pedidos
     pedidos = Pedido.objects.filter(fecha_pedido__date__range=(fecha_inicio, fecha_fin))
+    if not pedidos.exists():
+        return HttpResponse(f"No se encontraron pedidos entre {fecha_inicio} y {fecha_fin}.", status=404)
 
     # Calcular totales
     insumos_totales = calcular_totales_semana(pedidos, fecha_inicio, fecha_fin)
 
-    # Crear el objeto PDF con ReportLab
+    # Configurar respuesta PDF
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="PEDIDOS_{fecha_inicio}_a_{fecha_fin}.pdf"'
 
+    # Crear PDF
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    p = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
 
-    # Agregar título
+    # Título del reporte
     mes_espanol = traducir_mes_en_espanol(fecha_inicio)
     fecha_formateada_inicio = fecha_inicio.strftime(f'%d {mes_espanol} %Y')
     fecha_formateada_fin = fecha_fin.strftime(f'%d {mes_espanol} %Y')
     p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(letter[0] / 2, letter[1] - 40, f"INFORME DE INSUMOS - {fecha_formateada_inicio} a {fecha_formateada_fin}")
+    p.drawCentredString(width / 2, height - 40, f"INFORME DE INSUMOS - {fecha_formateada_inicio} a {fecha_formateada_fin}")
 
-    # Configurar la tabla
+    # Construir datos de tabla
     data = [['NOMBRE DEL PRODUCTO', 'CANTIDAD TOTAL']]
-    
     for insumo, totales in insumos_totales.items():
-        total = totales['total']
-        # Añadir insumo y total
-        data.append([insumo, total])
+        data.append([insumo, str(totales['total'])])
 
-    # Estilo de la tabla
-    style = TableStyle([
+    # Crear tabla y estilo
+    table = Table(data, colWidths=[300, 100])
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
+    ]))
 
-    table = Table(data)
-    table.setStyle(style)
-
-    # Posicionar la tabla
+    # Centrar la tabla
     table_width, table_height = table.wrap(0, 0)
-    table.drawOn(p, 60, height - 250)
+    x_pos = (width - table_width) / 2
+    y_pos = height - 100 - table_height
+    table.drawOn(p, x_pos, y_pos)
 
-    # Agregar título
+    # Subtítulo adicional
     p.setFont("Helvetica-Bold", 12)
     p.drawCentredString(width / 2, height - 70, "INFORME DE INSUMOS POR SEMANA")
 
-    # Guardar el PDF en el buffer
+    # Guardar y retornar PDF
     p.showPage()
     p.save()
 
-    # Obtener el valor del buffer
     pdf = buffer.getvalue()
     buffer.close()
-
-    # Establecer el contenido del response con el PDF generado
     response.write(pdf)
     return response
 
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from .models import Informe
+from django.template.loader import get_template
+from weasyprint import HTML
+from datetime import datetime
+from django.templatetags.static import static
+import os
+from django.conf import settings
+import qrcode
+import base64
+from io import BytesIO
+
+
 @login_required
 def generar_pdf_informes_por_dia(request):
-    from .models import Informe
-    from django.template.loader import get_template
-    from weasyprint import HTML
-    from datetime import datetime
-
     fecha_str = request.GET.get('fecha')
     if not fecha_str:
         return HttpResponse('Debe proporcionar una fecha.', status=400)
+
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
     except ValueError:
@@ -1887,20 +2412,62 @@ def generar_pdf_informes_por_dia(request):
     if not informes.exists():
         return HttpResponse('No hay informes para la fecha seleccionada.', status=404)
 
-    # Renderizar cada informe con su plantilla correspondiente y concatenar el HTML
+    # Generar QR con un texto (puede ser la fecha, una URL, o lo que desees)
+    qr_data = f'Informe del {fecha.strftime("%Y-%m-%d")}'
+    qr = qrcode.make(qr_data)
+    buffer = BytesIO()
+    qr.save(buffer, format='PNG')
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    qr_img = f'data:image/png;base64,{qr_base64}'
+
+    image_path = os.path.join(settings.BASE_DIR, 'app','static', 'app', 'imgenes', 'minera.png')
+
+    # Convertir la imagen a base64
+    with open(image_path, 'rb') as img_file:
+        minera_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+    minera_img = f'data:image/png;base64,{minera_base64}'
+
+    header_html = f'''
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <div style="flex: 0 0 auto;">
+            <img src="{qr_img}" style="width: 90px; height: 90px;">
+        </div>
+        <div style="text-align: center; flex: 1;">
+            <h1 style="font-size: 22px; margin-bottom: 5px;">INFORME DIA {fecha.strftime('%d-%m-%Y')}</h1>
+            <p style="margin: 0;font-size: 12px;">PAÑOLERO: {request.user.username}</p>
+        </div>
+        <div style="flex: 0 0 auto;">
+            <img src="{minera_img}" style="width: 90px; height: 90px;">
+        </div>
+    </div>
+    '''
+
+
+
+    # Renderizar cada informe y acumular HTML
     html_parts = []
     for informe in informes:
         template = get_template(f'informes/pdf/caso_{informe.caso}.html')
         html = template.render({'informe': informe})
         html_parts.append(html)
-        # Salto de página eliminado para que los informes se impriman uno debajo del otro
 
-    # Unir todo el HTML
-    full_html = '<html><head><meta charset="utf-8"></head><body>' + '\n'.join(html_parts) + '</body></html>'
+    # Unir encabezado y contenido
+    full_html = f'''
+    <html>
+        <head><meta charset="utf-8"></head>
+        <body>
+            {header_html}
+            {"".join(html_parts)}
+        </body>
+    </html>
+    '''
+
     pdf = HTML(string=full_html, base_url=request.build_absolute_uri()).write_pdf()
+
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="informes_{fecha}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="informes_{fecha}.pdf"'
     return response
+
 
 
 def listar_informes(request):
@@ -3270,7 +3837,6 @@ def extraer_tabla_html(html):
 
 from weasyprint import HTML
 from django.template.loader import get_template
-
 import base64
 import os
 # ...existing imports...
@@ -3310,8 +3876,8 @@ def generar_pdf_informes_tablas_unidas(request):
             return ''
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    logo_izq_path = os.path.join(base_dir, 'app', 'img', 'logo.png')
-    logo_der_path = os.path.join(base_dir, 'app', 'img', 'Logo.svg')
+    logo_izq_path = os.path.join(base_dir, 'app', 'static','app', 'imgenes', 'Logo.png')
+    logo_der_path = os.path.join(base_dir, 'app', 'static','app', 'imgenes', 'minera.png')
     logo_izq_b64 = img_to_base64(logo_izq_path)
     logo_der_b64 = img_to_base64(logo_der_path)
 
@@ -3379,5 +3945,116 @@ def eliminar_informe(request, informe_id):
 
 
 
+from django.shortcuts import render, get_object_or_404
 
-    
+from django.db.models import Q
+from datetime import datetime
+
+
+from django.core.paginator import Paginator
+
+def verificar_reporte(request, codigo):
+    try:
+        reporte = ReportePedido.objects.get(codigo_reporte=codigo)
+        insumos_guardados = ReporteInsumo.objects.filter(reporte=reporte)
+
+        tabla_datos = []
+
+        for item in insumos_guardados:
+            tabla_datos.append({
+                'fecha': item.pedido.fecha_pedido.strftime("%d/%m/%Y %H:%M"),
+                'trabajador': item.trabajador.nombre,
+                'empresa': item.pedido.compañia.nombre,
+                'insumo': item.insumo.nombre,
+                'cantidad': item.cantidad,
+                'area': item.area,
+            })
+
+        page_number = request.GET.get('page')
+        paginator = Paginator(tabla_datos, 10)
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, 'verificacionqr/verificacion_reporte.html', {
+            'reporte': reporte,
+            'tabla_datos': tabla_datos,
+            'page_obj': page_obj,
+        })
+
+    except ReportePedido.DoesNotExist:
+        return render(request, 'verificacionqr/verificacion_reporte.html', {
+            'error': "No se encontró el reporte con el código proporcionado."
+        })
+
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import PedidoInsumo, Pedido, Obrero
+from django.db.models import Q
+from datetime import datetime
+
+def verificar_reporte_personal(request, codigo_unico, obrero_id):
+    search_term = request.GET.get('buscar')
+
+    pedido_insumos = PedidoInsumo.objects.filter(
+        pedido__codigo_unico=codigo_unico,
+        pedido__solicitante_id=obrero_id
+    )
+
+    if search_term:
+        try:
+            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
+            pedido_insumos = pedido_insumos.filter(
+                Q(pedido__fecha_pedido__date=search_date) |
+                Q(pedido__solicitante__nombre__icontains=search_term) |
+                Q(pedido__compañia__nombre__icontains=search_term) |
+                Q(insumos__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(pedido__area__icontains=search_term)
+            )
+        except ValueError:
+            pedido_insumos = pedido_insumos.filter(
+                Q(pedido__solicitante__nombre__icontains=search_term) |
+                Q(pedido__compañia__nombre__icontains=search_term) |
+                Q(insumos__nombre__icontains=search_term) |
+                Q(cantidad__icontains=search_term) |
+                Q(pedido__area__icontains=search_term)
+            )
+
+    trabajador = get_object_or_404(Obrero, pk=obrero_id)
+
+    context = {
+        'pedido_insumos': pedido_insumos.order_by('-pedido__fecha_pedido'),
+        'trabajador': trabajador,
+        'codigo_unico': codigo_unico,
+        'search_term': search_term,
+    }
+
+    return render(request, 'verificacionqr/verificacion_reporte1.html', context)
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+from io import BytesIO
+from collections import defaultdict
+from .models import Pedido, PedidoInsumo
+
+
+
+
+
+from django.shortcuts import render
+
+def mi_error_404(request, excption):
+    return render(request, 'app/404.html', status=404)
+
+def mi_error_500(request):
+    return render(request, 'app/500.html', status=500)
+
+
+
+

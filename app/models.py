@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.contrib.postgres.fields import ArrayField 
+from django.contrib.auth.models import User
 
 
 class Empresa(models.Model):
@@ -35,6 +36,9 @@ class Trabajador(models.Model):
     def __str__(self):
         return str(self.nombre)
 
+
+import uuid
+
     
 
 class Pedido(models.Model):
@@ -42,7 +46,8 @@ class Pedido(models.Model):
     compañia = models.ForeignKey(Empresa, related_name="Pedido", on_delete=models.CASCADE, verbose_name="EMPRESA")
     area = models.CharField(max_length=100, verbose_name="AREA")
     fecha_pedido = models.DateTimeField(default=timezone.now)
-
+    codigo_unico = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    numero_reporte = models.PositiveIntegerField(unique=True, null=True, blank=True)
     def __str__(self):
         return f"{self.solicitante.nombre} - {self.compañia.nombre} - {self.area} - {self.fecha_pedido.strftime('%d/%m/%Y')}"
 
@@ -65,8 +70,31 @@ class PedidoInsumo(models.Model):
     def __str__(self):
         return f"{self.insumos.nombre} x {self.cantidad} - {self.trabajador.nombre}"
 
+from uuid import uuid4
 
 
+class ReportePedido(models.Model):
+    codigo_reporte = models.UUIDField(default=uuid.uuid4, editable=False)  # ← sin unique
+    pedidos = models.ManyToManyField('Pedido', related_name='reportes')
+    generado_por = models.CharField(max_length=150)
+    fecha_generacion = models.DateTimeField(default=timezone.now)
+
+
+    def __str__(self):
+        return f"Reporte {self.codigo_reporte} - {self.fecha_generacion.strftime('%d/%m/%Y %H:%M')}"
+
+
+
+class ReporteInsumo(models.Model):
+    reporte = models.ForeignKey('ReportePedido', on_delete=models.CASCADE, related_name='insumos_reporte')
+    pedido = models.ForeignKey('Pedido', on_delete=models.CASCADE)
+    insumo = models.ForeignKey('Material', on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField()
+    trabajador = models.ForeignKey('Obrero', on_delete=models.CASCADE)
+    area = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.reporte.codigo_reporte} - {self.insumo.nombre} x {self.cantidad}"
 
 
 class Herramienta(models.Model):
@@ -251,3 +279,15 @@ class ImagenInforme(models.Model):
 
     def __str__(self):
         return f"{self.ot}"
+
+
+
+class DetallePrestamo(models.Model):
+    prestamo = models.ForeignKey(Prestamo, on_delete=models.CASCADE)
+    fecha_entrega = models.DateTimeField(default=timezone.now)
+    insumo = models.ForeignKey(Material, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField()
+    observacion = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.prestamo} - {self.insumo} x {self.cantidad}'

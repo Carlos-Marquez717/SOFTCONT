@@ -1,0 +1,59 @@
+{% extends "app/base.html" %}
+{% load static %}
+{% block content %}
+<br><br><br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="card bg-dark text-white" style="max-width: 1200px; width: 100%;">
+            <div class="card-header text-white text-center" style="background-color: #0d6efd;">
+                <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4" style="max-width: 400px; filter: drop-shadow(0 0 4px #fff);">
+                <h3>VERIFICACIÓN REPORTE</h3>
+                {% if codigo_unico %}
+                    <p><strong>Código Reporte:</strong> {{ codigo_unico }}</p>
+                {% endif %}
+                {% if trabajador %}
+                    <p><strong>Trabajador:</strong> {{ trabajador.nombre }}</p>
+                {% endif %}
+                {% if pedido_insumos %}
+                    <p><strong>Empresa:</strong> {{ pedido_insumos.0.pedido.compañia.nombre }}</p>
+                    <p><strong>Fecha del Reporte:</strong> {{ pedido_insumos.0.pedido.fecha_pedido|date:"d/m/Y H:i" }}</p>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger text-center">{{ error }}</div>
+                {% elif pedido_insumos %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-bordered">
+                            <thead class="text-center">
+                                <tr>
+                                    <th>FECHA</th>
+                                    <th>TRABAJADOR</th>
+                                    <th>EMPRESA</th>
+                                    <th>INSUMO</th>
+                                    <th>CANTIDAD</th>
+                                    <th>AREA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pedido_insumos %}
+                                    <tr class="text-center">
+                                        <td>{{ item.pedido.fecha_pedido|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ item.trabajador.nombre }}</td>
+                                        <td>{{ item.pedido.compañia.nombre }}</td>
+                                        <td>{{ item.insumos.nombre }}</td>
+                                        <td>{{ item.cantidad }}</td>
+                                        <td>{{ item.pedido.area }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning text-center">No hay pedidos asociados a este reporte.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

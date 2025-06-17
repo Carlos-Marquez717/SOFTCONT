@@ -1,0 +1,13 @@
+{% extends 'app/base.html' %}
+
+
+{% load static %}
+{% block content %}
+
+    <h1>Error 500 - Página no encontrada</h1>
+    <p>Lo sentimos, la página que buscas no existe.</p>
+    <a href="{% url 'home' %}">Volver al inicio</a>
+</body>
+</html>
+{% endblock %}
+

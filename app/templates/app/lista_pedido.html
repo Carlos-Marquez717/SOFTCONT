@@ -52,14 +52,7 @@
             </form>
           </div>
           <!-- Formulario de PDF por año -->
-          <div class="col-md-3 mb-2">
-            <form method="get" action="{% url 'pedidos_anio' %}">
-              <label for="anio">AÑO:</label>
-              <input type="number" id="anio" name="anio" class="form-control" min="2000" max="{{ current_year }}" required>
-              <button type="submit" class="btn btn-success mt-2 w-100"><i class="bi bi-filetype-pdf"></i> AÑO</button>
-            </form>
-          </div>
-
+          
         </div>
 
         <!-- Tabla de pedidos -->
@@ -92,7 +85,8 @@
                     <a href="{% url 'lista_pedido_trabajador' pedido.pedido.solicitante.id %}" class="btn btn-primary"><i class="bi bi-person-lines-fill"></i></a>
                     <button class="btn btn-warning" onclick="window.location.href='{% url 'editar_pedido' pedido.pedido.id %}'"><i class="bi bi-pencil-square"></i></button>
                     <button class="btn btn-danger" onclick="confirmarEliminacion('{{ pedido.id }}')"><i class="bi bi-trash3-fill"></i></button>
-                    <a href="{% url 'generar_pdf_pedidos' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a>
+                    <a href="{% url 'generar_pdf_pedidos' %}?buscar={{ request.GET.buscar }}& insumos={{ request.GET.insumos }}&fecha={{ request.GET.fecha }}" class="btn btn-success"> PDF</a>
+
                   </div>
                 </td>
               </tr>

@@ -15,10 +15,17 @@ from .views import (
     registro_prestamo_success, registro_RetiroRepuesto_success, generar_pdf_retiro, 
     generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia,pedidos_semana,
     pedidos_mes,upload_csv,lista_congelado,generate_pdf,pagina_con_botones,register,crear_informe,listar_informes,
-    generar_pdf_informe, generar_pdf_informes_por_dia, eliminar_informe
+    generar_pdf_informe, generar_pdf_informes_por_dia, eliminar_informe,generar_pdf_informes_tablas_unidas,
+    
+    
+
+
 )
 
+from .views import verificar_reporte,verificar_reporte_personal,verificar_reporte_prestamos,verificar_prestamos
+
 urlpatterns = [
+    path('informes/pdf/tablas-unidas/', generar_pdf_informes_tablas_unidas, name='informes_pdf_tablas_unidas'),
 
     path('register/', register, name='register'),
     path('logout/', logout_then_login, name='logout'),
@@ -70,10 +77,10 @@ urlpatterns = [
     path('pedidos_semanales/', pedidos_semanales, name='pedidos_semanales'),
     path('pedidos_semana/', pedidos_semana, name='pedidos_semana'),
     path('pedidos_mes/', pedidos_mes, name='pedidos_mes'),
-    
     path('pedidos_mensuales/', pedidos_mensuales, name='pedidos_mensuales'),
     path('generar_pdf_prestamos/', generar_pdf_prestamos, name='generar_pdf_prestamos'),
-    path('generar_pdf_prestamo/<int:obrero_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),
+    path('generar_pdf_prestamo/<int:prestamo_id>/', generar_pdf_prestamo, name='generar_pdf_prestamo'),
+
     path('lista_utilesaseo/', lista_utilesaseo, name='lista_utilesaseo'),
     path('registro_utilesaseo/', registro_utilesaseo, name='registro_utilesaseo'),
     path('generar_pdf_utiles_aseo/', generar_pdf_utiles_aseo, name='generar_pdf_utiles_aseo'),
@@ -89,6 +96,10 @@ urlpatterns = [
     path('informes/pdf/<int:informe_id>/', generar_pdf_informe, name='informe_pdf'),
     path('informes/pdf-dia/', generar_pdf_informes_por_dia, name='informes_pdf_dia'),
     path('informes/eliminar/<int:informe_id>/', eliminar_informe, name='eliminar_informe'),
+    path('verificar-reporte/<uuid:codigo>/', verificar_reporte, name='verificar_reporte'),
+    path('verificar_reporte/<uuid:codigo_unico>/personal/<int:obrero_id>/', verificar_reporte_personal, name='verificar_reporte_personal'),
+    path('verificar-prestamos/', verificar_reporte_prestamos, name='verificar_reporte_prestamos'),
+    path('verificar_prestamos/<int:prestamo_id>/', verificar_prestamos, name='verificar_prestamos'),
 
 
 

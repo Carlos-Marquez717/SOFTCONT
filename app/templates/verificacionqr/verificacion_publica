@@ -1,0 +1,8 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+<h2>Verificación Exitosa</h2>
+<p><strong>Pedido:</strong> {{ pedido }}</p>
+<p><strong>Solicitante:</strong> {{ pedido.solicitante.nombre }}</p>
+<p><strong>Fecha:</strong> {{ pedido.fecha_pedido }}</p>
+{% endblock %}

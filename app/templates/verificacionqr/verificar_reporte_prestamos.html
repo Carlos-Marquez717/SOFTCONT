@@ -1,0 +1,57 @@
+{% extends "app/base.html" %}
+{% load static %}
+{% block content %}
+<br><br><br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="card bg-dark text-white" style="max-width: 1200px; width: 100%;">
+            <div class="card-header text-white text-center" style="background-color: #0d6efd;">
+                <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4" style="max-width: 400px; filter: drop-shadow(0 0 4px #fff);">
+                <h3>VERIFICACIÓN REPORTE DE PRÉSTAMOS</h3>
+            </div>
+            <div class="card-body">
+                {% if prestamos %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-bordered">
+                            <thead class="text-center">
+                                <tr>
+                                    <th>Solicitante</th>
+                                    <th>Empresa</th>
+                                    <th>Herramienta</th>
+                                    <th>Fecha Préstamo</th>
+                                    <th>Fecha Recepción</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center">
+                                {% for p in prestamos %}
+                                <tr>
+                                    <td>{{ p.nombre_solicitante.nombre }}</td>
+                                    <td>{{ p.empresa.nombre }}</td>
+                                    <td>{{ p.herramienta.nombre }}</td>
+                                    <td>{{ p.fecha_creacion|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if p.fecha_recepcion %}
+                                            {{ p.fecha_recepcion|date:"d/m/Y" }}
+                                        {% else %}
+                                            Sin fecha
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="{% if p.status == 'NO_ENTREGADO' %}text-danger{% else %}text-success{% endif %}">
+                                            {{ p.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning text-center">No hay préstamos registrados para este reporte.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

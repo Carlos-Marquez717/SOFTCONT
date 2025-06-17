@@ -1,0 +1,58 @@
+{% extends "app/base.html" %}
+{% load static %}
+{% block content %}
+<br><br><br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="card bg-dark text-white" style="max-width: 1200px; width: 100%;">
+            <div class="card-header text-white text-center" style="background-color: #0d6efd;">
+                <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4" style="max-width: 400px; filter: drop-shadow(0 0 4px #fff);">
+                <h3>VERIFICACION REPORTE DE PEDIDOS</h3>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger text-center">{{ error }}</div>
+                {% else %}
+                    <div class="mb-2 text-end">
+                        <span class="badge bg-info text-dark">Código de reporte: <strong>{{ pedido.codigo_unico }}</strong></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm mx-auto mb-0">
+                            <thead>
+                                <tr>
+                                    <th>FECHA</th>
+                                    <th>TRABAJADOR</th>
+                                    <th>EMPRESA</th>
+                                    <th>INSUMO</th>
+                                    <th>CANTIDAD</th>
+                                    <th>AREA</th>
+                                    <th>N° REPORTE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if insumos %}
+                                    {% for pedido_insumo in insumos %}
+                                        <tr>
+                                            <td>{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</td>
+                                            <td>{{ pedido.solicitante.nombre }}</td>
+                                            <td>{{ pedido.compañia.nombre }}</td>
+                                            <td>{{ pedido_insumo.insumos.nombre }}</td>
+                                            <td>{{ pedido_insumo.cantidad }}</td>
+                                            <td>{{ pedido.area }}</td>
+                                            <td>{{ pedido.codigo_unico }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7">El pedido no tiene insumos asociados.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

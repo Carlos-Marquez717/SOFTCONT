@@ -1,0 +1,57 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block content %}
+<br><br><br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="card bg-dark text-white" style="max-width: 1200px; width: 100%;">
+            <div class="card-header text-white text-center" style="background-color: #0d6efd;">
+                <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4" style="max-width: 400px; filter: drop-shadow(0 0 4px #fff);">
+                <h3>VERIFICACIÓN REPORTE DE PRÉSTAMO</h3>
+            </div>
+            <div class="card-body">
+                {% if prestamo %}
+                    <div class="mb-2 text-end">
+                        <span class="badge bg-info text-dark">Código de préstamo: <strong>#{{ prestamo.id }}</strong></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm mx-auto mb-0">
+                            <thead>
+                                <tr>
+                                    <th>FECHA</th>
+                                    <th>TRABAJADOR</th>
+                                    <th>EMPRESA</th>
+                                    <th>HERRAMIENTA</th>
+                                    <th>ESTADO</th>
+                                    <th>FECHA RECEPCIÓN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ prestamo.fecha_creacion|date:"d/m/Y" }}</td>
+                                    <td>{{ prestamo.nombre_solicitante.nombre }}</td>
+                                    <td>{{ prestamo.empresa.nombre }}</td>
+                                    <td>{{ prestamo.herramienta.nombre }}</td>
+                                    <td>{{ prestamo.get_status_display }}</td>
+                                    <td>
+                                        {% if prestamo.fecha_recepcion %}
+                                            {{ prestamo.fecha_recepcion|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-warning">Pendiente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning text-center mt-3">
+                        No se encontró el préstamo solicitado.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

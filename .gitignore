@@ -8,6 +8,8 @@ media
 staticfiles
 
 .env
+# Ignorar entorno virtual
+env/
 
 
 # Distribution / packaging
