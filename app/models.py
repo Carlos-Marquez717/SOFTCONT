@@ -125,10 +125,23 @@ class Prestamo(models.Model):
 class Repuesto(models.Model): 
     nombre = models.CharField(max_length=100)
     cantidad = models.PositiveIntegerField()
-    ubicacion = models.CharField(max_length=100, blank=True, null=True)  # Nuevo campo
+    ubicacion = models.CharField(max_length=100, blank=True, null=True) 
 
     def __str__(self):
         return self.nombre
+    
+
+
+class ReporteRetiroRepuesto(models.Model):
+    numero_reporte = models.CharField(max_length=30, unique=True)
+    filtro = models.CharField(max_length=255, blank=True, null=True)
+    trabajador = models.ForeignKey(Obrero, on_delete=models.SET_NULL, null=True, blank=True) 
+    fecha_generacion = models.DateTimeField(auto_now_add=True)
+
+
+
+    def __str__(self):
+        return self.numero_reporte
     
 
 class RetiroRepuesto(models.Model):
@@ -137,15 +150,11 @@ class RetiroRepuesto(models.Model):
     repuesto = models.ForeignKey(Repuesto, related_name="retirorepuesto", on_delete=models.CASCADE, verbose_name="REPUESTO")
     cantidad = models.PositiveIntegerField()
     fecha_retiro = models.DateTimeField(auto_now_add=True)
-    area = models.CharField(max_length=100, blank=True, null=True)  # Nuevo campo
+    area = models.CharField(max_length=100, blank=True, null=True)
+    reporte = models.ForeignKey(ReporteRetiroRepuesto, on_delete=models.SET_NULL, null=True, blank=True, related_name='retiros')
 
     def __str__(self):
-        return f'{self.trabajador} - {self.repuesto} - {self.cantidad}'
-
-
-
-
-    
+        return f'{self.trabajador} - {self.repuesto} - {self.cantidad} - {self.area}'
 
 
 
@@ -161,6 +170,12 @@ class Producto(models.Model):
 
 
 
+
+
+
+import uuid
+from django.core.exceptions import ValidationError
+from datetime import datetime
 
 class Utilesaseo(models.Model):
     STATUS_CHOICES = [
@@ -178,22 +193,19 @@ class Utilesaseo(models.Model):
         ('DICIEMBRE', 'DICIEMBRE'),
     ]
 
-  
-
     mes = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ENERO')
     productos = models.ManyToManyField('Producto', related_name='utilesaseos', verbose_name="Producto")
-    cantidad = models.PositiveIntegerField()
     fecha_creacion = models.DateField(auto_now_add=True)
     nombre_solicitante = models.ForeignKey('Obrero', related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="Obrero")
     empresa = models.ForeignKey('Empresa', related_name="utilesaseo", on_delete=models.CASCADE, verbose_name="empresa")
     run = models.CharField(max_length=100)
+    numero_reporte = models.CharField(max_length=50, blank=True, null=True)
+    # Elimina unique=True
 
     def clean(self):
-        # Obtener el mes actual y el año actual
         now = datetime.now()
         current_year = now.year
 
-        # Verificar registros existentes
         same_month_records = Utilesaseo.objects.filter(
             mes=self.mes,
             fecha_creacion__year=current_year,
@@ -202,29 +214,32 @@ class Utilesaseo(models.Model):
         )
 
         if same_month_records.count() >= 3:
-            raise ValidationError(f'Ya existen 3 registros para el mes {self.get_mes_display()} en el año actual. Para el Trabajador')
+            raise ValidationError(f'Ya existen 3 registros para el mes {self.get_mes_display()} en el año actual para el trabajador.')
 
-        # Después de guardar el objeto, puedes verificar las relaciones ManyToMany
-        if self.pk:  # Solo si el objeto ya tiene un ID
+        if self.pk:  # Para evitar errores en creación inicial
             for producto in self.productos.all():
                 same_month_product_records = same_month_records.filter(productos=producto)
                 if same_month_product_records.exists():
-                    raise ValidationError(f'Ya existe un registro para el mes {self.get_mes_display()} y el producto {producto.nombre} en el año actual. Para el Trabajador')
+                    raise ValidationError(f'Ya existe un registro para el mes {self.get_mes_display()} y el producto {producto.nombre} en el año actual para el trabajador.')
 
     def save(self, *args, **kwargs):
+        if not self.numero_reporte:
+            self.numero_reporte = f"UA-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
-        # Guardar la relación ManyToMany después de guardar el objeto principal
-        self.productos.set(self.productos.all())
 
     def __str__(self):
         productos_nombres = ", ".join([producto.nombre for producto in self.productos.all()])
-        return f"{self.mes} - {productos_nombres} - {self.cantidad}"
+        return f"{self.mes} - {productos_nombres}"
+
+
+class UtilAseoDetalle(models.Model):
+    utilesaseo = models.ForeignKey(Utilesaseo, related_name='detalles', on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField()
 
 
 
-
-
-
+ 
 class congelado(models.Model):
     orden= models.IntegerField()
     caso=models.CharField(max_length=100, null=True, blank=True)
@@ -291,3 +306,11 @@ class DetallePrestamo(models.Model):
 
     def __str__(self):
         return f'{self.prestamo} - {self.insumo} x {self.cantidad}'
+
+
+
+
+class VerificacionInforme(models.Model):
+    numero_reporte = models.CharField(max_length=30, unique=True)
+    fecha = models.DateField()
+    creado_en = models.DateTimeField(auto_now_add=True)

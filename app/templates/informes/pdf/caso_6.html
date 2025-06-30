@@ -2,57 +2,70 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>CASO 6 (RECEPCION E IZAJE DE PIEZAS MECANICAS)</title>
+    <title>CASO 6 (RECEPCIÓN E IZAJE DE PIEZAS MECÁNICAS)</title>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding: 0; }
-        h2 { text-align: center; margin: 0 0 4px 0; font-size: 15px; letter-spacing: 1px; }
-        .tabla-informe {
-            width: 100vw;
-            max-width: 100vw;
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            margin: 0 0 0 40px;
+            padding: 0;
+        }
+
+        h2 {
+            text-align: center;
             margin: 0;
-            border-collapse: collapse;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse !important;
+            margin: 0;
             table-layout: fixed;
         }
-        th, td { border: 1px solid #000; padding: 4px; text-align: center; word-break: break-word; font-size: 11px; }
-        .bg-yellow { background-color: #FFC000; font-weight: bold; }
-        .anexo-img { height: 100px; width: 100%; object-fit: cover; border: 1px solid #000; }
-        .no-img { height: 100px; border: 1px dashed #aaa; display: flex; align-items: center; justify-content: center; }
-        .anexo-label { font-weight: bold; }
-        .italic { font-style: italic; }
-        .imagenes-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-            width: 100%;
-            margin-top: 4px;
-            page-break-inside: avoid;
+
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+            word-break: break-word;
         }
-        .imagenes-grid img,
-        .imagenes-grid .no-img {
+
+        .bg-yellow {
+            background-color: #0d6efd;
+            font-weight: bold;
+            color: white;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
+        .imagenes-table img {
             width: 100%;
-            height: 100px;
+            height: 80px;
             object-fit: contain;
             border: 1px solid #000;
         }
+
+        .no-img {
+            height: 100px;
+            border: 1px dashed #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tabla-informe {
+            width: 90%;
+            margin: 0 auto;
+        }
+
         .anexo-titulo {
             font-weight: bold;
             text-align: center;
             padding: 2px;
             background-color: #ddd;
             margin-bottom: 2px;
-            font-size: 10px;
-        }
-        .section-title {
-            font-size: 13px;
-            font-weight: bold;
-            background: #f5f5f5;
-            padding: 2px 0;
-            margin-bottom: 2px;
-            letter-spacing: 0.5px;
-        }
-        @media print {
-            .imagenes-grid { page-break-inside: avoid; }
-            tr, td, th { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -60,15 +73,13 @@
 
     <table class="tabla-informe">
         <tr>
-            <th class="bg-yellow" style="width:4%">N°</th>
-            <th class="bg-yellow" style="width:9%">HORA <br>INICIO</th>
-            <th class="bg-yellow" style="width:10%">HORA<br> FINAL</th>
-            <th class="bg-yellow" style="width:18%">TAREA</th>
+            <th class="bg-yellow" style="width:15%">HORA <br>INICIO</th>
+            <th class="bg-yellow" style="width:15%">HORA<br>FINAL</th>
+            <th class="bg-yellow" style="width:21%">TAREA</th>
             <th class="bg-yellow" style="width:14%">ÁREA</th>
-            <th class="bg-yellow" style="width:40%">DESCRIPCIÓN</th>
+            <th class="bg-yellow" style="width:38%">DESCRIPCIÓN</th>
         </tr>
         <tr>
-            <td>{{ informe.id }}</td>
             <td>{{ informe.hora_inicio }}</td>
             <td>{{ informe.hora_culm }}</td>
             <td>RECEPCIÓN E IZAJE DE PIEZAS MECÁNICAS</td>
@@ -76,34 +87,37 @@
             <td>{{ informe.descripcion }}</td>
         </tr>
         <tr>
-            <td class="bg-yellow" style="font-size:10px; text-align:center; word-break:break-word; padding:2px;" colspan="2">PIEZAS</td>
-            <td colspan="4" style="text-align:center; vertical-align:center; height:60px; word-break:break-word;">{{ informe.piezas }}</td>
+            <td class="bg-yellow" colspan="1">PIEZAS</td>
+            <td colspan="4">{{ informe.piezas }}</td>
         </tr>
         <tr>
-            <td colspan="6" class="bg-yellow section-title"><span class="italic">PIEZAS MECÁNICAS RECEPCIONADAS Y ENTREGADAS</span></td>
+            <td colspan="5" class="bg-yellow">
+                <span class="italic">PIEZAS MECÁNICAS RECEPCIONADAS Y ENTREGADAS</span>
+            </td>
         </tr>
         <tr>
-            <td colspan="6">
+            <td colspan="5" style="padding: 8px;">
                 {% if informe.imagenes.all %}
-                    {% for img in informe.imagenes.all %}
-                        {% if forloop.first or forloop.counter0|divisibleby:4 %}
-                            <div class="imagenes-grid" style="width:100%;">
-                        {% endif %}
-                        <div>
-                            <img src="{{ img.imagen.url }}" alt="Anexo {{ forloop.counter }}">
-                        </div>
-                        {% if forloop.counter|divisibleby:4 or forloop.last %}
-                            </div>
-                            {% if not forloop.last %}
-                                <div style="page-break-before: always;"></div>
+                    <table class="imagenes-table" style="width:100%; border-collapse: collapse;">
+                        {% for img in informe.imagenes.all %}
+                            {% if forloop.first or forloop.counter0|divisibleby:2 %}
+                                <tr>
                             {% endif %}
-                        {% endif %}
-                    {% endfor %}
+                            <td style="width: 45%; padding: 4px; border: 1px solid #000;">
+                                <img src="{{ img.imagen.url }}" alt="Imagen {{ forloop.counter }}" style="width: 100%; height: 80px; object-fit: contain; border: none;" />
+                            </td>
+
+                            {% if forloop.counter|divisibleby:2 or forloop.last %}
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </table>
                 {% else %}
                     <div class="no-img">Sin imágenes anexas</div>
                 {% endif %}
             </td>
         </tr>
     </table>
+
 </body>
 </html>

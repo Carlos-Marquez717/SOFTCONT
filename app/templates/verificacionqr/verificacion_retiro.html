@@ -1,0 +1,77 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block content %}
+<br><br><br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="card bg-dark text-white" style="max-width: 1200px; width: 100%;">
+            <div class="card-header text-white text-center" style="background-color: #0d6efd;">
+                <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4" style="max-width: 400px; filter: drop-shadow(0 0 4px #fff);">
+                <h3>VERIFICACIÓN DE RETIRO DE REPUESTOS - TRABAJADOR</h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="check" style="font-size: 60px; color: green;">&#10004;</div>
+                    <table class="table table-dark table-sm mx-auto mb-0">
+                        <thead>
+                            <tr>
+                                <th>N° Reporte:</th>
+                                <th>Trabajador</th>
+                                <th>Fecha de reporte:</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                            <tr>
+                                <td>{{ numero_reporte }}</td>
+                                <td>{{ trabajador.nombre }}</td>
+                                <td>{{ fecha_reporte }}</td>
+
+                            </tr> 
+                        </tbody> 
+                    </table>
+                    
+                
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm mx-auto mb-0">
+                        <thead>
+                            <tr>
+                                <th>FECHA</th>
+                                <th>EMPRESA</th>
+                                <th>REPUESTO</th>
+                                <th>CANTIDAD</th>
+                                <th>ÁREA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for retiro in retiros %}
+                            <tr>
+                                <td>{{ retiro.fecha_retiro|date:"d/m/Y H:i" }}</td>
+                                <td>{{ retiro.empresa.nombre }}</td>
+                                <td>{{ retiro.repuesto.nombre }}</td>
+                                <td>{{ retiro.cantidad }}</td>
+                                <td>{{ retiro.area }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6">No hay registros</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-center mt-3">
+                    Este Reporte ha sido generado correctamente y es válido.<br>
+                    Si tiene dudas, contacte al administrador del sistema.
+                    <br><br><br>
+                    <strong>DESARROLLADOR:</strong> CARLOS MARQUEZ | F&S ENGINEERING AND ELECTRICITY
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

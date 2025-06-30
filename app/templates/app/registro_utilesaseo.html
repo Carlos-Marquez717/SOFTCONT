@@ -1,90 +1,146 @@
 {% extends 'app/base.html' %}
-
 {% load static %}
+
 {% block content %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 
 <style>
   .select2-container--bootstrap4 .select2-selection--single {
-      background-color: white; /* Fondo blanco */
-      border: 1px solid #ced4da; /* Borde similar a Bootstrap */
-      border-radius: 0.25rem; /* Bordes redondeados */
-      color: black; /* Texto negro */
-      height: calc(2.25rem + 2px); /* Altura similar a Bootstrap */
-  }
-
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
-      color: black; /* Texto negro */
-  }
-
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
-      height: calc(2.25rem + 2px); /* Altura del botón de flecha */
-  }
-
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__placeholder {
-      color: #6c757d; /* Color del placeholder */
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    color: black;
+    height: calc(2.25rem + 2px);
   }
 </style>
+
 <br><br><br><br><br>
 <div class="container">
   <div class="row justify-content-center">
-    <div class="card bg-dark text-white col-md-4 mx-auto d-flex align-items-center">
-      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4">
+    <div class="card bg-dark text-white col-md-10 mx-auto">
+      <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mx-auto d-block my-3" style="height: 100px;" />
       <h2 class="card-header text-center">REGISTRAR</h2>
       <div class="card-body">
-        <div class="d-flex justify-content-center w-100 mb-3">
-          <!-- Enlace para ir al formulario de registrar obrero -->
-          <a href="{% url 'registro_obrero' %}" class="btn btn-primary mx-2">
-            <span class="material-icons">engineering</span> OBRERO
-          </a>
-        </div>
-        <form method="post" action="{% url 'registro_utilesaseo' %}">
+
+        <form method="post">
           {% csrf_token %}
-          {{ form.as_p }}
-          <button type="submit" class="btn btn-primary">Registrar</button>
+
+          <!-- Campos generales (que no se duplican) -->
+          <div class="form-group">
+            {{ form.nombre_solicitante }}
+            {{ form.empresa }}
+            {{ form.run }}
+          </div>
+
+          <!-- Contenedor de secciones dinámicas de mes + productos -->
+          <div id="meses-container">
+            <div class="mes-section">
+
+              <!-- Campo de mes (individual por sección) -->
+              <div class="form-group">
+                {{ form.mes }}
+              </div>
+
+              <!-- Tabla de productos -->
+              <table class="table table-bordered text-white">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody class="formset-body">
+                  {{ formset.management_form }}
+                  {% for form in formset %}
+                    <tr class="formset-row">
+                      <td>{{ form.producto }}</td>
+                      <td>{{ form.cantidad }}</td>
+                      <td><button type="button" class="btn btn-danger remove-row">Eliminar</button></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <button type="button" class="btn btn-success add-producto">Agregar Producto</button>
+              <hr>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-info mt-2" id="add-mes">Agregar otro Mes</button>
+          <button type="submit" class="btn btn-primary mt-2">Guardar</button>
         </form>
+
       </div>
     </div>
   </div>
 </div>
-<script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
 <script>
-  $(document).ready(function() {
-    $('.select2').select2();
+  $(document).ready(function () {
+    $('.select2').select2({ theme: 'bootstrap4' });
+
+    let formIdx = parseInt($('#id_form-TOTAL_FORMS').val());
+
+    // Agregar fila de producto
+    $(document).on('click', '.add-producto', function () {
+      const $body = $(this).siblings('table').find('.formset-body');
+      const $lastRow = $body.find('tr.formset-row:last');
+      const $clone = $lastRow.clone(true);
+
+      $clone.find('input, select').each(function () {
+        const name = $(this).attr('name');
+        const id = $(this).attr('id');
+        if (name) {
+          const newName = name.replace(/-(\d+)-/, '-' + formIdx + '-');
+          $(this).attr('name', newName).attr('id', 'id_' + newName).val('');
+        }
+      });
+
+      $body.append($clone);
+      formIdx++;
+      $('#id_form-TOTAL_FORMS').val(formIdx);
+    });
+
+    // Eliminar fila
+    $(document).on('click', '.remove-row', function () {
+      $(this).closest('tr').remove();
+    });
+
+    // Agregar otra sección (solo campo mes + tabla)
+    $('#add-mes').click(function () {
+      const $originalSection = $('.mes-section').first();
+      const $clone = $originalSection.clone(true);
+
+      // Resetear campo MES y reinicializar Select2
+      $clone.find('select[name$=mes]').each(function () {
+        $(this).val(null).removeAttr('data-select2-id').removeClass('select2-hidden-accessible').next('.select2').remove();
+        $(this).select2({ theme: 'bootstrap4' });
+      });
+
+      // Limpiar productos (solo dejar una fila vacía)
+      $clone.find('.formset-row').slice(1).remove();
+      $clone.find('.formset-row input, .formset-row select').val('');
+
+      $('#meses-container').append($clone);
+    });
+
+
+    // Mensajes opcionales
+    const successMessage = "{{ success_message|default:'' }}";
+    const errorMessage = "{{ error_message|default:'' }}";
+
+    if (successMessage) {
+      Swal.fire({ icon: "success", title: "Éxito", text: successMessage });
+    }
+    if (errorMessage) {
+      Swal.fire({ icon: "error", title: "Error", text: errorMessage });
+    }
   });
 </script>
-<script>
-
-
-  var successMessage = "{% if success_message %}{{ success_message }}{% endif %}";
-  var errorMessage = "{% if error_message %}{{ error_message }}{% endif %}";
-
-  if (successMessage) {
-    showAlertSuccess(successMessage);
-  }
-
-  if (errorMessage) {
-    showAlertError(errorMessage);
-  }
-
-  function showAlertSuccess(message) {
-    Swal.fire({
-      icon: 'success',
-      title: 'Éxito',
-      text: message,
-    });
-  }
-
-  function showAlertError(message) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: message,
-    });
-  }
-</script>
-
 {% endblock %}

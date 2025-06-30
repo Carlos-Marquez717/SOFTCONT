@@ -27,7 +27,7 @@
           <table class="table mx-auto table-dark table-striped" id="example">
             <thead>
               <tr>
-                <th scope="col">ID</th>
+                
                 <th scope="col">CASO</th>
                 <th scope="col">AREA</th>
                 <th scope="col">HORA INICIO</th>
@@ -41,11 +41,12 @@
             <tbody>
               {% for informe in informes %}
               <tr>
-                <th scope="row">{{ informe.id }}</th>
+               
                 <td>{{ informe.get_caso_display }}</td>
                 <td>{{ informe.area }}</td>
                 <td>{{ informe.hora_inicio }}</td>
                 <td>{{ informe.hora_culm }}</td>
+                
                 <td>{{ informe.descripcion|truncatewords:10 }}</td>
                 <td>{{ informe.fecha }}</td>
                 <td>
@@ -90,12 +91,42 @@
   </div>
 </div>
 
+
+<!-- jQuery primero -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Luego DataTables jQuery version -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+
 <script>
   $(document).ready(function () {
     $('#example').DataTable({
-      responsive: true
+      responsive: true,
+      pageLength: 5,
+      lengthMenu: [5, 10, 25, 50, 100],
+      language: {
+        "lengthMenu": "Mostrar _MENU_ registros por página",
+        "zeroRecords": "No se encontraron resultados",
+        "info": "Mostrando página _PAGE_ de _PAGES_",
+        "infoEmpty": "No hay registros disponibles",
+        "infoFiltered": "(filtrado de _MAX_ registros totales)",
+        "search": "Buscar:",
+        "paginate": {
+          "first": "Primero",
+          "last": "Último",
+          "next": "Siguiente",
+          "previous": "Anterior"
+        }
+      }
     });
   });
 </script>
+
+
+
+
+
 
 {% endblock %}

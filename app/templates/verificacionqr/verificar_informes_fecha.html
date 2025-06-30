@@ -1,0 +1,58 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block content %}
+<br><br><br><br>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="card bg-dark text-white" style="max-width: 1200px; width: 100%;">
+            <div class="card-header text-white text-center" style="background-color: #0d6efd;">
+                <img src="{% static 'app/imgenes/Logo.png' %}" alt="Logo" class="img-fluid mb-4" style="max-width: 400px; filter: drop-shadow(0 0 4px #fff);">
+                <h3>VERIFICACIÓN DE INFORMES - {{ fecha|date:"d/m/Y" }}</h3>
+            </div>
+            <div class="card-body">
+                {% if informes %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm mx-auto mb-0">
+                            <thead>
+                                <tr>
+                                    <th>N° REPORTE</th>
+                                    <th class="text-center mt-4">TAREA</th>
+                                    <th class="text-center mt-4">ÁREA</th>
+                                    <th class="text-center mt-4">DESCRIPCIÓN</th>
+                                    <th>HORA INICIO</th>
+                                    <th>HORA CULM</th>
+                               
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for informe in informes %}
+                                    <tr>
+                                        <td>{{  numero_reporte }}</td>
+                                        <td class="text-center mt-4">{{ informe.get_caso_display }}</td>
+                                        <td class="text-center mt-4">{{ informe.area }}</td>
+                                        <td>{{ informe.descripcion|truncatewords:10 }}</td>
+                                        <td class="text-center mt-4">{{ informe.hora_inicio }}</td>
+                                        <td class="text-center mt-4">{{ informe.hora_culm }}</td>
+
+                                    </tr>
+                                {% endfor %}  
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-center text-warning mt-4">No se encontraron informes para esta fecha.</p>
+                {% endif %}
+
+                <p class="text-center mt-4">
+                    Esta Verificación Fue Generada Correctamente y Es Válida.<br>
+                    Si Tiene Dudas, Contacte Al Administrador Del Sistema.
+
+                    <br><br><br>
+                    <strong>DESARROLLADOR:</strong> CARLOS MARQUEZ | F&S ENGINEERING AND ELECTRICITY
+                </p> 
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

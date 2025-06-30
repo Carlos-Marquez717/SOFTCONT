@@ -15,14 +15,14 @@ from .views import (
     registro_prestamo_success, registro_RetiroRepuesto_success, generar_pdf_retiro, 
     generar_pdf_retiros_general,pedidos_total,pedidos_semanales,pedidos_mensuales,pedidos_dia,pedidos_semana,
     pedidos_mes,upload_csv,lista_congelado,generate_pdf,pagina_con_botones,register,crear_informe,listar_informes,
-    generar_pdf_informe, generar_pdf_informes_por_dia, eliminar_informe,generar_pdf_informes_tablas_unidas,
-    
-    
-
-
+    generar_pdf_informe, generar_pdf_informes_por_dia, eliminar_informe,generar_pdf_informes_tablas_unidas,verificar_reporte_retiros,
+    generar_pdf_retiros_general, verificar_reporte_retiro,verificar_utiles
 )
 
-from .views import verificar_reporte,verificar_reporte_personal,verificar_reporte_prestamos,verificar_prestamos
+
+
+
+from .views import verificar_reporte,verificar_reporte_personal,verificar_reporte_prestamos,verificar_prestamos ,verificar_informes_fecha,verificar_reporte_informe
 
 urlpatterns = [
     path('informes/pdf/tablas-unidas/', generar_pdf_informes_tablas_unidas, name='informes_pdf_tablas_unidas'),
@@ -100,6 +100,14 @@ urlpatterns = [
     path('verificar_reporte/<uuid:codigo_unico>/personal/<int:obrero_id>/', verificar_reporte_personal, name='verificar_reporte_personal'),
     path('verificar-prestamos/', verificar_reporte_prestamos, name='verificar_reporte_prestamos'),
     path('verificar_prestamos/<int:prestamo_id>/', verificar_prestamos, name='verificar_prestamos'),
+    path('verificar-reporte-retiros/', verificar_reporte_retiros, name='verificar_reporte_retiros'),
+    path('verificar-reporte-retiros/<str:numero_reporte>/',verificar_reporte_retiros, name='verificar_reporte_retiros'),
+    path('verificar-reporte-retiro/<str:numero_reporte>/trabajador/<int:obrero_id>/', verificar_reporte_retiro, name='verificar_reporte_retiro'),
+    path('verificar-utiles/<str:numero_reporte>/', verificar_utiles, name='verificar_utiles'),
+    path('verificar-informes/<str:fecha_str>/', verificar_informes_fecha, name='verificar_informes_fecha'),
+    path('verificar_reporte_info/<str:numero_reporte>/', verificar_reporte_informe, name='verificar_reporte_informe'),
+
+
 
 
 

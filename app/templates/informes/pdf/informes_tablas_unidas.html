@@ -1,53 +1,85 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Informes del día {{ fecha }}</title>
-    <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; margin: 0px 30px; }
-        .tabla-informe { margin-bottom: 0; border-collapse: collapse; width: 100%; }
-        .tabla-informe th, .tabla-informe td { border: 1px solid #000; padding: 6px; text-align: center; }
-        .tabla-informe th { background: #FFC000; font-weight: bold; }
-        .tabla-informe img { max-width: 120px; max-height: 120px; object-fit: cover; }
-        .tabla-informe .no-img { height: 120px; border: 1px dashed #aaa; display: flex; align-items: center; justify-content: center; }
-        .tabla-informe .imagenes-contenedor {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-        }
-        .tabla-informe .imagenes-contenedor img {
-            flex: 1 1 100px;
-            max-width: 120px;
-            max-height: 120px;
-            min-width: 80px;
-            min-height: 80px;
-            object-fit: contain;
-            margin: 2px;
-        }
-        /* Ajuste responsivo para muchas imágenes */
-        @media (max-width: 600px) {
-            .tabla-informe .imagenes-contenedor img {
-                max-width: 80px;
-                max-height: 80px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Informes del día {{ fecha }}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .tabla-informe {
+      border-collapse: collapse;
+      width: 90%;
+      margin: 0 auto 10px auto;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .tabla-informe th,
+    .tabla-informe td {
+      border: 1px solid #000;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .tabla-informe th {
+      background: #0d6efd;
+      font-weight: bold;
+    }
+
+    .tabla-informe img {
+      max-width: 120px;
+      max-height: 120px;
+      object-fit: cover;
+    }
+
+    .imagenes-contenedor {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .imagenes-contenedor img {
+      flex: 1 1 100px;
+      max-width: 50px;
+      max-height: 50px;
+      object-fit: contain;
+    }
+
+    .pagina {
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100vh;
+    }
+
+    .tabla-informe-wrapper {
+      flex: 1;
+      margin-bottom: 10px;
+    }
+
+    @page {
+      margin: 10px 30px 10px 30px;
+    }
+  </style>
 </head>
-<body style="margin-top:0;">
-    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; margin-top:0;">
-        <img src="{{ logo_izq_b64 }}" style="height:60px;">
-        <div style="flex: 1; text-align: center; margin-top:0;">
-            <h1 style="margin: 0; font-size: 22px; letter-spacing: 1px;">INFORMES DEL DÍA</h1>
-            <h2 style="margin: 0; font-size: 16px; font-weight: normal;">{{ fecha }}</h2>
-        </div>
-        <img src="{{ logo_der_b64 }}" style="height:60px;">
-    </div>
-    <hr style="margin-bottom: 10px; margin-top:0;">
-    {% for tabla_html in tablas_html %}
-        {{ tabla_html|safe }}
-    {% endfor %}
+<body>
+
+  {% for tabla in tablas_html %}
+    {% if forloop.counter0|divisibleby:2 %}
+      <div class="pagina">
+    {% endif %}
+    {{ tabla|safe }}
+    {% if forloop.counter|divisibleby:2 or forloop.last %}
+      </div>
+    {% endif %}
+  {% endfor %}
 </body>
 </html>

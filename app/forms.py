@@ -3,12 +3,11 @@ from django_select2.forms import Select2Widget, ModelSelect2Widget
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory, modelformset_factory
-from .models import ImagenInforme
 
 from .models import (
     Trabajador, Empresa, Obrero, Pedido, PedidoInsumo, 
     Material, Herramienta, Prestamo, Repuesto, RetiroRepuesto, 
-    Utilesaseo, Producto, Informe
+    Utilesaseo, Producto, Informe, UtilAseoDetalle,ImagenInforme
 )
 
 # ===================== FORMULARIOS PERSONALIZADOS =====================
@@ -16,7 +15,7 @@ from .models import (
 class TrabajadorForm(forms.ModelForm):
     class Meta:
         model = Trabajador
-        fields = ['nombre', 'empresa']
+        fields = ['nombre', 'empresa'] 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -180,17 +179,14 @@ RetiroRepuestoFormSet = modelformset_factory(
 class UtilesaseoForm(forms.ModelForm):
     class Meta:
         model = Utilesaseo
-        fields = '__all__'
-        widgets = {
-            'Producto': forms.CheckboxSelectMultiple,
-        }
+        fields = ['mes', 'nombre_solicitante', 'empresa', 'run']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['mes'].widget.attrs.update({'class': 'select2'})
-        self.fields['productos'].widget.attrs.update({'class': 'select2'})
         self.fields['nombre_solicitante'].widget.attrs.update({'class': 'select2'})
         self.fields['empresa'].widget.attrs.update({'class': 'select2'})
+        self.fields['run'].widget.attrs.update({'class': 'form-control'})
 
 
 class CSVUploadForm(forms.Form):
@@ -347,6 +343,15 @@ ImagenInformeFormSet = inlineformset_factory(
 ImagenSoloImagenFormSet = inlineformset_factory(
     Informe, ImagenInforme,
     fields=("imagen",),  # Solo imagen
+    extra=1,
+    can_delete=True
+)
+
+
+
+UtilAseoDetalleFormSet = modelformset_factory(
+    UtilAseoDetalle,
+    fields=('producto', 'cantidad'),
     extra=1,
     can_delete=True
 )

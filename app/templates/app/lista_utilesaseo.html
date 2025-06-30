@@ -20,42 +20,56 @@
       <div class="card-body">
         <div class="mb-3">
           <form method="GET" action="{% url 'lista_utilesaseo' %}">
-            <label for="buscar" class="form-label">Buscar:</label>
-            <input type="text" class="form-control" id="buscar" name="buscar" placeholder="Escribe para buscar..." value="{{ search_term }}">
-            <br>
+            <input type="text" name="buscar" placeholder="Buscar general..." value="{{ search_term }}">
+            <input type="text" name="producto" placeholder="Filtrar producto..." value="{{ producto_term }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
           </form>
         </div>
         <div class="table-responsive">
-          <table id="example" class="table mx-auto table-dark table-striped">
+          <table class="table mx-auto table-dark table-striped">
             <thead>
               <tr>
-                <th scope="col">MES</th>
-                <th scope="col">PRODUCTO</th>
-                <th scope="col">CANTIDAD</th>
-                <th scope="col">FECHA CREACION</th>
                 <th scope="col">SOLICITANTE</th>
                 <th scope="col">EMPRESA</th>
                 <th scope="col">RUN</th>
+                <th scope="col">MES</th>
+                <th scope="col">PRODUCTO</th>
+                <th scope="col">CANTIDAD</th>
+                <th scope="col">FECHA CREACION  </th>
                 <th scope="col">REPORTE</th>
               </tr>
             </thead>
             <tbody>
               {% for utilesaseo in utilesaseos %}
-              <tr>
-                <td>{{ utilesaseo.mes }}</td>
-                <td>
-                  {% for producto in utilesaseo.productos.all %}
-                    {{ producto.nombre }}{% if not forloop.last %}, {% endif %}
+                {% if producto_term %}
+                  {% for detalle in utilesaseo.detalles.all %}
+                    {% if producto_term|lower in detalle.producto.nombre|lower %}
+                      <tr>
+                        <td>{{ utilesaseo.nombre_solicitante }}</td>
+                        <td>{{ utilesaseo.empresa }}</td>
+                        <td>{{ utilesaseo.run }}</td>
+                        <td>{{ utilesaseo.mes }}</td>
+                        <td>{{ detalle.producto.nombre }}</td>
+                        <td>{{ detalle.cantidad }}</td>
+                        <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
+                        <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}&producto={{ producto_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a></td>
+                      </tr>
+                    {% endif %}
                   {% endfor %}
-                </td>
-                <td>{{ utilesaseo.cantidad }}</td>
-                <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
-                <td>{{ utilesaseo.nombre_solicitante }}</td>
-                <td>{{ utilesaseo.empresa }}</td>
-                <td>{{ utilesaseo.run }}</td>
-                <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a></td>
-              </tr>
+                {% else %}
+                  {% for detalle in utilesaseo.detalles.all %}
+                    <tr>
+                      <td>{{ utilesaseo.nombre_solicitante }}</td>
+                      <td>{{ utilesaseo.empresa }}</td>
+                      <td>{{ utilesaseo.run }}</td>
+                      <td>{{ utilesaseo.mes }}</td>
+                      <td>{{ detalle.producto.nombre }}</td>
+                      <td>{{ detalle.cantidad }}</td>
+                      <td>{{ utilesaseo.fecha_creacion|date:"d/m/Y" }}</td>
+                      <td><a href="{% url 'generar_pdf_utiles_aseo' %}?buscar={{ search_term }}" class="btn btn-success"><i class="bi bi-filetype-pdf"></i></a></td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
               {% endfor %}
             </tbody>
           </table>
@@ -65,10 +79,10 @@
             <ul class="pagination">
               {% if utilesaseos.has_previous %}
                 <li class="page-item">
-                  <a class="page-link" href="?page=1&buscar={{ search_term }}">Primera</a>
+                  <a class="page-link" href="?page=1&buscar={{ search_term }}&producto={{ producto_term }}">Primera</a>
                 </li>
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ utilesaseos.previous_page_number }}&buscar={{ search_term }}">Anterior</a>
+                  <a class="page-link" href="?page={{ utilesaseos.previous_page_number }}&buscar={{ search_term }}&producto={{ producto_term }}">Anterior</a>
                 </li>
               {% else %}
                 <li class="page-item disabled">
@@ -83,10 +97,10 @@
               </li>
               {% if utilesaseos.has_next %}
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ utilesaseos.next_page_number }}&buscar={{ search_term }}">Siguiente</a>
+                  <a class="page-link" href="?page={{ utilesaseos.next_page_number }}&buscar={{ search_term }}&producto={{ producto_term }}">Siguiente</a>
                 </li>
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ utilesaseos.paginator.num_pages }}&buscar={{ search_term }}">Última</a>
+                  <a class="page-link" href="?page={{ utilesaseos.paginator.num_pages }}&buscar={{ search_term }}&producto={{ producto_term }}">Última</a>
                 </li>
               {% else %}
                 <li class="page-item disabled">
@@ -110,13 +124,5 @@
 {% endblock %}
 
 {% block js %}
-<script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
-<script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.js"></script>
-<script>
-  // Inicialización de DataTable
-  $(document).ready(function() {
-    $('#example').DataTable();
-  });
-</script>
-
+<!-- Sin DataTables ni filtros por columna, solo backend -->
 {% endblock %}

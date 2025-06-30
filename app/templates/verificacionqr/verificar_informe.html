@@ -1,0 +1,13 @@
+{% extends 'app/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Verificación de Informe</h2>
+  <p><strong>ID:</strong> {{ informe.id }}</p>
+  <p><strong>Área:</strong> {{ informe.area }}</p>
+  <p><strong>Hora de Inicio:</strong> {{ informe.hora_inicio }}</p>
+  <p><strong>Descripción:</strong> {{ informe.descripcion }}</p>
+  <p><strong>Fecha:</strong> {{ informe.fecha }}</p>
+</div>
+{% endblock %}
+
+

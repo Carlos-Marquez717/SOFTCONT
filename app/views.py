@@ -1,8 +1,10 @@
 # en trabajadores/views.py
 from datetime import datetime
 from django.shortcuts import render, redirect
-from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,HerramientaForm,InformeCaso6Form,ImagenInformeFormSet,ImagenSoloImagenFormSet,InformeCaso5Form,InformeCaso2Form,InformeCaso3Form,InformeCaso4Form, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset,InformeForm
-from .models import Trabajador,Empresa,Obrero, Pedido, Material, Herramienta, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo,Informe,ImagenInforme
+from httpcore import request
+from matplotlib import table
+from .forms import TrabajadorForm,EmpresaForm,ObreroForm, PedidoForm , MaterialForm,UtilAseoDetalleFormSet,HerramientaForm,InformeCaso6Form,ImagenInformeFormSet,ImagenSoloImagenFormSet,InformeCaso5Form,InformeCaso2Form,InformeCaso3Form,InformeCaso4Form, PrestamoForm,PrestamoEditForm,RepuestoForm, RetiroRepuestoFormSet, RetiroRepuestoFormSet,UtilesaseoForm, PedidoInsumoForm, PedidoInsumoInlineFormset,InformeForm
+from .models import Trabajador,Empresa,Obrero,VerificacionInforme, Pedido, Material, Herramienta,UtilAseoDetalle, Prestamo,Repuesto,RetiroRepuesto,Utilesaseo,PedidoInsumo,Informe,ImagenInforme
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -566,8 +568,8 @@ def generar_pdf_pedido(request, obrero_id):
     column_widths = [90, 110, 140, 160, 60, 140]
     table = Table(data, colWidths=column_widths)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
 
         # Centrar columnas TRABAJADOR (1), EMPRESA (2), INSUMO (3), AREA (5)
         ('ALIGN', (1, 1), (1, -1), 'CENTER'),
@@ -754,8 +756,8 @@ def generar_pdf_pedidos(request):
     ])
 
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1155,8 +1157,8 @@ def generar_pdf_prestamos(request):
     col_widths = [120, 100, 120, 100, 110, 100]
     table = Table(data, colWidths=col_widths)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
@@ -1314,8 +1316,8 @@ def generar_pdf_prestamo(request, prestamo_id):
 
     table = Table(data, colWidths=[120, 250, 120, 120])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1535,36 +1537,34 @@ def registro_RetiroRepuesto_success(request):
     messages.success(request, 'El retiro de repuesto se ha registrado correctamente.')
     return render(request, 'app/registro_RetiroRepuesto.html', {'form': RetiroRepuestoForm(), 'success_message': messages.get_messages(request)})
 
+
+from django.db.models import Q
 @login_required
 def lista_RetiroRepuesto(request):
-    search_term = request.GET.get('buscar')
-    retirorepuestos_list = RetiroRepuesto.objects.all()
+    search_term = request.GET.get('buscar', '')
+    retirorepuestos = RetiroRepuesto.objects.all()
 
     if search_term:
-        try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            retirorepuestos_list = retirorepuestos_list.filter(fecha_retiro__date=search_date)
-        except ValueError:
-            text_search = (
-                Q(repuesto__nombre__icontains=search_term) | 
-                Q(trabajador__nombre__icontains=search_term) |  # Cambia esto según tu modelo
-                Q(empresa__nombre__icontains=search_term) |  # Si existe
-                Q(cantidad__icontains=search_term)
-            )
-            retirorepuestos_list = retirorepuestos_list.filter(text_search)
+        retirorepuestos = retirorepuestos.filter(
+            Q(trabajador__nombre__icontains=search_term) |   # Ajusta 'nombre' si tu modelo Obrero usa otro campo
+            Q(empresa__nombre__icontains=search_term) |      # Ajusta 'nombre' si tu modelo Empresa usa otro campo
+            Q(repuesto__nombre__icontains=search_term) |     # Ajusta 'nombre' si tu modelo Repuesto usa otro campo
+            Q(area__icontains=search_term) |
+            Q(cantidad__icontains=search_term) |
+            Q(fecha_retiro__icontains=search_term)
+        )
 
-    retirorepuestos_list = retirorepuestos_list.order_by('-fecha_retiro')
-    paginator = Paginator(retirorepuestos_list, 5)
+    # Paginación (opcional)
+    from django.core.paginator import Paginator
+    paginator = Paginator(retirorepuestos, 10)
     page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    retirorepuestos = paginator.get_page(page_number)
 
     context = {
-        'retirorepuestos': page_obj,
+        'retirorepuestos': retirorepuestos,
         'search_term': search_term,
     }
-
     return render(request, 'app/lista_RetiroRepuesto.html', context)
-
 
 
 
@@ -1665,42 +1665,51 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import Utilesaseo
 
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from datetime import datetime
+from .models import Utilesaseo
+
 @login_required
 def lista_utilesaseo(request):
-    search_term = request.GET.get('buscar', '')
+    search_term = request.GET.get('buscar', '').strip()
+    producto_term = request.GET.get('producto', '').strip()
     utilesaseos_list = Utilesaseo.objects.all()
 
     if search_term:
         try:
-            # Intentar parsear el término de búsqueda como fecha en formato dd/mm/yyyy
             search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            # Filtrar por fecha exacta
             utilesaseos_list = utilesaseos_list.filter(fecha_creacion=search_date)
         except ValueError:
-            # Si el término de búsqueda no es una fecha, buscar en otros campos de texto
-            text_search = Q(mes__icontains=search_term) | \
-                          Q(productos__nombre__icontains=search_term) | \
-                          Q(cantidad__icontains=search_term) | \
-                          Q(nombre_solicitante__nombre__icontains=search_term) | \
-                          Q(empresa__nombre__icontains=search_term) | \
-                          Q(fecha_creacion__icontains=search_term) | \
-                          Q(run__icontains=search_term)
-            utilesaseos_list = utilesaseos_list.filter(text_search)
+            text_search = (
+                Q(mes__icontains=search_term) |
+                Q(detalles__producto__nombre__icontains=search_term) |
+                Q(detalles__cantidad__icontains=search_term) |
+                Q(nombre_solicitante__nombre__icontains=search_term) |
+                Q(empresa__nombre__icontains=search_term) |
+                Q(fecha_creacion__icontains=search_term) |
+                Q(run__icontains=search_term)
+            )
+            utilesaseos_list = utilesaseos_list.filter(text_search).distinct()
 
-    # Ordenar los resultados por fecha_creacion descendente
+    if producto_term:
+        utilesaseos_list = utilesaseos_list.filter(detalles__producto__nombre__icontains=producto_term).distinct()
+
     utilesaseos_list = utilesaseos_list.order_by('-fecha_creacion')
-
-    # Paginar los resultados
-    paginator = Paginator(utilesaseos_list, 5)
+    paginator = Paginator(utilesaseos_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
     context = {
         'utilesaseos': page_obj,
         'search_term': search_term,
+        'producto_term': producto_term,
     }
-
     return render(request, 'app/lista_utilesaseo.html', context)
+
+
+
 
 
 
@@ -1709,22 +1718,54 @@ def lista_utilesaseo(request):
 def registro_utilesaseo(request):
     if request.method == 'POST':
         form = UtilesaseoForm(request.POST)
-        if form.is_valid():
-            # Guardar el formulario para crear el objeto Utilesaseo
-            utilesaseo = form.save(commit=False)
-            utilesaseo.save()  # Guardar primero el objeto principal
+        formset = UtilAseoDetalleFormSet(request.POST, queryset=UtilAseoDetalle.objects.none())
+        if form.is_valid() and formset.is_valid():
+            mes = form.cleaned_data['mes']
+            nombre_solicitante = form.cleaned_data['nombre_solicitante']
+            empresa = form.cleaned_data['empresa']
+            año_actual = datetime.now().year
 
-            # Guardar las relaciones ManyToMany
-            form.save_m2m()  # Guardar las relaciones ManyToMany después de guardar el objeto
+            productos_en_form = []
+            errores = []
 
-            # Mensaje de éxito
-            success_message = 'El pedido se ha guardado correctamente.'
-            return render(request, 'app/registro_utilesaseo.html', {'form': UtilesaseoForm(), 'success_message': success_message})
+            # Validar productos ya registrados
+            for detalle_form in formset:
+                if detalle_form.cleaned_data and not detalle_form.cleaned_data.get('DELETE', False):
+                    producto = detalle_form.cleaned_data['producto']
+                    productos_en_form.append(producto)
+
+                    existe = UtilAseoDetalle.objects.filter(
+                        utilesaseo__mes=mes,
+                        utilesaseo__fecha_creacion__year=año_actual,
+                        utilesaseo__nombre_solicitante=nombre_solicitante,
+                        utilesaseo__empresa=empresa,
+                        producto=producto
+                    ).exists()
+
+                    if existe:
+                        errores.append(f"Ya se ha registrado {producto.nombre} en {mes} para este trabajador.")
+
+            # Validar productos repetidos dentro del mismo formset
+            if len(productos_en_form) != len(set(productos_en_form)):
+                errores.append("No puedes repetir productos en el mismo formulario.")
+
+            if errores:
+                for error in errores:
+                    messages.error(request, error)
+            else:
+                utilesaseo = form.save()
+                for detalle_form in formset:
+                    if detalle_form.cleaned_data and not detalle_form.cleaned_data.get('DELETE', False):
+                        detalle = detalle_form.save(commit=False)
+                        detalle.utilesaseo = utilesaseo
+                        detalle.save()
+                messages.success(request, "Registro de útiles realizado correctamente.")
+                return redirect('registro_utilesaseo')  # Ajusta con la vista correcta
     else:
         form = UtilesaseoForm()
+        formset = UtilAseoDetalleFormSet(queryset=UtilAseoDetalle.objects.none())
 
-    return render(request, 'app/registro_utilesaseo.html', {'form': form})
-
+    return render(request, 'app/registro_utilesaseo.html', {'form': form, 'formset': formset})
 
 
 
@@ -1743,138 +1784,309 @@ from reportlab.lib.styles import ParagraphStyle
 from django.utils.dateparse import parse_datetime
 from app.models import Utilesaseo  # Assuming this is your model
 
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
+from io import BytesIO
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.colors import HexColor
+
+from django.contrib.staticfiles import finders
+from dateutil.parser import parse as parse_datetime
+import qrcode
+from reportlab.lib.utils import ImageReader
+from .models import Utilesaseo  
+from django.db.models.functions import Cast
+from django.db.models import CharField
+
+
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.colors import HexColor, black, white
+from django.contrib.staticfiles import finders
+from io import BytesIO
+from django.utils.dateparse import parse_datetime
+import qrcode
+
+from .models import Utilesaseo  # Ajusta esto si tu modelo tiene otro nombre
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
+from django.templatetags.static import static
+from django.contrib.staticfiles import finders
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.colors import black, white, HexColor
+from io import BytesIO
+import qrcode
+from django.utils.dateparse import parse_datetime
+from .models import Utilesaseo
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.colors import HexColor, black, white
+from django.contrib.staticfiles import finders
+from django.utils.dateparse import parse_datetime
+from io import BytesIO
+import qrcode
+from .models import Utilesaseo
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.colors import HexColor, black, white
+from django.contrib.staticfiles import finders
+from django.utils.dateparse import parse_datetime
+from io import BytesIO
+import qrcode
+from .models import Utilesaseo
+import uuid
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.utils.dateparse import parse_datetime
+from django.db.models import Q
+from django.contrib.staticfiles import finders
+
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.colors import black, white, HexColor
+import qrcode
+from io import BytesIO
+import uuid
+
+from .models import Utilesaseo
+
+
 @login_required
 def generar_pdf_utiles_aseo(request):
-    search_term = request.GET.get('buscar', '')
+    search_term = request.GET.get('buscar', '').strip()
+    producto_term = request.GET.get('producto', '').strip()  # <-- ¡AGREGADO!
 
+    empresa_id = request.GET.get('empresa_id')
+    utilesaseos = Utilesaseo.objects.all()
+
+    # Filtrado por empresa si corresponde
+    if empresa_id:
+        utilesaseos = utilesaseos.filter(empresa_id=empresa_id)
     if search_term:
         try:
             search_datetime = parse_datetime(search_term)
-            search_date = search_datetime.date() if search_datetime else None
-
-            # Build search query
-            text_search = Q(mes__icontains=search_term) | \
-                           Q(productos__nombre__icontains=search_term) | \
-                           Q(cantidad__icontains=search_term) | \
-                           Q(nombre_solicitante__nombre__icontains=search_term) | \
-                           Q(empresa__nombre__icontains=search_term) | \
-                           Q(fecha_creacion__icontains=search_term) | \
-                           Q(run__icontains=search_term)
-
-            utilesaseos = Utilesaseo.objects.all()
-
-            # Filter by fecha_creacion if search_date is provided
-            if search_date:
+            if search_datetime:
+                search_date = search_datetime.date()
                 utilesaseos = utilesaseos.filter(fecha_creacion__date=search_date)
-
+            else:
+                raise ValueError()
+        except ValueError:
+            text_search = Q(mes__icontains=search_term) | \
+                          Q(productos__nombre__icontains=search_term) | \
+                          Q(detalles__cantidad__icontains=search_term) | \
+                          Q(nombre_solicitante__nombre__icontains=search_term) | \
+                          Q(empresa__nombre__icontains=search_term) | \
+                          Q(fecha_creacion__icontains=search_term) | \
+                          Q(run__icontains=search_term)
             utilesaseos = utilesaseos.filter(text_search).distinct()
 
-        except ValueError:
-            utilesaseos = Utilesaseo.objects.all()
-    else:
-        utilesaseos = Utilesaseo.objects.all()
+    if producto_term:
+        utilesaseos = utilesaseos.filter(detalles__producto__nombre__icontains=producto_term).distinct()
 
-    # Set up the PDF response
+    # Si no se encontraron registros, devolver respuesta vacía
+    if not utilesaseos.exists():
+        return HttpResponse("No se encontraron registros para el filtro aplicado.", status=404)
+
+    # SIEMPRE generar un nuevo número de reporte único y asignarlo SOLO a los registros filtrados
+    import uuid
+    while True:
+        numero_reporte = f"UA-{uuid.uuid4().hex[:8].upper()}"
+        if not Utilesaseo.objects.filter(numero_reporte=numero_reporte).exists():
+            break
+    utilesaseos.update(numero_reporte=numero_reporte)
+
+    # ... Resto del código para generar el PDF ...
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="UTILES_ASEO.pdf"'
-
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
     elements = []
 
-    # Locate the logo file
+    # Logo
     logo_path = finders.find('app/imgenes/Logo.png')
     if not logo_path:
-        raise FileNotFoundError(f'El archivo {logo_path} no existe.')
-
-    # Add logo to the document with a width of 200 units and height of 50 units
+        raise FileNotFoundError(f'Logo no encontrado en: {logo_path}')
     logo = Image(logo_path, width=200, height=50)
-    elements.append(logo)
 
-    # Title of the document
+    # QR
+    qr_image = None
+    if numero_reporte:
+        verificacion_url = request.build_absolute_uri(f"/verificar-utiles/{numero_reporte}/")
+        qr_img = qrcode.make(verificacion_url)
+        qr_buffer = BytesIO()
+        qr_img.save(qr_buffer, format='PNG')
+        qr_buffer.seek(0)
+        qr_image = Image(qr_buffer, width=80, height=80)
+
+    # Logo + QR juntos
+    if qr_image:
+        logo_qr_table = Table([[logo, qr_image]], colWidths=[250, 100])
+    else:
+        logo_qr_table = Table([[logo]])
+
+    logo_qr_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    elements.append(logo_qr_table)
+
+    # Título
     title_style = ParagraphStyle(
         'Title',
         parent=getSampleStyleSheet()['Title'],
         alignment=1,
-        textColor='black',
+        textColor=black,
         fontName='Helvetica-Bold',
         fontSize=18
     )
-    elements.append(Paragraph("ENTREGA UTILES DE ASEO", title_style))
+    elements.append(Paragraph("ENTREGA DE UTILES DE ASEO", title_style))
 
-    # Get the worker and company details from the first Utilesaseo object (if available)
-    primer_utilesaseo = utilesaseos.first()
+    # Número de reporte
+    if numero_reporte:
+        reporte_style = ParagraphStyle(
+            'Reporte',
+            parent=getSampleStyleSheet()['Normal'],
+            alignment=1,
+            fontSize=12,
+            textColor=black,
+            spaceAfter=6
+        )
+        elements.append(Paragraph(f"N° REPORTE: {numero_reporte}", reporte_style))
 
-    # Aquí accedemos directamente al campo 'run' de Utilesaseo y no de Obrero
-    trabajador_nombre = primer_utilesaseo.nombre_solicitante.nombre if primer_utilesaseo and primer_utilesaseo.nombre_solicitante else ""
-    run_trabajador = primer_utilesaseo.run if primer_utilesaseo else ""  # Acceder a 'run' directamente desde Utilesaseo
-    empresa_nombre = primer_utilesaseo.empresa.nombre if primer_utilesaseo and primer_utilesaseo.empresa else ""
-
-    # Agregar nombre del trabajador, RUN y empresa debajo del título
-    nombre_style = ParagraphStyle(
-        'NombreTrabajador',
-        parent=getSampleStyleSheet()['Normal'],
-        alignment=1,
-        textColor='black',
-        fontSize=10,
-        leading=16
-    )
-
-    elements.append(Paragraph(f"NOMBRE: {trabajador_nombre} | RUN: {run_trabajador} | EMPRESA: {empresa_nombre}", nombre_style))
-
-    # Add space before the table
     elements.append(Spacer(1, 12))
 
-    # Add the table with data
-    data = [
-        ['MES', 'PRODUCTO', 'CANTIDAD', 'FECHA DE ENTREGA'],
-    ]
-
+    data = [[ 'RUN', 'TRABAJADOR', 'EMPRESA', 'MES', 'PRODUCTO', 'CANT', 'FECHA']]
     for utilesaseo in utilesaseos:
-        productos_nombres = ', '.join([producto.nombre for producto in utilesaseo.productos.all()])
-        data.append([ 
-            utilesaseo.mes,
-            productos_nombres,
-            str(utilesaseo.cantidad),
-            utilesaseo.fecha_creacion.strftime("%d/%m/%Y"),
-        ])
+        run = utilesaseo.run or ''
+        trabajador = utilesaseo.nombre_solicitante.nombre if utilesaseo.nombre_solicitante else ''
+        empresa = utilesaseo.empresa.nombre if utilesaseo.empresa else ''
+        mes = utilesaseo.mes
+        fecha = utilesaseo.fecha_creacion.strftime("%d/%m/%Y")
+        for detalle in utilesaseo.detalles.all():
+            producto = detalle.producto.nombre
+            cantidad = detalle.cantidad
+            if not producto_term or producto_term.lower() in producto.lower():
+                data.append([
+                    run,
+                    trabajador,
+                    empresa,
+                    mes,
+                    producto,
+                    cantidad,
+                    fecha
+                ])
 
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
 
     table = Table(data)
-    table.setStyle(style)
+    table._argW[0] = 70  # RUN
+    table._argW[1] = 140 # TRABAJADOR
+    table._argW[2] = 130 # EMPRESA
+    table._argW[3] = 60  # MES
+    table._argW[4] = 150 # PRODUCTO
+    table._argW[5] = 50  # CANTIDAD
+    table._argW[6] = 70  # FECHA
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, black),
+    ]))
     elements.append(table)
 
-    # Add space before the signature line
+    # Firma
     elements.append(Spacer(1, 24))
-
-    # Add the signature field
     signature_style = ParagraphStyle(
         'Signature',
         parent=getSampleStyleSheet()['Normal'],
         alignment=1,
-        textColor='black',
+        textColor=black,
         fontSize=12,
         leading=16
     )
     elements.append(Paragraph("Firma: ____________________________________________", signature_style))
 
-    # Build the PDF document
+    # Generar y enviar el PDF
     doc.build(elements)
-
     pdf = buffer.getvalue()
     buffer.close()
-
     response.write(pdf)
 
     return response
+
+
+
+
+
+
+
+@login_required
+def verificar_utiles(request, numero_reporte):
+    empresa_id = request.GET.get('empresa_id')
+    producto_term = request.GET.get('producto', '').strip().lower()  # <--- NUEVO
+
+    utiles_list = Utilesaseo.objects.filter(numero_reporte=numero_reporte)
+
+    if empresa_id:
+        utiles_list = utiles_list.filter(empresa_id=empresa_id)
+
+    if not utiles_list.exists():
+        return HttpResponse("No se encontraron registros", status=404)
+
+    # Filtrar detalles dentro del contexto (opcional, también puedes hacerlo en la plantilla)
+    for utiles in utiles_list:
+        detalles_filtrados = utiles.detalles.all()
+        if producto_term:
+            detalles_filtrados = detalles_filtrados.filter(producto__nombre__icontains=producto_term)
+        utiles.detalles_filtrados = detalles_filtrados  # <--- NUEVO atributo temporal
+
+    # Obtener trabajadores y empresas únicos SOLO de los registros filtrados
+    trabajadores_unicos = list({u.nombre_solicitante.nombre for u in utiles_list})
+    empresas_unicas = list({(u.empresa.id, u.empresa.nombre) for u in utiles_list})
+
+    return render(request, 'verificacionqr/verificacion_utiles.html', {
+        'utiles_list': utiles_list,
+        'trabajadores_unicos': trabajadores_unicos,
+        'empresas_unicas': empresas_unicas,
+        'filtro_aplicado': "numero_reporte",
+        'valor_filtro': numero_reporte,
+        'empresa_id': empresa_id,
+        'producto_term': producto_term,  # <--- Opcional si lo usas en el template
+    })
+
+
+
 
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter, landscape
@@ -1889,16 +2101,49 @@ from reportlab.lib.units import inch
 import os
 from django.conf import settings
 
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
+from django.urls import reverse
+import qrcode
+from reportlab.lib.utils import ImageReader
+from io import BytesIO
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from django.conf import settings
+from django.http import HttpResponse
+from .models import RetiroRepuesto, Obrero, ReporteRetiroRepuesto  # Asegúrate de tener este modelo
+from django.contrib.auth.decorators import login_required
+from datetime import datetime
+
+@login_required
 def generar_pdf_retiro(request, obrero_id=None):
-    # Filtrar datos
+    # === Datos ===
     if obrero_id:
         data = RetiroRepuesto.objects.filter(trabajador_id=obrero_id).order_by('fecha_retiro')
     else:
         data = RetiroRepuesto.objects.all().order_by('fecha_retiro')
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="reporte_retiros.pdf"'
+    # === Generar número de reporte y crear objeto ReporteRetiroRepuesto ===
+    fecha_hoy = datetime.now().strftime('%Y%m%d%H%M%S')
+    numero_reporte = f"RR-{fecha_hoy}"
+    reporte, created = ReporteRetiroRepuesto.objects.get_or_create(
+        numero_reporte=numero_reporte,
+        defaults={
+            'filtro': str(obrero_id) if obrero_id else 'Todos',
+            'trabajador': Obrero.objects.get(id=obrero_id) if obrero_id else None
+        }
+    )
 
+    # Asignar el reporte a cada retiro filtrado
+    for retiro in data:
+        retiro.reporte = reporte
+        retiro.save()
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_retiros_{numero_reporte}.pdf"'
 
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=landscape(letter))
@@ -1906,22 +2151,11 @@ def generar_pdf_retiro(request, obrero_id=None):
     margin = 50
     page_num = 1
 
-    # Rutas imágenes
+    # === Rutas imágenes ===
     logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
     minera_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'minera.png')
 
-    # Estilo de tabla
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-    ])
-
+    # === Estilos ===
     styles = getSampleStyleSheet()
     styleN = ParagraphStyle(
         'Custom',
@@ -1933,49 +2167,70 @@ def generar_pdf_retiro(request, obrero_id=None):
         wordWrap='CJK',
     )
 
+    style_table = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+    ])
+
+    # === Encabezado con QR ===
     def draw_header(canvas_obj, title, user_name, page_num):
         logo_width = 100
         logo_height = 40
         minera_width = 100
         minera_height = 80
 
-        # Posiciones para logos
         logo_x = margin
         logo_y = height - margin - logo_height
-
         minera_x = width - margin - minera_width
         minera_y = logo_y
 
-        # Dibujar logo izquierda
+        # Logo izquierdo
         if os.path.exists(logo_path):
-            try:
-                canvas_obj.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
-            except Exception as e:
-                print(f"Error al cargar logo: {e}")
+            canvas_obj.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
 
-        # Dibujar minera derecha
+        # Logo derecho
         if os.path.exists(minera_path):
-            try:
-                canvas_obj.drawImage(minera_path, minera_x, minera_y, width=minera_width, height=minera_height, mask='auto')
-            except Exception as e:
-                print(f"Error al cargar minera: {e}")
+            canvas_obj.drawImage(minera_path, minera_x, minera_y, width=minera_width, height=minera_height, mask='auto')
 
-        # Título centrado
+        # QR generado con link de verificación
+        url_verificacion = request.build_absolute_uri(reverse('verificar_reporte_retiro', args=[numero_reporte, obrero_id]))
+        qr = qrcode.make(url_verificacion)
+        qr_io = BytesIO()
+        qr.save(qr_io, format='PNG')
+        qr_io.seek(0)
+        qr_img = ImageReader(qr_io)
+        qr_size = 60
+        qr_x = logo_x + logo_width + 10
+        qr_y = logo_y
+        canvas_obj.drawImage(qr_img, qr_x, qr_y, width=qr_size, height=qr_size, mask='auto')
+        canvas_obj.setFont("Helvetica", 7)
+        canvas_obj.drawCentredString(qr_x + qr_size / 2, qr_y - 10, "Escanee el QR")
+
+        # Título
         title_x = width / 2
         title_y = height - margin - (logo_height / 4)
-
         canvas_obj.setFont("Helvetica-Bold", 14)
         canvas_obj.drawCentredString(title_x, title_y, title)
 
-        # Datos usuario y página debajo del título
+        # Info usuario y número de página
         canvas_obj.setFont("Helvetica", 10)
-        canvas_obj.drawString(margin + logo_width + 10, height - margin - logo_height - 10, f"PAÑOLERO: {user_name}")
+        canvas_obj.drawCentredString(width / 2, height - margin - logo_height - 10, f"PAÑOLERO: {user_name}")
         canvas_obj.drawRightString(width - margin - minera_width - 10, height - margin - minera_height - 10, f"PÁGINA: {page_num}")
 
-        # Línea separadora debajo del header
+        canvas_obj.setFont("Helvetica", 9)
+        canvas_obj.drawCentredString(width / 2, title_y - 15, f"N° REPORTE: {numero_reporte}")
+
+        # Línea separadora
         line_y = height - margin - logo_height - 20
         canvas_obj.line(margin, line_y, width - margin, line_y)
 
+    # === Tabla ===
     table_data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'REPUESTO', 'CANT']]
     for retiro in data:
         table_data.append([
@@ -1984,7 +2239,6 @@ def generar_pdf_retiro(request, obrero_id=None):
             Paragraph(str(retiro.empresa), styleN),
             Paragraph(str(retiro.repuesto), styleN),
             str(retiro.cantidad),
-            
         ])
 
     column_widths = [90, 110, 180, 180, 50]
@@ -1998,7 +2252,7 @@ def generar_pdf_retiro(request, obrero_id=None):
         current_data = current_data[max_rows_per_page:]
 
         table = Table(page_data, colWidths=column_widths)
-        table.setStyle(style)
+        table.setStyle(style_table)
         table_width, table_height = table.wrap(0, 0)
         x_centered = (width - table_width) / 2
         table.drawOn(p, x_centered, y_position - table_height)
@@ -2015,6 +2269,7 @@ def generar_pdf_retiro(request, obrero_id=None):
 
 
 
+
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from reportlab.lib.pagesizes import landscape, letter
@@ -2028,26 +2283,91 @@ from datetime import datetime
 import os
 from django.conf import settings
 
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.conf import settings
+from django.urls import reverse
+from django.db.models import Q
+from datetime import datetime
+from io import BytesIO
+import os
+import qrcode
+
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+
+from app.models import RetiroRepuesto
+
+
+def parse_date(search_term):
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(search_term, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from django.utils.dateparse import parse_date
+from io import BytesIO
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
+from datetime import datetime
+import os
+import qrcode
+
+from .models import RetiroRepuesto
+from django.conf import settings
+from django.urls import reverse
+from .models import ReporteRetiroRepuesto
+from datetime import datetime
+from reportlab.lib.colors import HexColor
+
 @login_required
 def generar_pdf_retiros_general(request):
-    search_term = request.GET.get('buscar', '')
+    search_term = request.GET.get('buscar', '').strip()
     retiros = RetiroRepuesto.objects.all()
 
     if search_term:
-        try:
-            search_date = datetime.strptime(search_term, "%d/%m/%Y").date()
-            retiros = retiros.filter(fecha_retiro__date=search_date)
-        except ValueError:
-            pass
+        retiros = retiros.filter(
+            Q(trabajador__nombre__icontains=search_term) |
+            Q(empresa__nombre__icontains=search_term) |
+            Q(repuesto__nombre__icontains=search_term) |
+            Q(area__icontains=search_term) |
+            Q(cantidad__icontains=search_term) |
+            Q(fecha_retiro__icontains=search_term)
+        )
 
+  
+  
+
+    fecha_hoy = datetime.now().strftime('%Y%m%d%H%M%S')
+    numero_reporte = f"RR-{fecha_hoy}"
+    reporte, created = ReporteRetiroRepuesto.objects.get_or_create(
+        numero_reporte=numero_reporte,
+        defaults={'filtro': search_term}
+    )
+
+    # === Generar PDF ===
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="retiros_general.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="retiros_{numero_reporte}.pdf"'
 
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=landscape(letter))
     width, height = landscape(letter)
 
-    # Rutas de los logos
+    # Logos
     logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Logo.png')
     minera_logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'Minera.png')
 
@@ -2063,70 +2383,46 @@ def generar_pdf_retiros_general(request):
         wordWrap='CJK',
     )
 
-    # Margen general
     margin = 50
+    logo_x, logo_y = margin, height - margin - 40
+    minera_x, minera_y = width - margin - 80, height - margin - 60
 
-    # === Logo principal (izquierda) ===
-    logo_width = 70
-    logo_height = 40
-    logo_x = margin
-    logo_y = height - margin - logo_height
-
-    # === Logo minera (derecha) ===
-    minera_width = 80
-    minera_height = 60
-    minera_x = width - margin - minera_width
-    minera_y = height - margin - minera_height
-
-    # Dibujar logos con sus dimensiones individuales
     if os.path.exists(logo_path):
-        try:
-            p.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
-        except Exception as e:
-            print(f"Error al cargar logo: {e}")
-
+        p.drawImage(logo_path, logo_x, logo_y, width=80, height=30, mask='auto')
     if os.path.exists(minera_logo_path):
-        try:
-            p.drawImage(minera_logo_path, minera_x, minera_y, width=minera_width, height=minera_height, mask='auto')
-        except Exception as e:
-            print(f"Error al cargar logo minera: {e}")
+        p.drawImage(minera_logo_path, minera_x, minera_y, width=80, height=60, mask='auto')
 
-    # Título centrado (más arriba si hace falta espacio)
     p.setFont("Helvetica-Bold", 14)
-    titulo_y = max(logo_y + logo_height, minera_y + minera_height) + 10
+    titulo_y = max(logo_y + 40, minera_y + 60) + 10
     p.drawCentredString(width / 2, titulo_y, "RETIRO DE REPUESTOS")
 
-    # Información de usuario y fecha, debajo del título
     p.setFont("Helvetica", 10)
     info_y = titulo_y - 15
     p.drawCentredString(width / 2, info_y, f"PAÑOLERO: {request.user.username}    |    FECHA REPORTE: {datetime.now().strftime('%d/%m/%Y')}")
+    p.drawCentredString(width / 2, info_y - 15, f"N° REPORTE: {numero_reporte}")
 
-    # Línea separadora
     line_y = info_y - 50
     p.line(margin, line_y, width - margin, line_y)
 
-    # TABLA
-    data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'REPUESTO', 'CANTIDAD']]
-
+    data = [['FECHA', 'TRABAJADOR', 'EMPRESA', 'REPUESTO', 'CANTIDAD', 'AREA']]
     for retiro in retiros:
-        fecha_y_hora = retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M")
         data.append([
-            fecha_y_hora,
-            Paragraph(str(retiro.trabajador), styleN),
-            Paragraph(str(retiro.empresa), styleN),
-            Paragraph(str(retiro.repuesto), styleN),
+            retiro.fecha_retiro.strftime("%d/%m/%Y %H:%M"),
+            Paragraph(str(retiro.trabajador.nombre), styleN),
+            Paragraph(str(retiro.empresa.nombre), styleN),
+            Paragraph(str(retiro.repuesto.nombre), styleN),
             str(retiro.cantidad),
+            retiro.area or '',
         ])
 
-
     if len(data) == 1:
-        data.append(['No hay registros', '', '', '', ''])
+        data.append(['No hay registros', '', '', '', '', ''])
 
-    column_widths = [90, 110, 180, 180, 50]
+    column_widths = [90, 100, 120, 120, 60, 100]
     table = Table(data, colWidths=column_widths)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.yellow),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.red),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor("#0d6efd")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -2135,11 +2431,33 @@ def generar_pdf_retiros_general(request):
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ]))
 
-    # Posicionar tabla centrada
     table_width, table_height = table.wrap(0, 0)
     x_centered = (width - table_width) / 2
     y_position = line_y - 30
     table.drawOn(p, x_centered, y_position - table_height)
+
+    # === QR code con link único de verificación ===
+    from django.urls import reverse
+    import qrcode
+    from reportlab.lib.utils import ImageReader
+
+    url_verificacion = request.build_absolute_uri(
+        reverse('verificar_reporte_retiros', args=[numero_reporte])
+    )
+    qr = qrcode.make(url_verificacion)
+    qr_io = BytesIO()
+    qr.save(qr_io, format='PNG')
+    qr_io.seek(0)
+    qr_img = ImageReader(qr_io)
+    qr_size = 70
+    qr_size = 60
+    qr_x = logo_x + 90  # justo al lado derecho del logo
+    qr_y = logo_y       # misma altura que el logo
+
+    p.drawImage(qr_img, qr_x, qr_y, width=qr_size, height=qr_size, mask='auto')
+    p.setFont("Helvetica", 7)
+    p.drawCentredString(qr_x + qr_size / 2, qr_y - 10, "Escanee el QR para verificar")
+
 
     p.showPage()
     p.save()
@@ -2148,6 +2466,47 @@ def generar_pdf_retiros_general(request):
     buffer.close()
     response.write(pdf)
     return response
+
+
+
+
+
+
+def verificar_reporte_retiros(request, numero_reporte):
+    reporte = get_object_or_404(ReporteRetiroRepuesto, numero_reporte=numero_reporte)
+    # Aplica el filtro guardado si quieres mostrar los mismos retiros
+    retiros = RetiroRepuesto.objects.all()
+    if reporte.filtro:
+        retiros = retiros.filter(
+            Q(trabajador__nombre__icontains=reporte.filtro) |
+            Q(empresa__nombre__icontains=reporte.filtro) |
+            Q(repuesto__nombre__icontains=reporte.filtro) |
+            Q(area__icontains=reporte.filtro) |
+            Q(cantidad__icontains=reporte.filtro) |
+            Q(fecha_retiro__icontains=reporte.filtro)
+        )
+    context = {
+        'retiros': retiros,
+        'numero_reporte': numero_reporte,
+        'fecha_reporte': reporte.fecha_generacion,
+    }
+    return render(request, 'verificacionqr/verificacion_retiros.html', context)
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import RetiroRepuesto, Obrero, ReporteRetiroRepuesto
+from datetime import datetime
+
+def verificar_reporte_retiro(request, numero_reporte, obrero_id):
+    reporte = get_object_or_404(ReporteRetiroRepuesto, numero_reporte=numero_reporte)
+    trabajador = get_object_or_404(Obrero, id=obrero_id)
+    retiros = RetiroRepuesto.objects.filter(reporte=reporte, trabajador=trabajador).order_by('fecha_retiro')
+    return render(request, 'verificacionqr/verificacion_retiro.html', {
+        'numero_reporte': reporte.numero_reporte,
+        'fecha_reporte': reporte.fecha_generacion.strftime('%d/%m/%Y %H:%M'),
+        'retiros': retiros,
+        'trabajador': trabajador,
+    })
 
 
 
@@ -2413,8 +2772,16 @@ def generar_pdf_informes_por_dia(request):
         return HttpResponse('No hay informes para la fecha seleccionada.', status=404)
 
     # Generar QR con un texto (puede ser la fecha, una URL, o lo que desees)
-    qr_data = f'Informe del {fecha.strftime("%Y-%m-%d")}'
-    qr = qrcode.make(qr_data)
+    numero_reporte = f"VR-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    qr_url = request.build_absolute_uri(reverse('verificar_reporte_informe', args=[numero_reporte]))
+
+    
+    qr = qrcode.make(qr_url)
+
+    VerificacionInforme.objects.create(
+    numero_reporte=numero_reporte,
+    fecha=fecha
+    )
     buffer = BytesIO()
     qr.save(buffer, format='PNG')
     qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -2428,16 +2795,16 @@ def generar_pdf_informes_por_dia(request):
     minera_img = f'data:image/png;base64,{minera_base64}'
 
     header_html = f'''
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
         <div style="flex: 0 0 auto;">
-            <img src="{qr_img}" style="width: 90px; height: 90px;">
+            <img src="{qr_img}" style="width: 60px; height: 60px;">
         </div>
         <div style="text-align: center; flex: 1;">
             <h1 style="font-size: 22px; margin-bottom: 5px;">INFORME DIA {fecha.strftime('%d-%m-%Y')}</h1>
             <p style="margin: 0;font-size: 12px;">PAÑOLERO: {request.user.username}</p>
         </div>
         <div style="flex: 0 0 auto;">
-            <img src="{minera_img}" style="width: 90px; height: 90px;">
+            <img src="{minera_img}" style="width: 60px; height: 60px;">
         </div>
     </div>
     '''
@@ -2468,6 +2835,49 @@ def generar_pdf_informes_por_dia(request):
     response['Content-Disposition'] = f'attachment; filename="informes_{fecha}.pdf"'
     return response
 
+from django.shortcuts import render, get_list_or_404
+from .models import Informe
+
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseServerError
+from .models import VerificacionInforme, Informe
+
+def verificar_reporte_informe(request, numero_reporte):
+    try:
+        verificacion = get_object_or_404(VerificacionInforme, numero_reporte=numero_reporte)
+        informes = Informe.objects.filter(fecha=verificacion.fecha)
+
+        return render(request, 'verificacionqr/verificar_reporte_informe.html', {
+            'numero_reporte': numero_reporte,
+            'fecha_reporte': verificacion.fecha,
+            'informes': informes
+        })
+
+    except Exception as e:
+        # Log interno si deseas (no en producción con print)
+        print(f"[ERROR] Verificación fallida para {numero_reporte}: {e}")
+        return HttpResponseServerError("Error interno del servidor.")
+
+
+
+def mi_error_404(request, exception):
+    return render(request, 'app/404.html', status=404)
+
+def mi_error_500(request):
+    return render(request, 'app/500.html', status=500)
+
+
+def verificar_informes_fecha(request, fecha_str):
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except ValueError:
+        return HttpResponse("Fecha inválida", status=400)
+
+    informes = Informe.objects.filter(fecha=fecha).order_by('hora_inicio')
+    return render(request, 'verificacionqr/verificar_informes_fecha.html', {
+        'fecha': fecha,
+        'informes': informes
+    })
 
 
 def listar_informes(request):
