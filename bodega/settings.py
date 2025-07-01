@@ -138,7 +138,6 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -176,7 +175,7 @@ WSGI_APPLICATION = 'bodega.wsgi.application'
 
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 DATABASES = {
     "default": {
@@ -219,7 +218,7 @@ TIME_ZONE = 'America/Santiago'
 
 
 USE_I18N = True
-USE_LI0N = True
+USE_L10N = True
 USE_TZ = True
 
 
