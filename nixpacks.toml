@@ -1,7 +1,7 @@
 [phases.setup]
 nixPkgs = [
-  "python311",  # o python310 si usas otra versión
-  "glib", 
+  "python311",
+  "glib",
   "gobject-introspection",
   "cairo",
   "pango",
@@ -10,4 +10,7 @@ nixPkgs = [
 ]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r requirements.txt"
+]
