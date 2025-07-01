@@ -11,7 +11,7 @@ staticfiles
 # Ignorar entorno virtual
 env/
 
-
+anexos
 # Distribution / packaging
 .Python
 build/
