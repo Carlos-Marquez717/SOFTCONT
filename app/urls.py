@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth.views import logout_then_login
-from . import views
+from . import views_temp as views
 
 urlpatterns = [
     path('informes/pdf/tablas-unidas/', views.generar_pdf_informes_tablas_unidas, name='informes_pdf_tablas_unidas'),
