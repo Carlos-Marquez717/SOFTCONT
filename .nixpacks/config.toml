@@ -1,0 +1,21 @@
+[phases.setup]
+nixPkgs = [
+  "python311", 
+  "python311Packages.pip", 
+  "pkg-config", 
+  "cairo", 
+  "gdk-pixbuf", 
+  "pango", 
+  "glib", 
+  "gobject-introspection", 
+  "libffi"
+]
+
+[phases.build]
+cmds = [
+  "pip install --upgrade pip",
+  "pip install -r requirements.txt"
+]
+
+[start]
+cmd = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn bodega.wsgi"
