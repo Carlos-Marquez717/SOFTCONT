@@ -451,7 +451,7 @@ from django.conf import settings
 from .models import PedidoInsumo, Pedido, Obrero
 
 @login_required
-def generar_pdf_pedido(request, obrero_id):
+def _pedido(request, obrero_id):
     search_term = request.GET.get('buscar')
     pedido_insumos = PedidoInsumo.objects.filter(pedido__solicitante_id=obrero_id)
 
@@ -1071,7 +1071,7 @@ import qrcode
 from datetime import datetime
 
 @login_required
-def generar_pdf_prestamos(request):
+def _prestamos(request):
     search_term = request.GET.get('buscar')
     prestamos_list = Prestamo.objects.all()
 
