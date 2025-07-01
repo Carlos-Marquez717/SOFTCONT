@@ -4457,13 +4457,7 @@ from .models import Pedido, PedidoInsumo
 
 
 
-from django.shortcuts import render
 
-def mi_error_404(request, excption):
-    return render(request, 'app/404.html', status=404)
-
-def mi_error_500(request):
-    return render(request, 'app/500.html', status=500)
 
 
 
