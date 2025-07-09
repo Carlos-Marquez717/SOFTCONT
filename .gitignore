@@ -8,6 +8,7 @@ media
 staticfiles
 
 .env
+.venv
 # Ignorar entorno virtual
 env/
 
