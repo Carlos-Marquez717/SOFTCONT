@@ -8,9 +8,9 @@ media
 staticfiles
 
 .env
-.venv
+
 # Ignorar entorno virtual
-env/
+venv/
 
 anexos
 # Distribution / packaging
