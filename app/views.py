@@ -2744,9 +2744,8 @@ def pedidos_semana(request):
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from .models import Informe
+from .models import Informe, VerificacionInforme
 from django.template.loader import get_template
-from weasyprint import HTML
 from datetime import datetime
 from django.templatetags.static import static
 import os
@@ -2755,6 +2754,12 @@ import qrcode
 import base64
 from io import BytesIO
 
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Paragraph, Frame
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
+from django.urls import reverse
 
 @login_required
 def generar_pdf_informes_por_dia(request):
@@ -2771,67 +2776,53 @@ def generar_pdf_informes_por_dia(request):
     if not informes.exists():
         return HttpResponse('No hay informes para la fecha seleccionada.', status=404)
 
-    # Generar QR con un texto (puede ser la fecha, una URL, o lo que desees)
+    # Generar QR y guardar verificación
     numero_reporte = f"VR-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     qr_url = request.build_absolute_uri(reverse('verificar_reporte_informe', args=[numero_reporte]))
-
-    
     qr = qrcode.make(qr_url)
+    VerificacionInforme.objects.create(numero_reporte=numero_reporte, fecha=fecha)
 
-    VerificacionInforme.objects.create(
-    numero_reporte=numero_reporte,
-    fecha=fecha
-    )
     buffer = BytesIO()
-    qr.save(buffer, format='PNG')
-    qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-    qr_img = f'data:image/png;base64,{qr_base64}'
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    styles = getSampleStyleSheet()
+    y_position = height - 50
 
-    image_path = os.path.join(settings.BASE_DIR, 'app','static', 'app', 'imgenes', 'minera.png')
+    # Cargar imágenes (QR y logo)
+    qr_buffer = BytesIO()
+    qr.save(qr_buffer, format='PNG')
+    qr_buffer.seek(0)
+    qr_image = ImageReader(qr_buffer)
 
-    # Convertir la imagen a base64
-    with open(image_path, 'rb') as img_file:
-        minera_base64 = base64.b64encode(img_file.read()).decode('utf-8')
-    minera_img = f'data:image/png;base64,{minera_base64}'
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'imgenes', 'minera.png')
+    logo_image = ImageReader(logo_path)
 
-    header_html = f'''
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-        <div style="flex: 0 0 auto;">
-            <img src="{qr_img}" style="width: 60px; height: 60px;">
-        </div>
-        <div style="text-align: center; flex: 1;">
-            <h1 style="font-size: 22px; margin-bottom: 5px;">INFORME DIA {fecha.strftime('%d-%m-%Y')}</h1>
-            <p style="margin: 0;font-size: 12px;">PAÑOLERO: {request.user.username}</p>
-        </div>
-        <div style="flex: 0 0 auto;">
-            <img src="{minera_img}" style="width: 60px; height: 60px;">
-        </div>
-    </div>
-    '''
+    # Dibujar encabezado
+    p.drawImage(qr_image, 40, y_position - 60, width=60, height=60)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(width / 2, y_position - 20, f"INFORME DÍA {fecha.strftime('%d-%m-%Y')}")
+    p.setFont("Helvetica", 10)
+    p.drawCentredString(width / 2, y_position - 40, f"PAÑOLERO: {request.user.username}")
+    p.drawImage(logo_image, width - 100, y_position - 60, width=60, height=60)
 
+    y_position -= 100
 
-
-    # Renderizar cada informe y acumular HTML
-    html_parts = []
+    # Renderizar cada informe con plantilla y convertirlo a párrafos
     for informe in informes:
         template = get_template(f'informes/pdf/caso_{informe.caso}.html')
         html = template.render({'informe': informe})
-        html_parts.append(html)
 
-    # Unir encabezado y contenido
-    full_html = f'''
-    <html>
-        <head><meta charset="utf-8"></head>
-        <body>
-            {header_html}
-            {"".join(html_parts)}
-        </body>
-    </html>
-    '''
+        # Convertir el HTML plano a párrafos (limitado)
+        frame = Frame(40, y_position - 500, width - 80, 500, showBoundary=0)
+        story = [Paragraph(html, styles["Normal"])]
 
-    pdf = HTML(string=full_html, base_url=request.build_absolute_uri()).write_pdf()
+        frame.addFromList(story, p)
+        p.showPage()
 
-    response = HttpResponse(pdf, content_type='application/pdf')
+    p.save()
+    buffer.seek(0)
+
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="informes_{fecha}.pdf"'
     return response
 
@@ -4245,20 +4236,57 @@ def extraer_tabla_html(html):
         return html[start:end+8]
     return ''
 
-from weasyprint import HTML
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from .models import Informe
 from django.template.loader import get_template
+from datetime import datetime
 import base64
 import os
-# ...existing imports...
+from django.conf import settings
+from io import BytesIO
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Table, TableStyle, Paragraph, Frame, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
+
+
+def img_to_base64(path):
+    try:
+        with open(path, 'rb') as img_file:
+            ext = os.path.splitext(path)[1].lower()
+            mime = 'image/png' if ext == '.png' else 'image/svg+xml' if ext == '.svg' else 'image/jpeg'
+            return f"data:{mime};base64," + base64.b64encode(img_file.read()).decode()
+    except Exception:
+        return ''
+
+
+def extraer_tabla_html(html):
+    """
+    Método básico para extraer filas de tabla desde el HTML renderizado.
+    Espera estructura simple de tabla, devuelve lista de listas (filas).
+    """
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+    table = soup.find('table')
+    data = []
+
+    if table:
+        for row in table.find_all('tr'):
+            cols = row.find_all(['td', 'th'])
+            data.append([col.get_text(strip=True) for col in cols])
+    return data
+
 
 @login_required
 def generar_pdf_informes_tablas_unidas(request):
-    from .models import Informe
-    from datetime import datetime
-
     fecha_str = request.GET.get('fecha')
     if not fecha_str:
         return HttpResponse('Debe proporcionar una fecha.', status=400)
+
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
     except ValueError:
@@ -4268,62 +4296,133 @@ def generar_pdf_informes_tablas_unidas(request):
     if not informes.exists():
         return HttpResponse('No hay informes para la fecha seleccionada.', status=404)
 
-    tablas_html = []
+    # Rutas de logos
+    base_dir = settings.BASE_DIR
+    logo_izq_path = os.path.join(base_dir, 'app', 'static', 'app', 'imgenes', 'Logo.png')
+    logo_der_path = os.path.join(base_dir, 'app', 'static', 'app', 'imgenes', 'minera.png')
+    logo_izq = ImageReader(logo_izq_path)
+    logo_der = ImageReader(logo_der_path)
+
+    # Preparar PDF
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    styles = getSampleStyleSheet()
+
+    # Cabecera
+    p.drawImage(logo_izq, 40, height - 80, width=60, height=60)
+    p.drawImage(logo_der, width - 100, height - 80, width=60, height=60)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(width / 2, height - 40, f"INFORMES UNIFICADOS - {fecha.strftime('%d-%m-%Y')}")
+
+    y = height - 100
+
+    # Para cada informe, extraer tabla y dibujar
     for informe in informes:
         template = get_template(f'informes/pdf/caso_{informe.caso}.html')
         html_render = template.render({'informe': informe})
-        tabla = extraer_tabla_html(html_render)
-        tablas_html.append(tabla)
+        tabla_data = extraer_tabla_html(html_render)
 
-    # Convertir logos a base64
-    def img_to_base64(path):
-        try:
-            with open(path, 'rb') as img_file:
-                ext = os.path.splitext(path)[1].lower()
-                mime = 'image/png' if ext == '.png' else 'image/svg+xml' if ext == '.svg' else 'image/jpeg'
-                return f"data:{mime};base64," + base64.b64encode(img_file.read()).decode()
-        except Exception as e:
-            return ''
+        if tabla_data:
+            # Aplicar estilo
+            table = Table(tabla_data, repeatRows=1)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ]))
 
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    logo_izq_path = os.path.join(base_dir, 'app', 'static','app', 'imgenes', 'Logo.png')
-    logo_der_path = os.path.join(base_dir, 'app', 'static','app', 'imgenes', 'minera.png')
-    logo_izq_b64 = img_to_base64(logo_izq_path)
-    logo_der_b64 = img_to_base64(logo_der_path)
+            # Centrar tabla con Frame
+            frame = Frame(40, 100, width - 80, y - 150, showBoundary=0)
+            story = [Spacer(1, 10), Paragraph(f"<b>Informe #{informe.id}</b>", styles["Heading4"]), Spacer(1, 6), table]
+            frame.addFromList(story, p)
 
-    context = {
-        'tablas_html': tablas_html,
-        'fecha': fecha,
-        'logo_izq_b64': logo_izq_b64,
-        'logo_der_b64': logo_der_b64,
-    }
-    html_string = get_template('informes/pdf/informes_tablas_unidas.html').render(context)
+            p.showPage()  # Nueva página por tabla (opcional)
 
-    # Guardar el HTML generado para depuración
-    with open(os.path.join(base_dir, 'html_generado_para_pdf.html'), 'w', encoding='utf-8') as f:
-        f.write(html_string)
+    p.save()
+    buffer.seek(0)
 
-    pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename=\"informes_tablas_unidas_{fecha}.pdf\"'
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="informes_tablas_unidas_{fecha}.pdf"'
     return response
+
 
 def listar_informes(request):
     informes = Informe.objects.all().order_by('-fecha')
     return render(request, 'informes/listar.html', {'informes': informes})
 
 from django.template.loader import get_template
-from weasyprint import HTML
 from .models import Informe
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
+from bs4 import BeautifulSoup
+
+
+def extraer_tabla_html(html):
+    """
+    Extrae datos de una tabla HTML (con BeautifulSoup) y los convierte en listas para ReportLab.
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    table = soup.find('table')
+    data = []
+
+    if table:
+        for row in table.find_all('tr'):
+            cols = row.find_all(['td', 'th'])
+            data.append([col.get_text(strip=True) for col in cols])
+    return data
+
+
 @login_required
 def generar_pdf_informe(request, informe_id):
     informe = Informe.objects.get(id=informe_id)
+
+    # Renderiza la plantilla HTML
     template = get_template(f'informes/pdf/caso_{informe.caso}.html')
     html_string = template.render({'informe': informe}, request)
-    pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+
+    # Extraer tabla HTML como estructura de datos
+    tabla_data = extraer_tabla_html(html_string)
+
+    # Crear PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    elements.append(Paragraph(f"<b>Informe #{informe.id}</b>", styles["Title"]))
+    elements.append(Spacer(1, 12))
+
+    if tabla_data:
+        table = Table(tabla_data, repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+        elements.append(table)
+    else:
+        elements.append(Paragraph("No se encontró información de tabla.", styles["Normal"]))
+
+    doc.build(elements)
+
+    pdf = buffer.getvalue()
+    buffer.close()
+
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="informe_{informe.id}.pdf"'
     return response

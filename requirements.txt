@@ -117,4 +117,5 @@ whitenoise==6.7.0
 xhtml2pdf==0.2.16
 yarl==1.9.4
 zopfli==0.2.3
-weasyprint==60.1
+weasyprint==60.2
+cairocffi
