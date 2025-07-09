@@ -56,9 +56,8 @@ urlpatterns = [
     path('pedidos_semana/', views.pedidos_semana, name='pedidos_semana'),
     path('pedidos_mes/', views.pedidos_mes, name='pedidos_mes'),
     path('pedidos_mensuales/', views.pedidos_mensuales, name='pedidos_mensuales'),
-    path('generar_pdf_prestamos/', views.generar_pdf_prestamos, name='generar_pdf_prestamos'),
+    path('generar_pdf_prestamos/', views.generar_pdf_prestamo, name='generar_pdf_prestamos'),
     path('generar_pdf_prestamo/<int:prestamo_id>/', views.generar_pdf_prestamo, name='generar_pdf_prestamo'),
-
     path('lista_utilesaseo/', views.lista_utilesaseo, name='lista_utilesaseo'),
     path('registro_utilesaseo/', views.registro_utilesaseo, name='registro_utilesaseo'),
     path('generar_pdf_utiles_aseo/', views.generar_pdf_utiles_aseo, name='generar_pdf_utiles_aseo'),
