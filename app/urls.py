@@ -1,14 +1,14 @@
 from django.urls import path
-from django.contrib.auth.views import logout_then_login
+
 from . import views
 
 urlpatterns = [
     path('informes/pdf/tablas-unidas/', views.generar_pdf_informes_tablas_unidas, name='informes_pdf_tablas_unidas'),
 
     path('register/', views.register, name='register'),
-    path('logout/', logout_then_login, name='logout'),
+ 
     path('registrar/', views.registrar_trabajador, name='registrar_trabajador'),
-    path('listar/', views.lista_trabajador, name='lista_trabajador'),
+    path('lista_trabajador/', views.lista_trabajador, name='lista_trabajador'),
     path('registro_empresa/', views.registro_empresa, name='registro_empresa'),
     path('lista_empresa/', views.lista_empresa, name='lista_empresa'),
     path('eliminar/<id>/', views.eliminar, name='eliminar'),

@@ -12,6 +12,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include ('app.urls')),
     path('accounts/login/', auth_views.LoginView.as_view(template_name='Registration/login.html')),
+    path('accounts/login/', logout_then_login, name='login'),
     path('logout/', logout_then_login, name='logout'),
     
   
