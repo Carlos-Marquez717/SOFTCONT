@@ -11,8 +11,7 @@ from django.contrib.auth.views import LoginView,logout_then_login
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include ('app.urls')),
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='Registration/login.html')),
-    path('accounts/login/', logout_then_login, name='login'),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='Registration/login.html'), name='login'),
     path('logout/', logout_then_login, name='logout'),
     
   
@@ -22,6 +21,6 @@ urlpatterns = [
 ] 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
