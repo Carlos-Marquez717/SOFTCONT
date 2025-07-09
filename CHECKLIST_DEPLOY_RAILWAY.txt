@@ -1,0 +1,15 @@
+Checklist para despliegue limpio en Railway (Django + Nixpacks)
+
+1. Elimina cualquier archivo de entorno conflictivo (como runtime.txt).
+2. Asegúrate de tener en la raíz:
+   - manage.py
+   - requirements.txt
+   - nixpacks.toml
+   - Procfile
+3. Haz commit y push de todos los cambios recientes.
+4. Elimina el proyecto en Railway y créalo de nuevo desde cero.
+5. Configura las variables de entorno en Railway (usa los valores de tu .env).
+6. Verifica que el repositorio remoto esté actualizado.
+7. Si el error persiste, contacta al soporte de Railway con el mensaje de error y la estructura de tu proyecto.
+
+¡Listo para intentar el despliegue nuevamente!

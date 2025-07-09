@@ -8,6 +8,7 @@ media
 staticfiles
 
 .env
+pip
 
 # Ignorar entorno virtual
 venv/
