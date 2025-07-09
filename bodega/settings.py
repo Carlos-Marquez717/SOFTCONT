@@ -20,7 +20,7 @@ SECRET_KEY = 'django-insecure-=c*xc^a^%l2l%0*m=66o*bxeo*(m2w_n+mb2d@tn8#^awgtpwa
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['.railway.app', 'localhost', '127.0.0.1']
 
 # Edit the following line and place your railway URL, and your custom URL in the array.
 CSRF_TRUSTED_ORIGINS = [
