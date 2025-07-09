@@ -22,10 +22,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.up.railway.app", 
-    # NOTE: Place your custom url here if any
-]
+CSRF_TRUSTED_ORIGINS = ["https://*.railway.app"]
 
 
 LOGIN_REDIRECT_URL = '/'
