@@ -29,6 +29,40 @@ El proyecto esta organizado como un monolito Django modular. Las rutas se separa
 
 Para mas detalle, revisa `ARCHITECTURE.md`.
 
+## Capturas
+
+### Inicio de sesion
+
+![Inicio de sesion](docs/screenshots/01-login.png)
+
+### Panel principal
+
+![Panel principal](docs/screenshots/02-home.png)
+
+### Registro de pedidos
+
+![Registro de pedidos](docs/screenshots/03-registro-pedidos.png)
+
+### Listado y reportes de pedidos
+
+![Listado de pedidos](docs/screenshots/04-listado-pedidos.png)
+
+### Prestamo de herramientas
+
+![Prestamo de herramientas](docs/screenshots/05-prestamos.png)
+
+### Retiro de repuestos
+
+![Retiro de repuestos](docs/screenshots/06-retiro-repuestos.png)
+
+### Utiles de aseo
+
+![Utiles de aseo](docs/screenshots/07-utiles-aseo.png)
+
+### Repuestos
+
+![Repuestos](docs/screenshots/08-repuestos.png)
+
 ## Instalacion local
 
 1. Crear y activar un entorno virtual.
