@@ -4,8 +4,6 @@ import dj_database_url
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from telnetlib import LOGOUT
-from django.conf import settings
 
 load_dotenv()
 
@@ -16,22 +14,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=c*xc^a^%l2l%0*m=66o*bxeo*(m2w_n+mb2d@tn8#^awgtpwa'
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-local-development-key")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-# settings.py
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 
 
-ALLOWED_HOSTS = ["*"]
-
-
-# Edit the following line and place your railway URL, and your custom URL in the array.
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.up.railway.app", 
-    # NOTE: Place your custom url here if any
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "https://*.up.railway.app").split(",")
+    if origin.strip()
 ]
 
 
@@ -41,7 +38,7 @@ LOGOUT_REDIRECT_URL = '/accounts/login'
 IMPORT_EXPORT_USE_TRANSACTIONS = True  
 SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
-SESSION_COOKIE_SECURE = True  # Si estás usando HTTPS
+SESSION_COOKIE_SECURE = not DEBUG
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
@@ -145,7 +142,6 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -182,16 +178,34 @@ WSGI_APPLICATION = 'bodega.wsgi.application'
 
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.environ["PGDATABASE"],
-        "USER": os.environ["PGUSER"],
-        "PASSWORD": os.environ["PGPASSWORD"],
-        "HOST": os.environ["PGHOST"],
-        "PORT": os.environ["PGPORT"],
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
     }
-}
+elif all(os.getenv(key) for key in ("PGDATABASE", "PGUSER", "PGPASSWORD", "PGHOST", "PGPORT")):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "NAME": os.getenv("PGDATABASE"),
+            "USER": os.getenv("PGUSER"),
+            "PASSWORD": os.getenv("PGPASSWORD"),
+            "HOST": os.getenv("PGHOST"),
+            "PORT": os.getenv("PGPORT"),
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 
@@ -224,7 +238,6 @@ TIME_ZONE = 'America/Santiago'
 
 
 USE_I18N = True
-USE_LI0N = True
 USE_TZ = True
 
 
@@ -238,7 +251,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'app/static')]
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles/app')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 

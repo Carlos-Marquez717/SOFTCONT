@@ -2,12 +2,19 @@
 *.pot
 *.pyc
 __pycache__/
+*.sqlite3
 db.sqlite3
 db.sqlite3-journal
-media
-staticfiles
+media/
+staticfiles/
 
 .env
+.env.*
+!.env.example
+env/
+venv/
+.venv/
+pip
 
 
 # Distribution / packaging
