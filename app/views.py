@@ -45,6 +45,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import landscape, letter
 from django.contrib.auth.decorators import login_required
+from .services.pdf import render_template_to_pdf_bytes
 
 @login_required
 def home(request):
@@ -2612,6 +2613,7 @@ from django.core.paginator import Paginator
 
 @login_required
 def render_to_pdf(template_src, context_dict={}):
+    return render_template_to_pdf_bytes(template_src, context_dict)
     template = get_template(template_src)
     html = template.render(context_dict)
     result = BytesIO()

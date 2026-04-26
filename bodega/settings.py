@@ -43,7 +43,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 INSTALLED_APPS = [
-    'app.apps.AppConfig',
+    'app.apps.SoftcontConfig',
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',

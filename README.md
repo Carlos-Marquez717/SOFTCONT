@@ -23,6 +23,12 @@ SOFTCONT es una aplicacion web desarrollada con Django para gestionar solicitude
 - Gunicorn para despliegue
 - Railway como plataforma de despliegue
 
+## Arquitectura
+
+El proyecto esta organizado como un monolito Django modular. Las rutas se separan por dominio dentro de `app/routes/` y la logica reutilizable comienza a vivir en `app/services/`.
+
+Para mas detalle, revisa `ARCHITECTURE.md`.
+
 ## Instalacion local
 
 1. Crear y activar un entorno virtual.
