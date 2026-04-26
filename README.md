@@ -33,35 +33,35 @@ Para mas detalle, revisa `ARCHITECTURE.md`.
 
 ### Inicio de sesion
 
-![Inicio de sesion](docs/screenshots/01-login.png)
+![Inicio de sesion](docs/screenshots/login.png)
 
 ### Panel principal
 
-![Panel principal](docs/screenshots/02-home.png)
+![Panel principal](docs/screenshots/home.png)
 
 ### Registro de pedidos
 
-![Registro de pedidos](docs/screenshots/03-registro-pedidos.png)
+![Registro de pedidos](docs/screenshots/registro-pedidos.png)
 
 ### Listado y reportes de pedidos
 
-![Listado de pedidos](docs/screenshots/04-listado-pedidos.png)
+![Listado de pedidos](docs/screenshots/listado-pedidos.png)
 
 ### Prestamo de herramientas
 
-![Prestamo de herramientas](docs/screenshots/05-prestamos.png)
+![Prestamo de herramientas](docs/screenshots/prestamos.png)
 
 ### Retiro de repuestos
 
-![Retiro de repuestos](docs/screenshots/06-retiro-repuestos.png)
+![Retiro de repuestos](docs/screenshots/retiro-repuestos.png)
 
 ### Utiles de aseo
 
-![Utiles de aseo](docs/screenshots/07-utiles-aseo.png)
+![Utiles de aseo](docs/screenshots/utiles-aseo.png)
 
 ### Repuestos
 
-![Repuestos](docs/screenshots/08-repuestos.png)
+![Repuestos](docs/screenshots/repuestos.png)
 
 ## Instalacion local
 
